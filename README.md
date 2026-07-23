@@ -13,6 +13,72 @@ pnpm dev
 # or
 bun dev
 ```
+src/
+│
+├── app/
+│   └── api/
+│       ├── auth/
+│       ├── foods/
+│       ├── categories/
+│       ├── orders/
+│       ├── customers/
+│       └── settings/
+│
+├── config/
+│   ├── database.ts
+│   ├── env.ts
+│   └── cloudinary.ts
+│
+├── controllers/
+│   ├── auth.controller.ts
+│   ├── food.controller.ts
+│   ├── category.controller.ts
+│   ├── order.controller.ts
+│   └── customer.controller.ts
+│
+├── services/
+│   ├── auth.service.ts
+│   ├── food.service.ts
+│   ├── category.service.ts
+│   ├── order.service.ts
+│   └── customer.service.ts
+│
+├── repositories/
+│   ├── interfaces/
+│   │   ├── IFoodRepository.ts
+│   │   ├── IOrderRepository.ts
+│   │   └── IUserRepository.ts
+│   │
+│   ├── mongodb/
+│   │   ├── food.repository.ts
+│   │   ├── order.repository.ts
+│   │   └── user.repository.ts
+│   │
+│   └── postgres/
+│       ├── food.repository.ts
+│       ├── order.repository.ts
+│       └── user.repository.ts
+│
+├── models/
+│   ├── Food.ts
+│   ├── Order.ts
+│   ├── User.ts
+│   └── Category.ts
+│
+├── prisma/
+│   └── schema.prisma
+│
+├── lib/
+│   ├── jwt.ts
+│   ├── bcrypt.ts
+│   ├── response.ts
+│   └── pagination.ts
+│
+├── middlewares/
+├── validations/
+├── utils/
+├── types/
+└── constants/
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

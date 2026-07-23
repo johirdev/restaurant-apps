@@ -1,0 +1,47 @@
+
+/* ---- max width --- */
+.max-width {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.borders {
+  border: 1px solid red;
+}
+
+/* ----- colors ----- */
+.bg-1{
+  background: #131921;
+}
+.bg-2{
+  background: #232F3E;
+}
+
+.bg-3 {
+  background: #ffed94;
+}
+.bg-4 {
+  background: #FFA41C;
+}
+.bg-5 {
+  background: #FF8400;
+}
+.bg-admin-1{
+  background-color: #232F3E;
+}
+
+.text-primary {
+  color: #0f1111;
+}
+.text-secondary {
+  color: #565959;
+}
+
+.text-highlight {
+  color: #2162a1;
+}
+.text-success {
+  color: #0b7b3c;
+}
+.text-danger {
+  color: #CC0C39;
+}
