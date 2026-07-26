@@ -2,13 +2,14 @@
 "use client";
 
 import { useContext, useState } from "react";
-import Sidebar from "../Layout/Admin/Sidebar/Sidebar";
-import Navbar from "../Layout/Admin/Navbar/Navbar";
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./admin.css";
 import AuthProvider, { AuthContext } from "./AuthProvider";
-
+import LoginAdmin from "../components/DashBoard/Admins/LoginAdmin/LoginAdmin";
+import Navbar from "../Layout/Admin/Navbar/Navbar";
+import Sidebar from "../Layout/Admin/Sidebar/Sidebar";
 
 export default function AdminClient({
   children,
@@ -34,9 +35,9 @@ export default function AdminClient({
 }
 
 function AdminInner({ children, isOpen, handleMenuToggle, handleClose }: any) {
-  // const { token } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
 
-  // if (!token) return <LoginAdmin />;
+  if (!token) return <LoginAdmin />;
 
   return (
     <div

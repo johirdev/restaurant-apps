@@ -4,9 +4,7 @@
 import { useContext, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2"; // ✅ FIXED
-
-import config from "@/app/config/Config";
-import { AuthContext } from "@/app/dashboard/AuthProvider";
+import { AuthContext } from "@/src/app/dashboard/AuthProvider";
 
 interface DeleteModalProps {
   deleteUrl: string;

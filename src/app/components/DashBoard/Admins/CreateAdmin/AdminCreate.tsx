@@ -1,6 +1,5 @@
 'use client'
-import { AuthContext } from "@/app/dashboard/AuthProvider";
-import config from "@/app/config/Config";
+import { AuthContext } from "@/src/app/dashboard/AuthProvider";
 import { useContext, useState } from "react";
 import { toast } from "react-toastify";
 

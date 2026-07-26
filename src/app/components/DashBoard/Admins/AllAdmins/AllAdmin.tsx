@@ -3,11 +3,10 @@
 
 import { useContext, useEffect, useState } from "react";
 import axios from "axios";
-import { DateTimeBd } from "@/app/Layout/utils/DateTimeBd";
+import { DateTimeBd } from "@/src/app/Layout/utils/DateTimeBd";
 import Link from "next/link";
-import DeleteModal from "@/app/Layout/DeleteModal/DeleteModal";
-import { AuthContext } from "@/app/dashboard/AuthProvider";
-import config from "@/app/config/Config";
+import DeleteModal from "@/src/app/Layout/DeleteModal/DeleteModal";
+import { AuthContext } from "@/src/app/dashboard/AuthProvider";
 
 export const AllAdmin = () => {
   const { token } = useContext(AuthContext);
