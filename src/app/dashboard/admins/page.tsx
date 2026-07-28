@@ -1,4 +1,4 @@
-import { AllAdmin } from "../../components/DashBoard/Admins/AllAdmins/AllAdmin";
+import AdminManagement from "../../components/DashBoard/Admins/AdminManagement/AdminManagement";
 import BreadcrumbLink from "../../Layout/Admin/BreadcrumbLink/BreadcrumbLink";
 
 const AllAdminsPage = () => {
@@ -10,7 +10,7 @@ const AllAdminsPage = () => {
           { label: "All Admin" },
         ]}
       />
-      <AllAdmin />
+      <AdminManagement />
     </>
   );
 };

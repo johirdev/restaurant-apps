@@ -183,12 +183,7 @@ const navItems: NavItem[] = [
     icon: Icons.Admin,
     children: [
       {
-        label: "Create Admin",
-        href: "/dashboard/admins/create",
-        icon: Icons.UserPlus,
-      },
-      {
-        label: "Get Admins",
+        label: "Admin List",
         href: "/dashboard/admins",
         icon: Icons.Users,
         badge: 8,

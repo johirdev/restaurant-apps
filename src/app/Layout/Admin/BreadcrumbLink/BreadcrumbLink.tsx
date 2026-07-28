@@ -15,7 +15,7 @@ export default function BreadcrumbLink({ items }: BreadcrumbLinkProps) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="border border-gray-400 p-5 mb-5 rounded-md backdrop-blur-xl sticky top-[-10px] z-30"
+      className="bg-app border-default p-5 mb-5 rounded-md backdrop-blur-xl sticky top-[-12px] z-30"
     >
       <ul className="flex items-center justify-start gap-3">
         {items.map((item, index) => {
@@ -28,7 +28,8 @@ export default function BreadcrumbLink({ items }: BreadcrumbLinkProps) {
                 {index !== 0 && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="fill-slate-500 size-2.5 overflow-visible"
+                    className="size-2.5 overflow-visible"
+                    style={{ fill: "var(--text-muted)" }}
                     viewBox="0 0 451.847 451.847"
                     aria-hidden="true"
                   >
@@ -38,13 +39,13 @@ export default function BreadcrumbLink({ items }: BreadcrumbLinkProps) {
 
                 {/* Item */}
                 {isLast ? (
-                  <span className="text-slate-300 text-sm leading-snug font-medium">
+                  <span className="text-secondary text-sm leading-snug font-medium">
                     {item.label}
                   </span>
                 ) : (
                   <Link
                     href={item.href || "#"}
-                    className="text-slate-100 font-medium text-sm leading-snug hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    className="text-primary font-medium text-sm leading-snug hover:text-highlight focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded transition-colors"
                   >
                     {item.label}
                   </Link>
