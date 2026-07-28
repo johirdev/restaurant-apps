@@ -1,0 +1,69 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import cloudinary from "@/src/config/cloudinary";
+import { NextRequest, NextResponse } from "next/server";
+
+// Buffer/streams নিয়ে কাজ করতে হলে Node.js runtime বাধ্যতামূলক
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (!file.type?.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "Only image files are allowed" },
+        { status: 400 },
+      );
+    }
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const result: any = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream({ folder: "staff" }, (err, result) =>
+          err ? reject(err) : resolve(result),
+        )
+        .end(buffer);
+    });
+
+    return NextResponse.json({
+      url: result.secure_url,
+      public_id: result.public_id,
+    });
+  } catch (err) {
+    console.error("Cloudinary upload error:", err); // 👈 আসল error দেখতে
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Upload failed" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { public_id } = await req.json();
+
+    if (!public_id) {
+      return NextResponse.json(
+        { error: "public_id required" },
+        { status: 400 },
+      );
+    }
+
+    const result = await cloudinary.uploader.destroy(public_id);
+
+    return NextResponse.json({ result });
+  } catch (err) {
+    console.error("Cloudinary delete error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Delete failed" },
+      { status: 500 },
+    );
+  }
+}

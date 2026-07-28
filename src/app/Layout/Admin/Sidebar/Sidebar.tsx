@@ -190,7 +190,7 @@ const navItems: NavItem[] = [
       },
       {
         label: "Staff / Waiters",
-        href: "/dashboard/staff",
+        href: "/dashboard/admins/staff",
         icon: Icons.Staff,
       },
     ],
