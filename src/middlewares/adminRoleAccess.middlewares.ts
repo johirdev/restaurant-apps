@@ -10,6 +10,7 @@ export function verifyTokenAndRole(
 ): { success: boolean; message: string; user?: any } {
   const token =
     req.cookies.get("token")?.value ||
+    req.cookies.get("access_token")?.value ||
     req.headers.get("authorization")?.replace("Bearer ", "");
 
   if (!token) {

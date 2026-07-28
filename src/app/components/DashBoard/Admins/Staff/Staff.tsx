@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { DateTimeBd } from "@/src/app/Layout/utils/DateTimeBd";
 import DeleteModal from "@/src/app/Layout/DeleteModal/DeleteModal";
@@ -125,7 +125,12 @@ export const StaffManagement = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const fetchStaffs = async () => {
+  const fetchStaffs = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await axios.get(`/api/v1/staffs`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -137,15 +142,14 @@ export const StaffManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchStaffs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchStaffs]);
 
   const resetForm = () => {
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM });
     setErrors({});
     setMode("create");
     setEditingId(null);
@@ -181,8 +185,15 @@ export const StaffManagement = () => {
       errs.staff_email = "Valid email address required";
     if (!form.staff_phone || form.staff_phone.length < 8)
       errs.staff_phone = "Valid phone number required";
-    if (!form.staff_password || form.staff_password.length < 6)
+
+    if (mode === "create") {
+      if (!form.staff_password || form.staff_password.length < 6) {
+        errs.staff_password = "Password must be at least 6 characters";
+      }
+    } else if (form.staff_password && form.staff_password.length < 6) {
       errs.staff_password = "Password must be at least 6 characters";
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -265,10 +276,16 @@ export const StaffManagement = () => {
       const { url, public_id } = await uploadImage();
       const payload = {
         ...form,
+        staff_name: form.staff_name.trim(),
+        staff_email: form.staff_email.trim().toLowerCase(),
+        staff_phone: form.staff_phone.trim(),
         staff_image: url,
         staff_image_public_id: public_id,
-      };
-      console.log(url, "image updaslkdfl=>");
+      } as typeof form & { staff_password?: string };
+
+      if (mode === "create" || form.staff_password) {
+        payload.staff_password = form.staff_password;
+      }
       if (mode === "create") {
         const res = await axios.post(`/api/v1/staffs`, payload, {
           headers: { Authorization: `Bearer ${token}` },

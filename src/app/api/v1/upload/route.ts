@@ -4,6 +4,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Buffer/streams নিয়ে কাজ করতে হলে Node.js runtime বাধ্যতামূলক
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const hasCloudinaryConfig = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET,
+);
+
+const toBase64DataUrl = (file: File, buffer: Buffer) => {
+  const base64 = buffer.toString("base64");
+  return `data:${file.type || "image/png"};base64,${base64}`;
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,17 +36,30 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const result: any = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream({ folder: "staff" }, (err, result) =>
-          err ? reject(err) : resolve(result),
-        )
-        .end(buffer);
-    });
+    if (hasCloudinaryConfig) {
+      try {
+        const result: any = await new Promise((resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({ folder: "staff" }, (err, result) =>
+              err ? reject(err) : resolve(result),
+            )
+            .end(buffer);
+        });
+
+        return NextResponse.json({
+          url: result.secure_url,
+          public_id: result.public_id,
+        });
+      } catch (err) {
+        console.warn("Cloudinary upload failed, using base64 fallback", err);
+      }
+    }
+
+    const fallbackUrl = toBase64DataUrl(file, buffer);
 
     return NextResponse.json({
-      url: result.secure_url,
-      public_id: result.public_id,
+      url: fallbackUrl,
+      public_id: "",
     });
   } catch (err) {
     console.error("Cloudinary upload error:", err); // 👈 আসল error দেখতে
