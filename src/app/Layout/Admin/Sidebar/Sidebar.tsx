@@ -39,6 +39,11 @@ const navItems: NavItem[] = [
         icon: Icons.Category,
       },
       {
+        label: "Add Food variation",
+        href: "/dashboard/menu/variation",
+        icon: Icons.FoodItem,
+      },
+      {
         label: "Add Food Item",
         href: "/dashboard/menu/items/create",
         icon: Icons.FoodItem,
