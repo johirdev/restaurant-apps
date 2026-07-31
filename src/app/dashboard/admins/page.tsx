@@ -1,5 +1,6 @@
 import AdminManagement from "../../components/DashBoard/Admins/AdminManagement/AdminManagement";
-import BreadcrumbLink from "../../Layout/Admin/BreadcrumbLink/BreadcrumbLink";
+import BreadcrumbLink from "@/src/app/Layout/Admin/BreadcrumbLink/BreadcrumbLink";
+
 
 const AllAdminsPage = () => {
   return (

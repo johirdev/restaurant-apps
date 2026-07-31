@@ -164,6 +164,11 @@ const navItems: NavItem[] = [
     icon: Icons.Portfolio,
     href: "/dashboard/add-portfolio",
   },
+  {
+    label: "Banner Management",
+    icon: Icons.Portfolio,
+    href: "/dashboard/banners",
+  },
   // {
   //   label: "Blog Management",
   //   icon: Icons.Blog,
