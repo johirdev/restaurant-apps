@@ -49,11 +49,11 @@ const navItems: NavItem[] = [
         href: "/dashboard/menu/all-items",
         icon: Icons.Boxes,
       },
-      {
-        label: "Inventory / Stock",
-        href: "/dashboard/menu/inventory",
-        icon: Icons.Inventory,
-      },
+      // {
+      //   label: "Inventory / Stock",
+      //   href: "/dashboard/menu/inventory",
+      //   icon: Icons.Inventory,
+      // },
     ],
   },
 

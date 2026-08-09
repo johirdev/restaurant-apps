@@ -1,26 +1,152 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   RESTAURANT APP — LIGHT THEME TOKENS
+   পুরো পাবলিক সাইটের রঙ এই একটা জায়গা থেকেই নিয়ন্ত্রিত হয়।
+   একটা hex ভ্যালু বদলালেই পুরো অ্যাপে সব জায়গায় সেই রঙ বদলে যাবে।
+   ========================================================================== */
+@theme {
+  /* ---------- Surfaces ---------- */
+  --color-background: #fbf8f4;   /* page background — warm paper white */
+  --color-surface: #ffffff;      /* cards, modals — pure white pops against paper bg */
+  --color-surface-soft: #f3ece3; /* secondary surface, hover states, subtle sections */
+  --color-border: #e7ddd0;       /* default border / divider */
+  --color-border-strong: #d8c9b6;
+
+  /* ---------- Text ---------- */
+  --color-ink: #241c16;        /* primary text — warm near-black */
+  --color-ink-soft: #6b5d4f;   /* secondary text */
+  --color-ink-faint: #a79684;  /* muted / placeholder text */
+  --color-ink-invert: #ffffff; /* text on dark/colored backgrounds */
+
+  /* ---------- Brand / accent ---------- */
+  --color-spice: #c1441e;        /* primary accent — paprika (CTAs, links, active states) */
+  --color-spice-hover: #a83817;
+  --color-spice-soft: #f7e3da;   /* light tint for badges/backgrounds */
+
+  --color-saffron: #c98a2c;      /* secondary accent — turmeric/mustard */
+  --color-saffron-hover: #ad7423;
+  --color-saffron-soft: #f6e8d2;
+
+  --color-sage: #4c7a5d;         /* success — herb green */
+  --color-sage-soft: #e1ede4;
+
+  --color-brick: #b23a2e;        /* danger / error — deeper brick red */
+  --color-brick-soft: #f5e0dd;
+
+  /* ---------- Radius ---------- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* ---------- Fonts (from layout.tsx next/font variables) ---------- */
+  --font-display: var(--font-display), Georgia, serif;
+  --font-body: var(--font-body), Helvetica Neue, Arial, sans-serif;
+  --font-bengali: var(--font-bengali), var(--font-body);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ==========================================================================
+   BASE
+   ========================================================================== */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+.max-width{
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+::selection {
+  background: var(--color-spice-soft);
+  color: var(--color-spice-hover);
+}
+
+/* ==========================================================================
+   SHARED COMPONENT PATTERNS (public site only — namespaced as `site-*`
+   so these never collide with the admin dashboard's own .btn/.bg-card etc.)
+   ========================================================================== */
+.site-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.site-btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+.site-btn:active {
+  transform: scale(0.98);
+}
+.site-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.site-btn-primary {
+  background: var(--color-spice);
+  color: var(--color-ink-invert);
+}
+.site-btn-primary:hover:not(:disabled) {
+  background: var(--color-spice-hover);
+}
+
+.site-btn-secondary {
+  background: var(--color-saffron-soft);
+  color: var(--color-saffron-hover);
+}
+.site-btn-secondary:hover:not(:disabled) {
+  background: var(--color-saffron);
+  color: var(--color-ink-invert);
+}
+
+.site-btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--color-border-strong);
+  color: var(--color-ink);
+}
+.site-btn-outline:hover:not(:disabled) {
+  background: var(--color-surface-soft);
+}
+
+.site-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
+  border-radius: var(--radius-sm);
+}
+.site-input::placeholder {
+  color: var(--color-ink-faint);
+}
+.site-input:focus {
+  outline: none;
+  border-color: var(--color-spice);
+  box-shadow: 0 0 0 3px var(--color-spice-soft);
+}
+
+.site-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 10px;
+}
+.site-badge-spice {
+  background: var(--color-spice-soft);
+  color: var(--color-spice-hover);
+}
+.site-badge-sage {
+  background: var(--color-sage-soft);
+  color: var(--color-sage);
+}
+.site-badge-brick {
+  background: var(--color-brick-soft);
+  color: var(--color-brick);
 }
