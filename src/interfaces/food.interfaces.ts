@@ -62,6 +62,10 @@ export const ItemsSearchableFields = [
 
 // ---- filter (exact match) fields the frontend is allowed to send ----
 export const ItemsFilterableFields = ["searchTerm", "category_id", "status"];
+
+// ---- range-filter fields — handled separately from exact-match filters ----
+export const ItemsRangeFilterableFields = ["minPrice", "maxPrice"];
+
 export const ItemsPaginationFields = ["page", "limit", "sortBy", "sortOrder"];
 
 export type IFoodUpdate = Partial<Omit<IFood, "variations">>;

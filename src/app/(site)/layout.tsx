@@ -1,4 +1,15 @@
 import type { Metadata } from "next";
+import { Montserrat } from "next/font/google";
+import "../globals.css";
+import Navbar from "../Layout/Client/Navbar/Navbar";
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "900"],
+  style: ["normal"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -10,5 +21,12 @@ export default function SiteLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className="min-h-full flex flex-col">{children}</div>;
+  return (
+    <div
+      className={`${montserrat.variable} min-h-full flex flex-col font-montserrat`}
+    >
+      <Navbar />
+      {children}
+    </div>
+  );
 }

@@ -54,9 +54,11 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
 }
-
+.borders{
+  border: 1px solid red !important;
+}
 .max-width{
-  max-width: 1600px;
+  max-width: 1600px !important;
   margin: 0 auto;
 }
 

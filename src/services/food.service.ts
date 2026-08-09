@@ -73,12 +73,13 @@ const getAllFoods = async (
   filtering: Record<string, any>,
   paginationOption: IPaginationOpton,
 ): Promise<IGenaricRespons<IFoodDocument[]>> => {
-  const { searchTerm, ...filtersData } = filtering;
+  const { searchTerm, minPrice, maxPrice, ...filtersData } = filtering;
 
   const andConditions: Record<string, any>[] = [];
 
   // free-text search across food name + nested variation name/sku/barcode
-  const searchTermString = typeof searchTerm === "string" ? searchTerm.trim() : "";
+  const searchTermString =
+    typeof searchTerm === "string" ? searchTerm.trim() : "";
   if (searchTermString) {
     andConditions.push({
       $or: ItemsSearchableFields.map((field) => ({
@@ -96,14 +97,37 @@ const getAllFoods = async (
     });
   }
 
-  const { page, limit, skip, sortBy, sortOrder } = HelperPagination.calculationPagination(paginationOption);
+  // price range filter — matched against any variation's salePrice
+  const min =
+    minPrice !== undefined && minPrice !== "" ? Number(minPrice) : undefined;
+  const max =
+    maxPrice !== undefined && maxPrice !== "" ? Number(maxPrice) : undefined;
+
+  if (min !== undefined || max !== undefined) {
+    const priceRange: Record<string, number> = {};
+    if (min !== undefined && !Number.isNaN(min)) priceRange.$gte = min;
+    if (max !== undefined && !Number.isNaN(max)) priceRange.$lte = max;
+
+    if (Object.keys(priceRange).length) {
+      andConditions.push({
+        variations: { $elemMatch: { salePrice: priceRange } },
+      });
+    }
+  }
+
+  const { page, limit, skip, sortBy, sortOrder } =
+    HelperPagination.calculationPagination(paginationOption);
 
   const sortConditions: Record<string, SortOrder> = { [sortBy]: sortOrder };
 
-  const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {};
+  const whereConditions =
+    andConditions.length > 0 ? { $and: andConditions } : {};
 
   const [result, total] = await Promise.all([
-    FoodModel.find(whereConditions).sort(sortConditions).skip(skip).limit(limit),
+    FoodModel.find(whereConditions)
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit),
     FoodModel.countDocuments(whereConditions),
   ]);
 
