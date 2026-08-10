@@ -230,7 +230,7 @@ const FoodCategory = ({
         endDrag();
       }}
     >
-      <div className="max-w-[1650px] mx-auto  w-full flex items-center gap-2  rounded-[20px]">
+      <div className="max-w-[1846px] mx-auto  w-full flex items-center gap-2  rounded-[20px]">
         {/* decorative squiggle line running behind the row */}
         <svg
           className="pointer-events-none absolute inset-0 h-full w-full opacity-70"
