@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const folder = String(formData.get("folder") || "staff");
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -40,24 +41,29 @@ export async function POST(req: NextRequest) {
       try {
         const result: any = await new Promise((resolve, reject) => {
           cloudinary.uploader
-            .upload_stream({ folder: "staff" }, (err, result) =>
+            .upload_stream({ folder }, (err, result) =>
               err ? reject(err) : resolve(result),
             )
             .end(buffer);
         });
 
         return NextResponse.json({
+          success: true,
+          message: "Uploaded to Cloudinary",
           url: result.secure_url,
           public_id: result.public_id,
         });
-      } catch (err) {
+      } catch (err: any) {
         console.warn("Cloudinary upload failed, using base64 fallback", err);
+        // fall through to base64 fallback
       }
     }
 
     const fallbackUrl = toBase64DataUrl(file, buffer);
 
     return NextResponse.json({
+      success: true,
+      message: "Uploaded as data URL (Cloudinary unavailable)",
       url: fallbackUrl,
       public_id: "",
     });
@@ -83,7 +89,11 @@ export async function DELETE(req: NextRequest) {
 
     const result = await cloudinary.uploader.destroy(public_id);
 
-    return NextResponse.json({ result });
+    return NextResponse.json({
+      success: true,
+      message: "Deleted from Cloudinary",
+      result,
+    });
   } catch (err) {
     console.error("Cloudinary delete error:", err);
     return NextResponse.json(

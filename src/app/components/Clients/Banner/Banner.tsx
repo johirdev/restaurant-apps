@@ -249,132 +249,132 @@ const BannerClient = () => {
               </div>
 
               {/* ===== RIGHT: circular plate photo ===== */}
+              <div
+                className="hidden z-20 md:flex absolute  -translate-y-[420px] right-[-8%] sm:right-[2%] md:right-[6%] lg:right-[8%]"
+                style={{
+                  opacity: isActive ? 1 : 0,
+                  transform: `translateY(-50%) scale(${isActive ? 1 : 0.92})`,
+                  transition:
+                    "opacity 600ms ease-out, transform 600ms ease-out",
+                  transitionDelay: isActive ? "120ms" : "0ms",
+                }}
+              >
                 <div
-                  className="hidden md:absolute   -translate-y-[420px] right-[-8%] sm:right-[2%] md:right-[6%] lg:right-[8%]"
+                  className="relative rounded-full overflow-hidden"
                   style={{
-                    opacity: isActive ? 1 : 0,
-                    transform: `translateY(-50%) scale(${isActive ? 1 : 0.92})`,
-                    transition:
-                      "opacity 600ms ease-out, transform 600ms ease-out",
-                    transitionDelay: isActive ? "120ms" : "0ms",
+                    width: "clamp(200px, 34vw, 420px)",
+                    height: "clamp(200px, 34vw, 420px)",
+                    background: "#fff",
+                    boxShadow: "0 30px 60px rgba(0,0,0,0.35)",
                   }}
                 >
-                  <div
-                    className="relative rounded-full overflow-hidden"
-                    style={{
-                      width: "clamp(200px, 34vw, 420px)",
-                      height: "clamp(200px, 34vw, 420px)",
-                      background: "#fff",
-                      boxShadow: "0 30px 60px rgba(0,0,0,0.35)",
-                    }}
+                  {/* decorative skeleton chevron shown behind/through the photo */}
+                  <svg
+                    viewBox="0 0 200 200"
+                    className="absolute inset-0 w-full h-full"
+                    aria-hidden="true"
                   >
-                    {/* decorative skeleton chevron shown behind/through the photo */}
-                    <svg
-                      viewBox="0 0 200 200"
-                      className="absolute inset-0 w-full h-full"
-                      aria-hidden="true"
-                    >
-                      <defs>
-                        <clipPath id={`chevron-${banner._id}`}>
-                          <path d="M14,14 L186,14 L186,88 L100,192 L14,88 Z" />
-                        </clipPath>
-                      </defs>
-                      <g clipPath={`url(#chevron-${banner._id})`}>
-                        <rect width="200" height="200" fill="#ffffff" />
-                        {Array.from({ length: 9 }).map((_, si) => (
-                          <rect
-                            key={si}
-                            x="0"
-                            y={si * 24}
-                            width="200"
-                            height="11"
-                            fill={BRAND_RED}
-                            opacity="0.28"
-                          />
-                        ))}
-                      </g>
-                    </svg>
-
-                    {banner.food_image && (
-                      <img
-                        src={banner.food_image}
-                        alt=""
-                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-                        style={{ opacity: isActive ? 1 : 0.15 }}
-                      />
-                    )}
-
-                    {/* left edge quality/check badge */}
-                    <div
-                      className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-white/90 flex items-center justify-center shadow-md"
-                      aria-hidden="true"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke={GREEN}
-                        strokeWidth={3}
-                      >
-                        <path
-                          d="M5 13l4 4L19 7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                    <defs>
+                      <clipPath id={`chevron-${banner._id}`}>
+                        <path d="M14,14 L186,14 L186,88 L100,192 L14,88 Z" />
+                      </clipPath>
+                    </defs>
+                    <g clipPath={`url(#chevron-${banner._id})`}>
+                      <rect width="200" height="200" fill="#ffffff" />
+                      {Array.from({ length: 9 }).map((_, si) => (
+                        <rect
+                          key={si}
+                          x="0"
+                          y={si * 24}
+                          width="200"
+                          height="11"
+                          fill={BRAND_RED}
+                          opacity="0.28"
                         />
-                      </svg>
-                    </div>
+                      ))}
+                    </g>
+                  </svg>
 
-                    {/* bottom notch pointer */}
-                    <div
-                      className="absolute left-1/2 -bottom-[9px] -translate-x-1/2 w-0 h-0"
-                      style={{
-                        borderLeft: "9px solid transparent",
-                        borderRight: "9px solid transparent",
-                        borderTop: "10px solid #ffffff",
-                        filter: "drop-shadow(0 3px 3px rgba(0,0,0,0.25))",
-                      }}
-                      aria-hidden="true"
+                  {banner.food_image && (
+                    <img
+                      src={banner.food_image}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                      style={{ opacity: isActive ? 1 : 0.15 }}
                     />
+                  )}
+
+                  {/* left edge quality/check badge */}
+                  <div
+                    className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-white/90 flex items-center justify-center shadow-md"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={GREEN}
+                      strokeWidth={3}
+                    >
+                      <path
+                        d="M5 13l4 4L19 7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </div>
 
-                  {/* price bubble + dashed line, anchored to the circle's top-right */}
-                  {banner.price_offer && (
+                  {/* bottom notch pointer */}
+                  <div
+                    className="absolute left-1/2 -bottom-[9px] -translate-x-1/2 w-0 h-0"
+                    style={{
+                      borderLeft: "9px solid transparent",
+                      borderRight: "9px solid transparent",
+                      borderTop: "10px solid #ffffff",
+                      filter: "drop-shadow(0 3px 3px rgba(0,0,0,0.25))",
+                    }}
+                    aria-hidden="true"
+                  />
+                </div>
+
+                {/* price bubble + dashed line, anchored to the circle's top-right */}
+                {banner.price_offer && (
+                  <div
+                    className="absolute top-[6%] left-[78%] sm:left-[80%] flex items-center"
+                    style={{
+                      opacity: isActive ? 1 : 0,
+                      transition: "opacity 500ms ease-out",
+                      transitionDelay: isActive ? "320ms" : "0ms",
+                    }}
+                  >
                     <div
-                      className="absolute top-[6%] left-[78%] sm:left-[80%] flex items-center"
+                      className="flex flex-col items-center justify-center rounded-full text-white text-center shadow-lg flex-shrink-0"
                       style={{
-                        opacity: isActive ? 1 : 0,
-                        transition: "opacity 500ms ease-out",
-                        transitionDelay: isActive ? "320ms" : "0ms",
+                        width: "clamp(56px, 8vw, 78px)",
+                        height: "clamp(56px, 8vw, 78px)",
+                        background: GREEN,
+                        border: "3px solid rgba(255,255,255,0.5)",
                       }}
                     >
-                      <div
-                        className="flex flex-col items-center justify-center rounded-full text-white text-center shadow-lg flex-shrink-0"
-                        style={{
-                          width: "clamp(56px, 8vw, 78px)",
-                          height: "clamp(56px, 8vw, 78px)",
-                          background: GREEN,
-                          border: "3px solid rgba(255,255,255,0.5)",
-                        }}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-medium opacity-90 leading-none">
-                          Only
-                        </span>
-                        <span className="text-[13px] sm:text-base font-extrabold leading-none mt-0.5">
-                          {banner.price_offer}
-                        </span>
-                      </div>
-                      <span
-                        className="hidden sm:block h-px flex-shrink-0"
-                        style={{
-                          width: "clamp(60px, 8vw, 160px)",
-                          background:
-                            "repeating-linear-gradient(90deg, rgba(255,255,255,0.7) 0 8px, transparent 8px 14px)",
-                        }}
-                      />
+                      <span className="text-[9px] sm:text-[10px] font-medium opacity-90 leading-none">
+                        Only
+                      </span>
+                      <span className="text-[13px] sm:text-base font-extrabold leading-none mt-0.5">
+                        {banner.price_offer}
+                      </span>
                     </div>
-                  )}
-                </div>
+                    <span
+                      className="hidden sm:block h-px flex-shrink-0"
+                      style={{
+                        width: "clamp(60px, 8vw, 160px)",
+                        background:
+                          "repeating-linear-gradient(90deg, rgba(255,255,255,0.7) 0 8px, transparent 8px 14px)",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

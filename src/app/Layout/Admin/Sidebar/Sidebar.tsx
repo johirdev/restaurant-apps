@@ -163,7 +163,7 @@ const navItems: NavItem[] = [
   {
     label: "Video Management",
     icon: Icons.Portfolio,
-    href: "/dashboard/add-portfolio",
+    href: "/dashboard/add-video-blog",
   },
   {
     label: "Banner Management",
@@ -197,6 +197,11 @@ const navItems: NavItem[] = [
       {
         label: "Staff / Waiters",
         href: "/dashboard/admins/staff",
+        icon: Icons.Staff,
+      },
+      {
+        label: "Discount Banner",
+        href: "/dashboard/admins/discount-banner",
         icon: Icons.Staff,
       },
     ],
