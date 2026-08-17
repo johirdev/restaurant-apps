@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 interface VariationImage {
@@ -346,10 +347,22 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
               <button
                 type="button"
                 onClick={handleBuyNow}
-                className="h-10 rounded-full border border-gray-800 text-gray-800 text-[12px] font-semibold tracking-wide hover:bg-gray-800 hover:text-white transition-colors"
+                className="h-10 rounded-full cursor-pointer border border-gray-800 text-gray-800 text-[12px] font-semibold tracking-wide hover:bg-gray-800 hover:text-white transition-colors"
               >
                 BUY IT NOW
               </button>
+              <Link
+                className="h-10 rounded-full cursor-pointer flex items-center justify-center text-center border border-green-800 text-green-800 text-[12px] font-semibold tracking-wide hover:bg-green-800 hover:text-white transition-colors"
+                href={`/foods/${food?._id}`}
+              >
+                <button
+                  type="button"
+                  className="cursor-pointer"
+                  onClick={handleBuyNow}
+                >
+                  BUY IT NOW
+                </button>
+              </Link>
             </div>
           </div>
         </div>

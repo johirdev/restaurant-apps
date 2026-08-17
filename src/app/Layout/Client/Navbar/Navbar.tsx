@@ -1,8 +1,13 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import axios from "axios";
+import toast from "react-hot-toast"; // adjust to your existing toast import
 
 interface DropdownItem {
   label: string;
@@ -25,28 +30,45 @@ interface Category {
   status?: "active" | "inactive";
 }
 
+interface FoodVariation {
+  _id: string;
+  name?: string;
+  regularPrice?: number;
+  salePrice?: number;
+  discountType?: "flat" | "percentage";
+  discountValue?: number;
+  is_default?: boolean;
+  status?: "active" | "inactive";
+  images?: { url?: string; [key: string]: any }[];
+}
+
+interface Food {
+  _id: string;
+  name: string;
+  image?: string;
+  category_id?: string;
+  category_name?: string;
+  status?: "active" | "inactive";
+  variations?: FoodVariation[];
+}
+
 interface NavLink {
   label: string;
   href: string;
   dropdown?: DropdownItem[];
-  isCategoryMenu?: boolean; // marks the "Food Menu" style dynamic dropdown
+  isCategoryMenu?: boolean;
 }
 
 interface NavbarProps {
   cartCount?: number;
   navLinks?: NavLink[];
-  onSearchClick?: () => void;
   onUserClick?: () => void;
   onCartClick?: () => void;
 }
 
 const DEFAULT_LINKS: NavLink[] = [
   { label: "Home", href: "/" },
-  {
-    label: "Food Menu",
-    href: "/menu",
-    isCategoryMenu: true,
-  },
+  { label: "Food Menu", href: "/menu", isCategoryMenu: true },
   { label: "Foods", href: "/foods" },
   { label: "About", href: "/about" },
   { label: "career", href: "/career" },
@@ -55,14 +77,16 @@ const DEFAULT_LINKS: NavLink[] = [
 const BRAND_RED = "#fff";
 const CART_PINK = "#EB4468";
 const BADGE_YELLOW = "#F5B93D";
+const SEARCH_DEBOUNCE_MS = 3000;
 
 const Navbar = ({
   cartCount = 0,
   navLinks = DEFAULT_LINKS,
-  onSearchClick,
   onUserClick,
   onCartClick,
 }: NavbarProps) => {
+  const router = useRouter();
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopDropdown, setDesktopDropdown] = useState<string | null>(null);
   const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
@@ -73,10 +97,19 @@ const Navbar = ({
   const [catLoading, setCatLoading] = useState(true);
   const [catError, setCatError] = useState(false);
 
+  // ===== search state =====
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [foods, setFoods] = useState<Food[]>([]);
+  const [foodLoading, setFoodLoading] = useState(false);
+  const [foodSearched, setFoodSearched] = useState(false);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ===== fetch categories =====
   useEffect(() => {
     let cancelled = false;
-
     const fetchCategories = async () => {
       try {
         const res = await axios.get(`/api/v1/categories`);
@@ -94,31 +127,89 @@ const Navbar = ({
         if (!cancelled) setCatLoading(false);
       }
     };
-
     fetchCategories();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // close the desktop dropdown when clicking outside it
+  // close desktop dropdown on outside click, close search panel on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
         setDesktopDropdown(null);
+      }
+      if (
+        searchPanelRef.current &&
+        !searchPanelRef.current.contains(e.target as Node)
+      ) {
+        setSearchOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // lock body scroll while the mobile menu is open
+  // lock body scroll while mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  // focus input when search panel opens
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 200);
+      return () => clearTimeout(t);
+    } else {
+      setSearchTerm("");
+      setFoods([]);
+      setFoodSearched(false);
+    }
+  }, [searchOpen]);
+
+  // ===== debounced fetch (3s after typing stops) =====
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!searchTerm.trim()) {
+      setFoods([]);
+      setFoodSearched(false);
+      setFoodLoading(false);
+      return;
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      fetchFoods(searchTerm.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchTerm]);
+
+  const fetchFoods = async (term: string) => {
+    try {
+      setFoodLoading(true);
+      const params: Record<string, any> = {
+        page: 1,
+        limit: 12,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        searchTerm: term,
+      };
+      const res = await axios.get(`/api/v1/foods`, { params });
+      setFoods(res.data.data || []);
+    } catch {
+      toast.error("Failed to load menu items");
+      setFoods([]);
+    } finally {
+      setFoodLoading(false);
+      setFoodSearched(true);
+    }
+  };
 
   const openDropdown = (label: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -132,6 +223,42 @@ const Navbar = ({
 
   const hasDropdown = (link: NavLink) =>
     !!link.dropdown || !!link.isCategoryMenu;
+
+  const handleSearchToggle = () => {
+    setSearchOpen((o) => !o);
+    setMobileOpen(false);
+    setDesktopDropdown(null);
+  };
+
+  const goToFood = (id: string) => {
+    setSearchOpen(false);
+    router.push(`/food/${id}`);
+  };
+
+  // pick the default variation, fallback to first active one, then first one
+  const getVariation = (f: Food): FoodVariation | undefined => {
+    if (!f.variations || f.variations.length === 0) return undefined;
+    return (
+      f.variations.find((v) => v.is_default) ??
+      f.variations.find((v) => v.status === "active") ??
+      f.variations[0]
+    );
+  };
+
+  const priceOf = (f: Food) => getVariation(f)?.regularPrice ?? 0;
+
+  const discountOf = (f: Food) => {
+    const v = getVariation(f);
+    if (!v) return undefined;
+    if (typeof v.salePrice === "number") return v.salePrice;
+    if (v.discountType && v.discountValue) {
+      const regular = v.regularPrice ?? 0;
+      return v.discountType === "flat"
+        ? regular - v.discountValue
+        : Math.round(regular - (regular * v.discountValue) / 100);
+    }
+    return undefined;
+  };
 
   return (
     <header
@@ -203,7 +330,6 @@ const Navbar = ({
                 </Link>
               )}
 
-              {/* ---- static dropdown ---- */}
               {link.dropdown && desktopDropdown === link.label && (
                 <div className="absolute left-0 top-full mt-3 w-52 rounded-md bg-white py-2 shadow-xl">
                   {link.dropdown.map((item) => (
@@ -219,7 +345,6 @@ const Navbar = ({
                 </div>
               )}
 
-              {/* ---- dynamic category dropdown (Food Menu) ---- */}
               {link.isCategoryMenu && desktopDropdown === link.label && (
                 <div className="absolute left-1/2 top-full mt-3 w-[560px] -translate-x-1/2 rounded-lg bg-white p-4 shadow-xl">
                   {catLoading ? (
@@ -282,9 +407,9 @@ const Navbar = ({
         <div className="flex items-center gap-3 sm:gap-4 lg:gap-5 flex-shrink-0">
           <button
             type="button"
-            onClick={onSearchClick}
+            onClick={handleSearchToggle}
             aria-label="Search"
-            className="hidden sm:flex text-black hover:text-black/80 transition-colors"
+            className={`flex text-black transition-colors ${searchOpen ? "text-[#E5302A]" : "hover:text-black/80"}`}
           >
             <svg
               width="20"
@@ -346,15 +471,17 @@ const Navbar = ({
             </span>
           </button>
 
-          {/* hamburger — mobile/tablet only */}
           <button
             type="button"
-            onClick={() => setMobileOpen((o) => !o)}
+            onClick={() => {
+              setMobileOpen((o) => !o);
+              setSearchOpen(false);
+            }}
             aria-label="Toggle menu"
             className="flex lg:hidden flex-col items-center justify-center gap-[5px] w-8 h-8 flex-shrink-0"
           >
             <span
-              className="block h-[2px] w-6 bg-white transition-all"
+              className="block h-[2px] w-6 bg-black transition-all"
               style={{
                 transform: mobileOpen
                   ? "translateY(7px) rotate(45deg)"
@@ -362,11 +489,11 @@ const Navbar = ({
               }}
             />
             <span
-              className="block h-[2px] w-6 bg-white transition-all"
+              className="block h-[2px] w-6 bg-black transition-all"
               style={{ opacity: mobileOpen ? 0 : 1 }}
             />
             <span
-              className="block h-[2px] w-6 bg-white transition-all"
+              className="block h-[2px] w-6 bg-black transition-all"
               style={{
                 transform: mobileOpen
                   ? "translateY(-7px) rotate(-45deg)"
@@ -377,18 +504,42 @@ const Navbar = ({
         </div>
       </div>
 
-      {/* ===== Mobile slide-down menu ===== */}
+      {/* ===== Animated search panel ===== */}
       <div
-        className="lg:hidden overflow-hidden transition-[max-height] duration-300 ease-in-out bg-white"
-        style={{ maxHeight: mobileOpen ? 520 : 0 }}
+        ref={searchPanelRef}
+        className="overflow-hidden border-t border-neutral-100 bg-white shadow-lg transition-[max-height,opacity] duration-300 ease-in-out"
+        style={{
+          maxHeight: searchOpen ? 640 : 0,
+          opacity: searchOpen ? 1 : 0,
+        }}
       >
-        <div className="px-4 py-3 sm:px-6 max-h-[70vh] overflow-y-auto">
-          {/* search + account row, shown here since header icons are hidden below sm */}
-          <div className="flex sm:hidden items-center gap-4 pb-3 mb-2 border-b border-neutral-100">
+        <div className="mx-auto max-width px-4 py-4 max-w-[600px] sm:px-6 lg:px-10">
+          <div className="relative flex items-center w-full sm:w-[600px] mx-auto">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              className="absolute left-3 text-neutral-400"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search food items..."
+              className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-10 text-[14px] text-neutral-800 outline-none transition-colors focus:border-[#E5302A] focus:bg-white"
+            />
             <button
               type="button"
-              onClick={onSearchClick}
-              className="flex items-center gap-2 text-[13px] font-medium text-neutral-600"
+              onClick={() => setSearchOpen(false)}
+              aria-label="Close search"
+              className="absolute right-3 text-neutral-400 hover:text-neutral-700"
             >
               <svg
                 width="16"
@@ -398,11 +549,97 @@ const Navbar = ({
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
               </svg>
-              Search
             </button>
+          </div>
+
+          {/* results */}
+          <div className="mt-4 max-h-[420px] overflow-y-auto">
+            {foodLoading ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2">
+                    <div className="aspect-square w-full animate-pulse rounded-lg bg-neutral-200" />
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-200" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-neutral-200" />
+                  </div>
+                ))}
+              </div>
+            ) : foods.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                {foods.map((food) => {
+                  const regular = priceOf(food);
+                  const discount = discountOf(food);
+                  const hasDiscount = !!discount && discount < regular;
+                  return (
+                    <button
+                      key={food._id}
+                      type="button"
+                      onClick={() => goToFood(food._id)}
+                      className="group flex flex-col items-start text-left"
+                    >
+                      <span className="aspect-square w-full overflow-hidden rounded-lg bg-neutral-100">
+                        {food.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={food.image}
+                            alt={food.name}
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-[11px] text-neutral-400">
+                            No image
+                          </span>
+                        )}
+                      </span>
+                      <span className="mt-2 line-clamp-2 text-[13px] font-semibold text-neutral-800 group-hover:text-[#E5302A]">
+                        {food.name}
+                      </span>
+                      <span className="mt-1 flex items-center gap-2">
+                        {hasDiscount ? (
+                          <>
+                            <span className="text-[13px] font-bold text-[#E5302A]">
+                              ৳{discount}
+                            </span>
+                            <span className="text-[12px] text-neutral-400 line-through">
+                              ৳{regular}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[13px] font-bold text-neutral-800">
+                            ৳{regular}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : foodSearched ? (
+              <p className="py-6 text-center text-[13px] text-neutral-500">
+                No food items found for {`"${searchTerm}"`}.
+              </p>
+            ) : searchTerm.trim() ? (
+              <p className="py-6 text-center text-[13px] text-neutral-400">
+                Searching in 3s...
+              </p>
+            ) : (
+              <p className="py-6 text-center text-[13px] text-neutral-400">
+                Start typing to search food items.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Mobile slide-down menu ===== */}
+      <div
+        className="lg:hidden overflow-hidden transition-[max-height] duration-300 ease-in-out bg-white"
+        style={{ maxHeight: mobileOpen ? 520 : 0 }}
+      >
+        <div className="px-4 py-3 sm:px-6 max-h-[70vh] overflow-y-auto">
+          <div className="flex sm:hidden items-center gap-4 pb-3 mb-2 border-b border-neutral-100">
             <button
               type="button"
               onClick={onUserClick}
@@ -454,7 +691,6 @@ const Navbar = ({
                     </svg>
                   </button>
 
-                  {/* static dropdown items */}
                   {link.dropdown && (
                     <div
                       className="overflow-hidden transition-[max-height] duration-300"
@@ -475,7 +711,6 @@ const Navbar = ({
                     </div>
                   )}
 
-                  {/* dynamic category items (Food Menu) */}
                   {link.isCategoryMenu && (
                     <div
                       className="overflow-hidden transition-[max-height] duration-300"
