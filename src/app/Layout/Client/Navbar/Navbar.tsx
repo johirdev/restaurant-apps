@@ -68,7 +68,7 @@ interface NavbarProps {
 
 const DEFAULT_LINKS: NavLink[] = [
   { label: "Home", href: "/" },
-  { label: "Food Menu", href: "/menu", isCategoryMenu: true },
+  { label: "Menu", href: "/menu", isCategoryMenu: true },
   { label: "Foods", href: "/foods" },
   { label: "About", href: "/about" },
   { label: "career", href: "/career" },

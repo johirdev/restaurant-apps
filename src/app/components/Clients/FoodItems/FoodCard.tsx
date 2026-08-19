@@ -163,22 +163,22 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
             )}
           </div>
         </div>
+        <Link href={`/foods/${food?._id}`}>
+          <h3 className="mt-4 text-[13px] font-bold tracking-wide text-gray-800 uppercase leading-snug">
+            {food.name}
+          </h3>
 
-        <h3 className="mt-4 text-[13px] font-bold tracking-wide text-gray-800 uppercase leading-snug">
-          {food.name}
-        </h3>
-
-        <p className="mt-1 text-[13px]">
-          {cardDiscount > 0 && (
-            <span className="line-through text-gray-400 mr-2">
-              {defaultVariation.regularPrice.toFixed(2)}৳
+          <p className="mt-1 text-[13px]">
+            {cardDiscount > 0 && (
+              <span className="line-through text-gray-400 mr-2">
+                {defaultVariation.regularPrice.toFixed(2)}৳
+              </span>
+            )}
+            <span className="text-red-600 font-bold">
+              {defaultVariation.salePrice.toFixed(2)}৳
             </span>
-          )}
-          <span className="text-red-600 font-bold">
-            {defaultVariation.salePrice.toFixed(2)}৳
-          </span>
-        </p>
-
+          </p>
+        </Link>
         {/* action buttons */}
         <div className="w-full flex flex-col mt-4">
           <button
