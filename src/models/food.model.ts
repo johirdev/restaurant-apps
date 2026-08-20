@@ -62,6 +62,12 @@ const foodSchema = new Schema<IFoodDocument>(
     name: { type: String, required: true, trim: true },
     category_id: { type: Schema.Types.ObjectId, ref: "Category" },
     category_name: { type: String, trim: true, default: "" },
+    description: { type: String, default: "" },
+    view: { type: Number, default: 1, min: 0 },
+    total_review: { type: Number, default: 1, min: 0 },
+    review_rating: { type: Number, default: 3.2, min: 0, max: 5 },
+    branch_id: { type: String, trim: true, default: "" },
+    branch_name: { type: String, trim: true, default: "" },
 
     image: { type: String, default: "" },
     image_public_id: { type: String, default: "" },

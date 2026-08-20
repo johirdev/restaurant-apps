@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 // src/app/(site)/foods/[id]/FoodDetails.tsx
 "use client";
 
@@ -11,7 +11,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ChevronRight,
-  ChevronDown,
   Flame,
   Clock,
   ChefHat,
@@ -23,9 +22,8 @@ import {
   AlertTriangle,
   CalendarClock,
   Star,
-  MessageSquare,
-  User,
-  X,
+  Eye,
+  MapPin,
 } from "lucide-react";
 import {
   Food,
@@ -33,6 +31,7 @@ import {
   FoodApiResponse,
 } from "@/src/app/(site)/foods/[id]/FoodDetails.types";
 import FoodsSlider from "../FoodsSlider/FoodsSlider";
+import ReviewSection from "./ReviewSection";
 
 const SPICE_LEVELS: Record<string, number> = {
   mild: 1,
@@ -65,15 +64,6 @@ const formatRelativeTime = (dateStr: string) => {
   });
 };
 
-// ---------------- Reviews (local UI — wire to your own API) ----------------
-interface Review {
-  _id: string;
-  name: string;
-  rating: number; // 1-5
-  comment: string;
-  createdAt: string;
-}
-
 interface FoodDetailsProps {
   id: string;
   initialFood: Food | null;
@@ -96,15 +86,8 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "description" | "nutrition" | "chef"
-  >("description");
-
-  // reviews
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
-  const [showAllReviews, setShowAllReviews] = useState(false);
-  const [writeOpen, setWriteOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"description" | "nutrition" | "chef">("description");
+ 
 
   useEffect(() => {
     if (food) return;
@@ -138,27 +121,6 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     };
   }, [id, food]);
 
-  // fetch reviews — fails quietly (empty state) if the endpoint doesn't exist yet
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/v1/foods/${id}/reviews`);
-        const json = await res.json();
-        if (!cancelled && res.ok && Array.isArray(json?.data)) {
-          setReviews(json.data);
-        }
-      } catch {
-        // no reviews API yet — that's fine, empty state handles it
-      } finally {
-        if (!cancelled) setReviewsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
   const activeVariation: FoodVariation | null = useMemo(() => {
     if (!food) return null;
     return (
@@ -175,7 +137,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
   const galleryImages = useMemo(() => {
     if (activeVariation && activeVariation.images.length > 0) {
-      return activeVariation.images.map((img: { url: any }) => img.url);
+      return activeVariation.images.map((img) => img.url);
     }
     return food?.image ? [food.image] : [];
   }, [activeVariation, food]);
@@ -194,19 +156,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
   const total = activeVariation ? activeVariation.salePrice * quantity : 0;
   const isSpicy = getSpiceCount(activeVariation?.spice_level) >= 2;
 
-  const avgRating = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    return reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-  }, [reviews]);
-
-  const ratingCounts = useMemo(() => {
-    const counts = [0, 0, 0, 0, 0]; // index 0 = 5 stars ... index 4 = 1 star
-    reviews.forEach((r) => {
-      const idx = 5 - Math.round(r.rating);
-      if (idx >= 0 && idx <= 4) counts[idx]++;
-    });
-    return counts;
-  }, [reviews]);
+  const hasRating = !!food && (food.total_review ?? 0) > 0;
 
   const handleQuantity = (delta: number) => {
     if (!activeVariation) return;
@@ -224,29 +174,6 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     setJustAdded(true);
     // 🛒 cart integration goes here (context / zustand store call)
     setTimeout(() => setJustAdded(false), 1600);
-  };
-
-  const handleReviewSubmit = async (review: {
-    name: string;
-    rating: number;
-    comment: string;
-  }) => {
-    const optimistic: Review = {
-      _id: `local-${Date.now()}`,
-      ...review,
-      createdAt: new Date().toISOString(),
-    };
-    setReviews((prev) => [optimistic, ...prev]);
-    setWriteOpen(false);
-    try {
-      await fetch(`/api/v1/foods/${id}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(review),
-      });
-    } catch {
-      // optimistic update already applied; silently ignore network errors here
-    }
   };
 
   // ---------- Loading skeleton ----------
@@ -281,7 +208,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
         </p>
         <Link
           href="/"
-          className="mt-2 rounded-full bg-[#E63950] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#E63950]/25 transition hover:bg-[#C92C42]"
+          className="mt-2 rounded-full bg-[#E21B70] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#E21B70]/25 transition hover:bg-[#C92C42]"
         >
           Back to Menu
         </Link>
@@ -293,24 +220,24 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     <>
       <div className="min-h-screen bg-[#FFFBF7] pb-28 lg:pb-16">
         {/* Breadcrumb */}
-        <div className="mx-auto flex max-width items-center gap-1.5 px-4 pt-5 text-xs text-[#8A7F72] lg:px-10">
+        <div className="mx-auto flex max-width items-center gap-1.5 overflow-x-auto whitespace-nowrap px-4 pt-5 text-xs text-[#8A7F72] lg:px-10">
           <Link
             href="/"
-            className="transition hover:text-[#E63950] text-[14px] cursor-pointer"
+            className="flex-shrink-0 transition hover:text-[#E21B70] text-[13px] sm:text-[14px] cursor-pointer"
           >
             Home
           </Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="transition hover:text-[#E63950] text-[14px] cursor-pointer">
+          <ChevronRight className="h-3 w-3 flex-shrink-0" />
+          <span className="flex-shrink-0 transition hover:text-[#E21B70] text-[13px] sm:text-[14px] cursor-pointer">
             {food.category_name}
           </span>
-          <ChevronRight className="h-3 w-3" />
-          <span className="truncate font-medium text-[#161B33] text-[14px] cursor-pointer">
+          <ChevronRight className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate font-medium text-[#161B33] text-[13px] sm:text-[14px] cursor-pointer">
             {food.name}
           </span>
         </div>
 
-        <div className="mx-auto pb-10 grid max-width gap-10 px-4 pt-6 lg:grid-cols-2 lg:gap-16 lg:px-10">
+        <div className="mx-auto pb-10 grid max-width gap-8 px-4 pt-6 sm:gap-10 lg:grid-cols-2 lg:gap-16 lg:px-10">
           {/* ---------------- Circular plate gallery ---------------- */}
           <div className="relative flex flex-col items-center">
             <button
@@ -321,11 +248,11 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
               <ArrowLeft className="h-5 w-5" />
             </button>
 
-            <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-72 w-72  bg-gradient-to-br from-[#FFE9D6] via-[#FFF3EA] to-transparent blur-2xl lg:h-96 lg:w-96" />
+            <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-56 w-56 bg-gradient-to-br from-[#FFE9D6] via-[#FFF3EA] to-transparent blur-2xl sm:h-72 sm:w-72 lg:h-96 lg:w-96" />
 
-            <div className="relative z-[1] aspect-square w-full max-w-[600px]">
-              <div className="relative h-full w-full overflow-hidden  p-2  ring-1 ring-black/5">
-                <div className="relative h-full w-full overflow-hidden ">
+            <div className="relative z-[1] aspect-square w-full max-h-[600px] bg-[#eef3f9]">
+              <div className="relative h-full w-full overflow-hidden p-2 ring-1 ring-black/5">
+                <div className="relative h-full w-full overflow-hidden  ">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={galleryImages[activeImageIdx]}
@@ -341,7 +268,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                         fill
                         priority
                         sizes="(min-width: 1024px) 700px, 90vw"
-                        className="object-cover"
+                        className="object-contain"
                       />
                     </motion.div>
                   </AnimatePresence>
@@ -363,7 +290,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                   </span>
                 )}
                 {discountPercent > 0 && inStock && (
-                  <span className="rounded-full bg-[#E63950] px-3 py-1 text-[11px] font-bold text-white shadow-md">
+                  <span className="rounded-full bg-[#E21B70] px-3 py-1 text-[11px] font-bold text-white shadow-md">
                     -{discountPercent}%
                   </span>
                 )}
@@ -371,18 +298,18 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             </div>
 
             {galleryImages.length > 1 && (
-              <div className="relative z-[1] mt-6 flex  w-full justify-center gap-3 max-w-[600px]">
+              <div className="relative z-[1] mt-6 flex w-full max-w-[600px] flex-wrap justify-center gap-3">
                 {galleryImages.map((img, idx) => (
                   <button
                     key={img + idx}
                     onClick={() => setActiveImageIdx(idx)}
-                    className={`relative h-[120px] w-[120px] shrink-0 overflow-hidden  bg-white p-0.5 shadow-md ring-2 transition ${
+                    className={`relative h-[80px] w-[80px] shrink-0 overflow-hidden bg-white p-0.5 shadow-md ring-2 transition sm:h-[100px] sm:w-[100px] lg:h-[120px] lg:w-[120px] ${
                       idx === activeImageIdx
-                        ? "ring-[#E63950]"
+                        ? "ring-[#E21B70]"
                         : "ring-transparent opacity-70 hover:opacity-100"
                     }`}
                   >
-                    <div className="relative h-full w-full overflow-hidden ">
+                    <div className="relative h-full w-full overflow-hidden">
                       <Image
                         src={img}
                         alt={`${food.name} ${idx + 1}`}
@@ -399,20 +326,35 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
           {/* ---------------- Details ---------------- */}
           <div className="space-y-6 lg:pt-4">
             <div>
-              <span className="text-[12px] md:text-[14px] font-bold uppercase tracking-widest text-[#1F9D55]">
-                {food.category_name}
-              </span>
-              <h1 className="mt-1 text-[18px] md:text-[24px] font-extrabold leading-tight text-[#161B33] ">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[12px] md:text-[14px] font-bold uppercase tracking-widest text-[#1F9D55]">
+                  {food.category_name}
+                </span>
+                {food.branch_name && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#8A7F72]">
+                    <MapPin className="h-3 w-3" />
+                    {food.branch_name}
+                  </span>
+                )}
+              </div>
+              <h1 className="mt-1 text-[18px] md:text-[24px] font-extrabold leading-tight text-[#161B33]">
                 {food.name}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#8A7F72]">
-                {reviews.length > 0 && (
+                {hasRating && (
                   <span className="flex items-center gap-1 font-semibold text-[#161B33]">
                     <Star className="h-3.5 w-3.5 fill-[#F5B93D] text-[#F5B93D]" />
-                    {avgRating.toFixed(1)}
+                    {food.review_rating}
                     <span className="font-normal text-[#8A7F72]">
-                      ({reviews.length} review{reviews.length > 1 ? "s" : ""})
+                      ({food.total_review} review
+                      {food.total_review > 1 ? "s" : ""})
                     </span>
+                  </span>
+                )}
+                {typeof food.view === "number" && (
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="h-3.5 w-3.5" />
+                    {food.view} views
                   </span>
                 )}
                 <span className="flex items-center gap-1.5">
@@ -424,16 +366,16 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
             {/* info chips */}
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[14px] md:text-[16px] font-medium text-[#161B33] shadow-sm ring-1 ring-[#F0E9E1]">
-                <Clock className="h-3.5 w-3.5 text-[#E63950]" />
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[#161B33] shadow-sm ring-1 ring-[#F0E9E1]">
+                <Clock className="h-3.5 w-3.5 text-[#E21B70]" />
                 {activeVariation.preparationTime} min
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[14px] md:text-[16px] font-medium text-[#161B33] shadow-sm ring-1 ring-[#F0E9E1]">
-                <ChefHat className="h-3.5 w-3.5 text-[#E63950]" />
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[#161B33] shadow-sm ring-1 ring-[#F0E9E1]">
+                <ChefHat className="h-3.5 w-3.5 text-[#E21B70]" />
                 {activeVariation.kitchen_chef}
               </span>
               {getSpiceCount(activeVariation.spice_level) > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#EAF7EF] px-3 py-1.5 text-[14px] md:text-[16px] font-medium text-[#1F9D55] shadow-sm ring-1 ring-[#D3EEDD]">
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#EAF7EF] px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[#1F9D55] shadow-sm ring-1 ring-[#D3EEDD]">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <Flame
                       key={i}
@@ -459,11 +401,11 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
             {/* price */}
             <div className="flex items-end gap-3">
-              <span className="text-[24px] md:text-[36px] font-extrabold text-[#E63950]">
+              <span className="text-[24px] md:text-[36px] font-extrabold text-[#E21B70]">
                 ৳{activeVariation.salePrice}
               </span>
               {savings > 0 && (
-                <span className="pb-1 text-[20px] md:text-[30px] text-[#B7AB9C] line-through">
+                <span className="pb-1 text-[18px] md:text-[28px] text-[#B7AB9C] line-through">
                   ৳{activeVariation.regularPrice}
                 </span>
               )}
@@ -472,7 +414,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             {/* variation selector */}
             {food.variations.length > 1 && (
               <div>
-                <p className="mb-2 text-[14px] md:text-[16px] font-bold uppercase tracking-wider text-[#8A7F72]">
+                <p className="mb-2 text-[13px] md:text-[16px] font-bold uppercase tracking-wider text-[#8A7F72]">
                   Choose a size
                 </p>
                 <div className="flex flex-wrap gap-3">
@@ -487,22 +429,22 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                           onClick={() => setActiveVariationId(v._id)}
                           className={`relative rounded-md border-2 px-4 py-2.5 text-left transition ${
                             isActive
-                              ? "border-[#E63950] bg-[#FFF1F3]"
+                              ? "border-[#E21B70] bg-[#FFF1F3]"
                               : "border-[#F0E9E1] bg-white hover:border-[#E6DACB]"
                           }`}
                         >
                           <span
-                            className={`block text-sm font-bold ${isActive ? "text-[#E63950]" : "text-[#161B33]"}`}
+                            className={`block text-sm font-bold ${isActive ? "text-[#E21B70]" : "text-[#161B33]"}`}
                           >
                             {v.name}
                           </span>
-                          <span className="block text-[14px] md:text-[16px] text-[#8A7F72]">
+                          <span className="block text-[13px] md:text-[16px] text-[#8A7F72]">
                             ৳{v.salePrice}
                           </span>
                           {isActive && (
                             <motion.span
                               layoutId="variation-dot"
-                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#E63950] shadow-sm"
+                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#E21B70] shadow-sm"
                             >
                               <Check
                                 className="h-3 w-3 text-white"
@@ -534,7 +476,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             </div>
 
             {/* trust row under gallery — desktop only, fills the empty space nicely */}
-            <div className="relative z-[1] mt-8 hidden w-full  grid-cols-3 gap-3 lg:grid">
+            <div className="relative z-[1] mt-8 hidden w-full grid-cols-3 gap-3 lg:grid">
               <TrustBadge label="Freshly made" />
               <TrustBadge label="Hygienic kitchen" />
               <TrustBadge label="Fast delivery" />
@@ -543,15 +485,15 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
         </div>
 
         {/* ---------------- Tabbed details section ---------------- */}
-        <div className="mx-auto mt-14 max-width px-4 lg:px-10">
-          <div className="flex gap-2 border-b border-[#F0E9E1]">
+        <div className="mx-auto mt-10 max-width px-4 lg:mt-14 lg:px-10">
+          <div className="flex gap-1 overflow-x-auto border-b border-[#F0E9E1] sm:gap-2">
             {(["description", "nutrition", "chef"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-3 text-sm font-semibold transition ${
+                className={`relative flex-shrink-0 px-3 py-3 text-xs font-semibold transition sm:px-4 sm:text-sm ${
                   activeTab === tab
-                    ? "text-[#E63950]"
+                    ? "text-[#E21B70]"
                     : "text-[#8A7F72] hover:text-[#161B33]"
                 }`}
               >
@@ -563,7 +505,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                 {activeTab === tab && (
                   <motion.span
                     layoutId="tab-underline"
-                    className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#E63950]"
+                    className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#E21B70]"
                   />
                 )}
               </button>
@@ -579,8 +521,8 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                 >
-                  <p>
-                    {(food as any).description ||
+                  <p className="whitespace-pre-line">
+                    {food.description ||
                       `${food.name} is prepared fresh to order in the ${food.category_name} section of our kitchen, using quality ingredients and traditional techniques for a consistently great taste every time.`}
                   </p>
                 </motion.div>
@@ -591,7 +533,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="grid grid-cols-2 gap-4 sm:grid-cols-4"
+                  className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4"
                 >
                   <NutritionStat
                     label="Serving"
@@ -619,7 +561,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                   exit={{ opacity: 0 }}
                   className="flex items-center gap-4"
                 >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF1F3] text-[#E63950]">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF1F3] text-[#E21B70]">
                     <ChefHat className="h-6 w-6" />
                   </span>
                   <div>
@@ -637,113 +579,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
           </div>
         </div>
 
-        {/* ---------------- Reviews ---------------- */}
-        <div className="mx-auto mt-4 max-width border-t border-[#F0E9E1] px-4 pt-10 lg:px-10">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-xl font-extrabold text-[#161B33]">
-              Customer Reviews
-            </h2>
-            <button
-              onClick={() => setWriteOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-[#E63950] px-4 py-2 text-xs font-bold text-[#E63950] transition hover:bg-[#FFF1F3]"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Write a Review
-            </button>
-          </div>
-
-          {reviewsLoading ? (
-            <div className="mt-6 animate-pulse space-y-3">
-              <div className="h-20 rounded-2xl bg-[#F1E9DE]" />
-              <div className="h-20 rounded-2xl bg-[#F1E9DE]" />
-            </div>
-          ) : reviews.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-[#E6DACB] bg-white px-6 py-10 text-center">
-              <MessageSquare
-                className="mx-auto h-8 w-8 text-[#C9BCAE]"
-                strokeWidth={1.5}
-              />
-              <p className="mt-3 text-sm font-medium text-[#161B33]">
-                No reviews yet
-              </p>
-              <p className="mt-1 text-xs text-[#8A7F72]">
-                Be the first to share what you thought of this dish.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
-              {/* summary */}
-              <div className="flex flex-col items-start gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-[#F0E9E1] lg:sticky lg:top-6 lg:self-start">
-                <div>
-                  <p className="text-4xl font-extrabold text-[#161B33]">
-                    {avgRating.toFixed(1)}
-                  </p>
-                  <div className="mt-1 flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${i < Math.round(avgRating) ? "fill-[#F5B93D] text-[#F5B93D]" : "text-[#E6DACB]"}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="mt-1 text-xs text-[#8A7F72]">
-                    Based on {reviews.length} review
-                    {reviews.length > 1 ? "s" : ""}
-                  </p>
-                </div>
-
-                <div className="w-full space-y-1.5">
-                  {ratingCounts.map((count, i) => {
-                    const stars = 5 - i;
-                    const pct = reviews.length
-                      ? Math.round((count / reviews.length) * 100)
-                      : 0;
-                    return (
-                      <div
-                        key={stars}
-                        className="flex items-center gap-2 text-xs text-[#8A7F72]"
-                      >
-                        <span className="w-8 flex-shrink-0">{stars} star</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F0E9E1]">
-                          <div
-                            className="h-full rounded-full bg-[#F5B93D]"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="w-7 flex-shrink-0 text-right">
-                          {count}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* list */}
-              <div className="space-y-4">
-                {(showAllReviews ? reviews : reviews.slice(0, 3)).map(
-                  (review) => (
-                    <ReviewCard key={review._id} review={review} />
-                  ),
-                )}
-                {reviews.length > 3 && (
-                  <button
-                    onClick={() => setShowAllReviews((s) => !s)}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#E63950] hover:underline"
-                  >
-                    {showAllReviews
-                      ? "Show less"
-                      : `Show all ${reviews.length} reviews`}
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${showAllReviews ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
+        <ReviewSection foodId={food._id} foodName={food.name} />
         {/* ---------------- Sticky mobile CTA ---------------- */}
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[#F0E9E1] bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md lg:hidden">
           <div className="mx-auto flex max-w-6xl items-center gap-3">
@@ -764,16 +600,6 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             </div>
           </div>
         </div>
-
-        {/* ---------------- Write a review modal ---------------- */}
-        <AnimatePresence>
-          {writeOpen && (
-            <WriteReviewModal
-              onClose={() => setWriteOpen(false)}
-              onSubmit={handleReviewSubmit}
-            />
-          )}
-        </AnimatePresence>
       </div>
       <FoodsSlider />
     </>
@@ -785,157 +611,18 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 const TrustBadge = ({ label }: { label: string }) => (
   <div className="flex flex-col items-center gap-1.5 rounded-md bg-white px-3 py-3 text-center shadow-sm ring-1 ring-[#F0E9E1]">
     <Check className="text-[14px] h-4 w-4 text-[#1F9D55]" strokeWidth={3} />
-    <span className="text-[14px] font-medium text-[#8A7F72]">{label}</span>
+    <span className="text-[13px] font-medium text-[#8A7F72]">{label}</span>
   </div>
 );
 
 const NutritionStat = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-md bg-white p-4 text-center shadow-sm ring-1 ring-[#F0E9E1]">
-    <p className="text-[14px] font-bold capitalize text-[#161B33]">{value}</p>
-    <p className="mt-1 text-[14px] uppercase tracking-wide text-[#8A7F72]">
+    <p className="text-[13px] font-bold capitalize text-[#161B33]">{value}</p>
+    <p className="mt-1 text-[11px] uppercase tracking-wide text-[#8A7F72]">
       {label}
     </p>
   </div>
 );
-
-const ReviewCard = ({ review }: { review: Review }) => (
-  <div className="rounded-md bg-white p-4 shadow-sm ring-1 ring-[#F0E9E1]">
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#FFF1F3] text-[#E63950]">
-          <User className="h-4 w-4" />
-        </span>
-        <div>
-          <p className="text-[14px] font-bold text-[#161B33]">{review.name}</p>
-          <p className="text-[14px] text-[#8A7F72]">
-            {formatRelativeTime(review.createdAt)}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-0.5 flex-shrink-0">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className={`h-3.5 w-3.5 ${i < review.rating ? "fill-[#F5B93D] text-[#F5B93D]" : "text-[#E6DACB]"}`}
-          />
-        ))}
-      </div>
-    </div>
-    <p className="mt-3 text-sm leading-relaxed text-[#4A4238]">
-      {review.comment}
-    </p>
-  </div>
-);
-
-const WriteReviewModal = ({
-  onClose,
-  onSubmit,
-}: {
-  onClose: () => void;
-  onSubmit: (review: { name: string; rating: number; comment: string }) => void;
-}) => {
-  const [name, setName] = useState("");
-  const [rating, setRating] = useState(5);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState("");
-
-  const canSubmit = name.trim().length > 0 && comment.trim().length > 0;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        transition={{ duration: 0.2 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-extrabold text-[#161B33]">
-            Write a Review
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-[#8A7F72] transition hover:text-[#161B33]"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-[#8A7F72]">
-              Your Rating
-            </label>
-            <div className="flex gap-1.5">
-              {Array.from({ length: 5 }).map((_, i) => {
-                const value = i + 1;
-                const filled = value <= (hoverRating || rating);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onMouseEnter={() => setHoverRating(value)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => setRating(value)}
-                  >
-                    <Star
-                      className={`h-7 w-7 transition ${filled ? "fill-[#F5B93D] text-[#F5B93D]" : "text-[#E6DACB]"}`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-[#8A7F72]">
-              Your Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Jane Doe"
-              className="w-full rounded-xl border border-[#F0E9E1] px-3.5 py-2.5 text-sm text-[#161B33] outline-none transition focus:border-[#E63950]"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-[#8A7F72]">
-              Your Review
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              placeholder="Tell us what you thought..."
-              className="w-full resize-none rounded-xl border border-[#F0E9E1] px-3.5 py-2.5 text-sm text-[#161B33] outline-none transition focus:border-[#E63950]"
-            />
-          </div>
-
-          <button
-            disabled={!canSubmit}
-            onClick={() =>
-              canSubmit &&
-              onSubmit({ name: name.trim(), rating, comment: comment.trim() })
-            }
-            className="w-full rounded-full bg-[#E63950] py-3 text-sm font-bold text-white transition hover:bg-[#C92C42] disabled:cursor-not-allowed disabled:bg-[#F0E9E1] disabled:text-[#B7AB9C]"
-          >
-            Submit Review
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
 
 const QuantityStepper = ({
   quantity,
@@ -991,10 +678,10 @@ const AddToCartButton = ({
         ? "cursor-not-allowed bg-[#F0E9E1] text-[#B7AB9C]"
         : justAdded
           ? "bg-[#1F9D55] text-white"
-          : "bg-[#E63950] text-white shadow-lg shadow-[#E63950]/25 hover:bg-[#C92C42]"
+          : "bg-[#E21B70] text-white shadow-lg shadow-[#E21B70]/25 hover:bg-[#C92C42]"
     }`}
   >
-    <AnimatePresence  mode="wait" initial={false}>
+    <AnimatePresence mode="wait" initial={false}>
       {justAdded ? (
         <motion.span
           key="added"

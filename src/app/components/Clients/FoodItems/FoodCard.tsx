@@ -27,14 +27,21 @@ interface VariationApi {
 
 export interface FoodItem {
   _id: string;
-  name: string;
+  branch_id?: string;
+  branch_name?: string;
   category_id?: string;
   category_name?: string;
+  name: string;
+  description?: string;
   image?: string;
   image_public_id?: string;
   status?: "active" | "inactive";
+  review_rating?: number; // average, e.g. 4.6
+  total_review?: number; // count of reviews behind that average
+  view?: number; // page/card view count
   variations: VariationApi[];
   createdAt?: string;
+  updatedAt?: string;
 }
 
 interface FoodCardProps {
@@ -43,36 +50,84 @@ interface FoodCardProps {
   onBuyNow?: (food: FoodItem, variation: VariationApi, qty: number) => void;
 }
 
-const SteamIcon = () => (
+const StarRating = ({
+  rating,
+  size = 14,
+}: {
+  rating: number;
+  size?: number;
+}) => {
+  const pct = Math.max(0, Math.min(100, (rating / 5) * 100));
+  return (
+    <span
+      className="relative inline-block leading-none tracking-[1.5px]"
+      style={{ fontSize: size }}
+    >
+      <span className="text-gray-200">★★★★★</span>
+      <span
+        className="absolute inset-0 overflow-hidden text-amber-400"
+        style={{ width: `${pct}%` }}
+      >
+        ★★★★★
+      </span>
+    </span>
+  );
+};
+
+const EyeIcon = () => (
   <svg
-    width="34"
-    height="16"
-    viewBox="0 0 34 16"
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
     fill="none"
-    className="text-red-500"
+    stroke="currentColor"
+    strokeWidth={2}
   >
     <path
-      d="M4 14c2-3-2-5 0-8s-2-5 0-8"
-      stroke="currentColor"
-      strokeWidth="1.6"
+      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
       strokeLinecap="round"
-      fill="none"
+      strokeLinejoin="round"
     />
-    <path
-      d="M17 14c2-3-2-5 0-8s-2-5 0-8"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      fill="none"
-    />
-    <path
-      d="M30 14c2-3-2-5 0-8s-2-5 0-8"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      fill="none"
-    />
+    <circle cx="12" cy="12" r="3" />
   </svg>
+);
+
+/** Rating + review count + view count — used in both the card and the modal. */
+const FoodMeta = ({
+  rating,
+  totalReview,
+  view,
+  starSize = 12,
+  textSize = "text-[10.5px]",
+}: {
+  rating: number;
+  totalReview: number;
+  view?: number;
+  starSize?: number;
+  textSize?: string;
+}) => (
+  <div className="flex items-center flex-wrap justify-start gap-x-3 gap-y-1">
+    {totalReview > 0 ? (
+      <>
+        <div className="flex items-center gap-1.5">
+          <StarRating rating={rating} size={starSize} />
+          <span className={`${textSize} text-gray-500 font-medium`}>
+            {rating.toFixed(1)} ({totalReview})
+          </span>
+        </div>
+      </>
+    ) : (
+      <span className={`${textSize} text-gray-400 font-medium`}>
+        No reviews yet
+      </span>
+    )}
+    {typeof view === "number" && (
+      <span className={`flex items-center gap-1 ${textSize} text-gray-400`}>
+        <EyeIcon />
+        {view}
+      </span>
+    )}
+  </div>
 );
 
 const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
@@ -104,6 +159,11 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
     [activeVariation],
   );
 
+  const rating = food.review_rating ?? 0;
+  const totalReview = food.total_review ?? 0;
+  const hasDescription =
+    !!food.description && food.description.trim().length > 0;
+
   const openModal = () => {
     setSelectedVariationId(defaultVariation?._id || "");
     setQty(1);
@@ -126,21 +186,16 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
   return (
     <>
       {/* ---------------- CARD ---------------- */}
-      <div className="group bg-white rounded-[26px] shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.10)] transition-shadow duration-300 px-5 pt-3 pb-5 flex flex-col items-center text-center">
-        {/* steam icon — hidden until hover, fades + slides down in */}
-        <div className="h-4 mb-1 flex items-center justify-center opacity-0 -translate-y-1.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-out">
-          <SteamIcon />
-        </div>
-
+      <div className="group rounded-[26px] transition-shadow duration-300 px-4 sm:px-5 pt-3 pb-5 flex flex-col items-center text-center">
         <div
-          className="relative w-full aspect-square cursor-pointer"
+          className="relative overflow-hidden w-full aspect-square bg-[#eef3f9] max-h-[288px] cursor-pointer"
           onClick={openModal}
         >
           {cardImage ? (
             <img
               src={cardImage}
               alt={food.name}
-              className="w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+              className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
               loading="lazy"
             />
           ) : (
@@ -162,9 +217,18 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
               </span>
             )}
           </div>
+
+          {/* view count */}
+          {typeof food.view === "number" && (
+            <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-medium text-white">
+              <EyeIcon />
+              {food.view}
+            </span>
+          )}
         </div>
-        <Link href={`/foods/${food?._id}`}>
-          <h3 className="mt-4 text-[13px] font-bold tracking-wide text-gray-800 uppercase leading-snug">
+
+        <Link href={`/foods/${food?._id}`} className="w-full">
+          <h3 className="mt-4 text-[13px] font-bold tracking-wide text-gray-800 uppercase leading-snug line-clamp-2">
             {food.name}
           </h3>
 
@@ -179,39 +243,32 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
             </span>
           </p>
         </Link>
+
+        {/* rating + review count (real data) */}
+        <div className="mt-2">
+          <FoodMeta rating={rating} totalReview={totalReview} />
+        </div>
+
         {/* action buttons */}
         <div className="w-full flex flex-col mt-4">
           <button
             type="button"
             onClick={handleAddToCart}
-            className="w-full cursor-pointer border border-gray-800 text-gray-800 rounded-full text-[11px] font-semibold tracking-wide py-2.5 hover:bg-gray-800 hover:text-white transition-colors duration-300"
+            className="w-full cursor-pointer border border-[#E21B70] text-[#E21B70] rounded-sm text-[12px] font-bold tracking-wide py-2.5 hover:bg-[#E21B70] hover:text-white transition-colors duration-300"
           >
             ADD TO CART
           </button>
-
-          {/* View Details — collapsed by default, expands smoothly on hover */}
-          {/* <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-out">
-            <div className="overflow-hidden">
-              <button
-                type="button"
-                onClick={openModal}
-                className="w-full text-gray-500 rounded-full text-[11px] font-semibold tracking-wide pt-2.5 pb-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75 hover:text-gray-800"
-              >
-                VIEW DETAILS
-              </button>
-            </div>
-          </div> */}
         </div>
       </div>
 
       {/* ---------------- QUICK VIEW MODAL ---------------- */}
       {modalOpen && activeVariation && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4"
           onClick={closeModal}
         >
           <div
-            className="bg-white rounded-2xl max-w-3xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden relative shadow-xl"
+            className="bg-white rounded-2xl max-w-3xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden relative shadow-xl max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -224,7 +281,7 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
             </button>
 
             {/* image */}
-            <div className="relative bg-gray-50 aspect-square md:aspect-auto flex items-center justify-center p-6">
+            <div className="relative max-h-[460px] bg-[#eef3f9] aspect-square md:aspect-auto flex items-center justify-center p-4 sm:p-6">
               {modalImage ? (
                 <img
                   src={modalImage}
@@ -242,17 +299,33 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
             </div>
 
             {/* details */}
-            <div className="p-6 md:p-7 flex flex-col gap-4">
+            <div className="p-5 sm:p-6 md:p-7 flex flex-col gap-4">
               <div>
-                {food.category_name && (
-                  <span className="text-[11px] font-semibold tracking-wide text-red-600 uppercase">
-                    {food.category_name}
-                  </span>
-                )}
-                <h2 className="text-xl font-bold text-gray-900 mt-0.5 leading-snug">
+                <div className="flex items-center flex-wrap gap-2">
+                  {food.category_name && (
+                    <span className="text-[11px] font-semibold tracking-wide text-red-600 uppercase">
+                      {food.category_name}
+                    </span>
+                  )}
+                  {food.branch_name && (
+                    <span className="text-[11px] font-medium text-gray-400">
+                      📍 {food.branch_name}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mt-0.5 leading-snug">
                   {food.name}
                 </h2>
               </div>
+
+              {/* rating + review count + view (real data) */}
+              <FoodMeta
+                rating={rating}
+                totalReview={totalReview}
+                view={food.view}
+                starSize={15}
+                textSize="text-[12px]"
+              />
 
               <p className="text-lg leading-none">
                 {modalDiscount > 0 && (
@@ -269,6 +342,13 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
                   </span>
                 )}
               </p>
+
+              {/* short description */}
+              {hasDescription && (
+                <p className="text-[13px] leading-relaxed text-gray-500 line-clamp-3">
+                  {food.description}
+                </p>
+              )}
 
               <hr className="border-gray-100" />
 
@@ -294,9 +374,7 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
                         >
                           {v.name}
                           <span
-                            className={`ml-1.5 ${
-                              isActive ? "text-gray-300" : "text-gray-400"
-                            }`}
+                            className={`ml-1.5 ${isActive ? "text-gray-300" : "text-gray-400"}`}
                           >
                             {v.salePrice.toFixed(0)}৳
                           </span>
@@ -314,8 +392,8 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
                   </span>
                 )}
 
-              <div className="flex items-center gap-3 mt-1">
-                <div className="flex items-center border border-gray-200 rounded-full">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-1">
+                <div className="flex items-center justify-center border border-gray-200 rounded-full w-fit mx-auto sm:mx-0">
                   <button
                     type="button"
                     onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -360,7 +438,7 @@ const FoodCard = ({ food, onAddToCart, onBuyNow }: FoodCardProps) => {
                   className="cursor-pointer"
                   onClick={handleBuyNow}
                 >
-                  BUY IT NOW
+                  VIEW FULL DETAILS
                 </button>
               </Link>
             </div>

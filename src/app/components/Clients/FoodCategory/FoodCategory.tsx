@@ -251,7 +251,7 @@ const FoodCategory = ({
           type="button"
           aria-label="Scroll left"
           onClick={() => scrollByAmount(-260)}
-          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#e5484d] text-white shadow-[0_4px_10px_rgba(229,72,77,0.35)] transition hover:scale-[1.06] hover:bg-[#cf3d42] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
+          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#E21B70] text-white  transition hover:scale-[1.06] hover:bg-[#e21b71b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
         >
           <svg
             viewBox="0 0 24 24"
@@ -297,12 +297,12 @@ const FoodCategory = ({
                     type="button"
                     key={category._id}
                     onClick={() => handleCategoryClick(category)}
-                    className="flex w-[104px] flex-shrink-0 scroll-ml-9 flex-col items-center gap-2 text-center [scroll-snap-align:start] sm:w-[104px] sm:scroll-ml-10 sm:gap-2.5 md:w-[140px] md:scroll-ml-14 lg:w-[300px] lg:scroll-ml-16"
+                    className="flex cursor-pointer group w-[104px] flex-shrink-0 scroll-ml-9 flex-col items-center gap-2 text-center [scroll-snap-align:start] sm:w-[104px] sm:scroll-ml-10 sm:gap-2.5 md:w-[140px] md:scroll-ml-14 lg:w-[300px] lg:scroll-ml-16"
                   >
                     <span
                       className={`group relative flex h-[104px] w-[104px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-50 to-sky-100 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_10px_22px_rgba(0,0,0,0.14)] sm:h-[96px] sm:w-[96px] md:h-[130px] md:w-[130px] lg:h-[300px] lg:w-[300px] ${
                         active
-                          ? "outline outline-[3px] outline-offset-[3px] outline-[#e5484d]"
+                          ? "outline outline-[3px] outline-offset-[3px] outline-[#E21B70]"
                           : ""
                       }`}
                     >
@@ -326,7 +326,7 @@ const FoodCategory = ({
                         </span>
                       )}
                     </span>
-                    <span className="text-[10px] font-bold uppercase leading-tight tracking-wide text-neutral-800 sm:text-[11px] md:text-[13px] lg:text-[14px]">
+                    <span className="group-hover:text-[#E21B70] text-[10px] font-bold uppercase leading-tight tracking-wide sm:text-[11px] md:text-[13px] lg:text-[14px]">
                       {category.name}
                     </span>
                   </button>
@@ -340,7 +340,7 @@ const FoodCategory = ({
           type="button"
           aria-label="Scroll right"
           onClick={() => scrollByAmount(260)}
-          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#e5484d] text-white shadow-[0_4px_10px_rgba(229,72,77,0.35)] transition hover:scale-[1.06] hover:bg-[#cf3d42] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
+          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#E21B70] text-white  transition hover:scale-[1.06] hover:bg-[#e21b71b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
         >
           <svg
             viewBox="0 0 24 24"

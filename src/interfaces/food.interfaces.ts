@@ -35,6 +35,12 @@ export interface IFood {
   name: string;
   category_id?: string;
   category_name?: string;
+  description?: string;
+  view?: number;
+  total_review?: number;
+  review_rating?: number;
+  branch_id?: string;
+  branch_name?: string;
   image?: string;
   image_public_id?: string;
   status?: Status;

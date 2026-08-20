@@ -390,7 +390,7 @@ const VideoBlogSlider = () => {
                       width="18"
                       height="18"
                       viewBox="0 0 24 24"
-                      fill="#E5302A"
+                      fill="#E21B70"
                     >
                       <path d="M8 5v14l11-7L8 5Z" />
                     </svg>

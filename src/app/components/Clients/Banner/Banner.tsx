@@ -23,7 +23,7 @@ interface Banner {
 }
 
 const SLIDE_DURATION = 5000;
-const BRAND_RED = "#E5302A";
+const BRAND_RED = "#E21B70";
 const BRAND_RED_DARK = "#C22620";
 const GOLD = "#F5B93D";
 const GREEN = "#189B4C";
@@ -80,8 +80,7 @@ const BannerClient = () => {
     touchStartX.current = null;
   };
 
-  const heightClass =
-    "h-[360px] sm:h-[420px] md:h-[520px] lg:h-[86vh]";
+  const heightClass = "h-[360px] sm:h-[420px] md:h-[520px] lg:h-[86vh]";
 
   if (loading) {
     return (
@@ -230,7 +229,7 @@ const BannerClient = () => {
                   {banner.button_text && (
                     <a
                       href={banner.button_link || "#"}
-                      className={`inline-flex items-center justify-center rounded-full border-2 font-bold uppercase tracking-wide text-xs sm:text-sm px-6 sm:px-8 py-2.5 sm:py-3.5 mt-4 sm:mt-6 transition-colors duration-300 hover:bg-white hover:text-[#E5302A] w-fit ${
+                      className={`inline-flex items-center justify-center rounded-full border-2 font-bold uppercase tracking-wide text-xs sm:text-sm px-6 sm:px-8 py-2.5 sm:py-3.5 mt-4 sm:mt-6 transition-colors duration-300 hover:bg-white hover:text-[#E21B70] w-fit ${
                         banner.text_color === "dark"
                           ? "border-neutral-900 text-neutral-900"
                           : "border-white text-white"

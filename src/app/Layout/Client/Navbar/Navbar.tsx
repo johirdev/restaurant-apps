@@ -75,8 +75,8 @@ const DEFAULT_LINKS: NavLink[] = [
 ];
 
 const BRAND_RED = "#fff";
-const CART_PINK = "#EB4468";
-const BADGE_YELLOW = "#F5B93D";
+const CART_PINK = "#E21B70";
+const BADGE_YELLOW = "#fff";
 const SEARCH_DEBOUNCE_MS = 3000;
 
 const Navbar = ({
@@ -269,14 +269,9 @@ const Navbar = ({
         {/* ===== Logo ===== */}
         <Link href="/" className="flex flex-col leading-none flex-shrink-0">
           <span className="flex items-baseline gap-[1px] text-[22px] sm:text-[26px] lg:text-[28px] font-extrabold italic tracking-tight">
-            <span className="text-black">AL</span>
-            <span
-              className="inline-flex items-center justify-center bg-black text-black px-[3px] -skew-x-6"
-              style={{ fontStyle: "normal" }}
-            >
-              K
-            </span>
-            <span className="text-black">ADERIA</span>
+            <span className="text-black">My</span>
+
+            <span className="text-[#E21B70]"> Restaurants</span>
             <sup className="text-[9px] text-black/80 not-italic">®</sup>
           </span>
           <span className="hidden sm:block text-[9px] lg:text-[10px] font-medium uppercase tracking-[0.15em] text-black/85 mt-0.5">
@@ -302,7 +297,7 @@ const Navbar = ({
                       cur === link.label ? null : link.label,
                     )
                   }
-                  className="flex items-center gap-1 text-[13px] font-bold uppercase tracking-wide text-black hover:text-black/80 transition-colors"
+                  className="flex items-center gap-1 text-[13px] cursor-pointer font-bold uppercase tracking-wide text-black hover:text-black/80 transition-colors"
                 >
                   {link.label}
                   <svg
@@ -337,7 +332,7 @@ const Navbar = ({
                       key={item.label}
                       href={item.href}
                       onClick={() => setDesktopDropdown(null)}
-                      className="block px-5 py-2.5 text-[14px] text-neutral-600 hover:bg-neutral-50 hover:text-[#E5302A] transition-colors"
+                      className="block px-5 py-2.5 text-[14px] text-neutral-600 hover:bg-neutral-50 hover:text-[#E21B70] transition-colors"
                     >
                       {item.label}
                     </Link>
@@ -372,7 +367,7 @@ const Navbar = ({
                       {categories.map((cat) => (
                         <Link
                           key={cat._id}
-                          href={`/menu/${cat.slug ?? cat._id}`}
+                          href={`/foods/${cat.slug ?? cat._id}`}
                           onClick={() => setDesktopDropdown(null)}
                           className="group flex flex-col items-center gap-2 rounded-md p-2 text-center transition-colors hover:bg-neutral-50"
                         >
@@ -390,7 +385,7 @@ const Navbar = ({
                               </span>
                             )}
                           </span>
-                          <span className="text-[12.5px] font-semibold text-neutral-700 group-hover:text-[#E5302A]">
+                          <span className="text-[12.5px] font-semibold text-neutral-700 group-hover:text-[#E21B70]">
                             {cat.name}
                           </span>
                         </Link>
@@ -409,7 +404,7 @@ const Navbar = ({
             type="button"
             onClick={handleSearchToggle}
             aria-label="Search"
-            className={`flex text-black transition-colors ${searchOpen ? "text-[#E5302A]" : "hover:text-black/80"}`}
+            className={`flex text-black transition-colors ${searchOpen ? "text-[#E21B70]" : "hover:text-black/80"}`}
           >
             <svg
               width="20"
@@ -439,7 +434,7 @@ const Navbar = ({
             type="button"
             onClick={onCartClick}
             aria-label="Cart"
-            className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-black transition-transform hover:scale-105"
+            className="relative cursor-pointer flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-black transition-transform hover:scale-105"
             style={{ background: CART_PINK }}
           >
             <svg
@@ -449,6 +444,7 @@ const Navbar = ({
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
+              className="text-white"
             >
               <path
                 d="M6 6h15l-1.5 9h-12L6 6Z"
@@ -464,7 +460,7 @@ const Navbar = ({
               <circle cx="18" cy="20" r="1.4" />
             </svg>
             <span
-              className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-black"
+              className="absolute -top-1 border border-[#E21B70] -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-[#E21B70]"
               style={{ background: BADGE_YELLOW }}
             >
               {cartCount > 9 ? "9+" : cartCount}
@@ -533,7 +529,7 @@ const Navbar = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search food items..."
-              className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-10 text-[14px] text-neutral-800 outline-none transition-colors focus:border-[#E5302A] focus:bg-white"
+              className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-10 text-[14px] text-neutral-800 outline-none transition-colors focus:border-[#E21B70] focus:bg-white"
             />
             <button
               type="button"
@@ -593,13 +589,13 @@ const Navbar = ({
                           </span>
                         )}
                       </span>
-                      <span className="mt-2 line-clamp-2 text-[13px] font-semibold text-neutral-800 group-hover:text-[#E5302A]">
+                      <span className="mt-2 line-clamp-2 text-[13px] font-semibold text-neutral-800 group-hover:text-[#E21B70]">
                         {food.name}
                       </span>
                       <span className="mt-1 flex items-center gap-2">
                         {hasDiscount ? (
                           <>
-                            <span className="text-[13px] font-bold text-[#E5302A]">
+                            <span className="text-[13px] font-bold text-[#E21B70]">
                               ৳{discount}
                             </span>
                             <span className="text-[12px] text-neutral-400 line-through">

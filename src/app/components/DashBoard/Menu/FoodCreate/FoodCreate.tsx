@@ -21,11 +21,22 @@ interface Category {
   image?: string;
 }
 
+interface Branch {
+  _id: string;
+  name: string;
+}
+
 interface FoodItem {
   _id: string;
   name: string;
   category_id?: string;
   category_name?: string;
+  description?: string;
+  view?: number;
+  total_review?: number;
+  review_rating?: number;
+  branch_id?: string;
+  branch_name?: string;
   image?: string;
   status?: "active" | "inactive";
   variations: any[];
@@ -43,6 +54,7 @@ export const FoodCreate = () => {
   const [categorySearch, setCategorySearch] = useState("");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryBoxRef = useRef<HTMLDivElement>(null);
+  const [branches] = useState<Branch[]>([]);
 
   // ---- right panel product search ----
   const [productSearch, setProductSearch] = useState("");
@@ -54,6 +66,9 @@ export const FoodCreate = () => {
   const [foodName, setFoodName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [categoryName, setCategoryName] = useState("");
+  const [description, setDescription] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [branchName, setBranchName] = useState("");
   const [variations, setVariations] = useState<VariationValue[]>([
     emptyVariation(true),
   ]);
@@ -141,6 +156,9 @@ export const FoodCreate = () => {
   const resetForm = () => {
     setFoodName("");
     clearCategory();
+    setDescription("");
+    setBranchId("");
+    setBranchName("");
     setVariations([emptyVariation(true)]);
     setErrors({});
     setMode("create");
@@ -153,6 +171,9 @@ export const FoodCreate = () => {
     setCategoryId(food.category_id || "");
     setCategoryName(food.category_name || "");
     setCategorySearch(food.category_name || "");
+    setDescription(food.description || "");
+    setBranchId(food.branch_id || "");
+    setBranchName(food.branch_name || "");
     setVariations(food.variations.map(variationFromApi));
     setErrors({});
     setMode("edit");
@@ -269,6 +290,12 @@ export const FoodCreate = () => {
             name: foodName,
             category_id: categoryId || undefined,
             category_name: categoryName || undefined,
+            description: description || undefined,
+            branch_id: branchId || undefined,
+            branch_name: branchName || undefined,
+            view: 1,
+            total_review: 0,
+            review_rating: 0,
             variations: preparedVariations,
           },
           { headers },
@@ -288,6 +315,9 @@ export const FoodCreate = () => {
             name: foodName,
             category_id: categoryId || undefined,
             category_name: categoryName || undefined,
+            description: description || undefined,
+            branch_id: branchId || undefined,
+            branch_name: branchName || undefined,
           },
           { headers },
         );
@@ -479,6 +509,54 @@ export const FoodCreate = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium text-primary">
+                  Branch <span className="text-muted">(optional)</span>
+                </label>
+                <select
+                  value={branchId}
+                  onChange={(e) => {
+                    const branch = branches.find((item) => item._id === e.target.value);
+                    setBranchId(branch?._id || "");
+                    setBranchName(branch?.name || "");
+                  }}
+                  className="input-field w-full h-10 px-3 text-[14px]"
+                  disabled={branches.length === 0}
+                >
+                  <option value="">
+                    {branches.length ? "Select branch" : "No branches available"}
+                  </option>
+                  {branches.map((branch) => (
+                    <option key={branch._id} value={branch._id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium text-primary">
+                  Views / Rating <span className="text-muted">(auto)</span>
+                </label>
+                <p className="text-[12px] text-secondary pt-2">
+                  Views: 1 · Reviews: 0 · Rating: 0
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium text-primary">
+                Description <span className="text-muted">(optional HTML)</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="<p>Freshly prepared...</p>"
+                rows={6}
+                className="input-field w-full px-3 py-2 text-[14px] resize-y"
+              />
             </div>
 
             {/* Variations */}
