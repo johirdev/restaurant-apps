@@ -10,6 +10,7 @@ export default function Home() {
     <div className="">
       <BannerClient />
       <FoodCategory />
+      {/* ..dd */}
       <ShowFoodItems />
       <DiscountBanners />
       <VideoBlogSlider />
