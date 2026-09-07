@@ -30,6 +30,8 @@ import {
   FoodVariation,
   FoodApiResponse,
 } from "@/src/app/(site)/foods/[id]/FoodDetails.types";
+import toast from "react-hot-toast";
+import { useCartStore } from "@/src/store/cart.store";
 import FoodsSlider from "../FoodsSlider/FoodsSlider";
 import ReviewSection from "./ReviewSection";
 
@@ -71,6 +73,8 @@ interface FoodDetailsProps {
 
 const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
   const router = useRouter();
+  const addItem = useCartStore((s) => s.addItem);
+  const openCart = useCartStore((s) => s.openCart);
   const [food, setFood] = useState<Food | null>(initialFood);
   const [loading, setLoading] = useState(!initialFood);
   const [notFound, setNotFound] = useState(false);
@@ -142,8 +146,18 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     return food?.image ? [food.image] : [];
   }, [activeVariation, food]);
 
-  const inStock = (activeVariation?.stock_quantity ?? 0) > 0;
-  const lowStock = inStock && (activeVariation?.stock_quantity ?? 0) <= 3;
+  // সব খাবারে স্টক গোনা হয় না — stock_quantity না থাকলে সেটা "সীমাহীন" ধরা হয়,
+  // নইলে স্টক না লেখা আইটেমও ভুল করে "Out of Stock" দেখাত।
+  const tracksStock = typeof activeVariation?.stock_quantity === "number";
+  const stockLeft = tracksStock ? Number(activeVariation?.stock_quantity) : Infinity;
+  const maxQuantity = tracksStock ? Math.min(stockLeft, 50) : 50;
+
+  const inStock =
+    !!activeVariation &&
+    activeVariation.status !== "inactive" &&
+    activeVariation.isOpen !== false &&
+    stockLeft > 0;
+  const lowStock = inStock && tracksStock && stockLeft <= 3;
 
   const savings = activeVariation
     ? Math.max(activeVariation.regularPrice - activeVariation.salePrice, 0)
@@ -160,34 +174,43 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
   const handleQuantity = (delta: number) => {
     if (!activeVariation) return;
-    setQuantity((q) => {
-      const next = q + delta;
-      if (next < 1) return 1;
-      if (next > activeVariation.stock_quantity)
-        return activeVariation.stock_quantity;
-      return next;
-    });
+    setQuantity((q) => Math.max(1, Math.min(q + delta, maxQuantity)));
   };
 
   const handleAddToCart = () => {
-    if (!inStock) return;
+    if (!inStock || !food || !activeVariation) return;
+
+    addItem({
+      food_id: food._id,
+      variation_id: activeVariation._id,
+      name: food.name,
+      variation_name: activeVariation.name,
+      image: activeVariation.images?.[0]?.url || food.image,
+      regular_price: activeVariation.regularPrice,
+      unit_price: activeVariation.salePrice ?? activeVariation.regularPrice,
+      spice_level: activeVariation.spice_level,
+      max_quantity: tracksStock ? stockLeft : undefined,
+      quantity,
+    });
+
+    toast.success(`${food.name} added to cart`);
     setJustAdded(true);
-    // 🛒 cart integration goes here (context / zustand store call)
+    openCart();
     setTimeout(() => setJustAdded(false), 1600);
   };
 
   // ---------- Loading skeleton ----------
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFBF7] px-4 py-10 lg:px-10">
+      <div className="min-h-screen bg-[var(--color-canvas)] px-4 py-10 lg:px-10">
         <div className="mx-auto grid max-w-6xl animate-pulse gap-10 lg:grid-cols-2">
-          <div className="mx-auto aspect-square w-full max-w-md rounded-full bg-[#F1E9DE]" />
+          <div className="mx-auto aspect-square w-full max-w-md rounded-full bg-[var(--color-surface-soft)]" />
           <div className="space-y-4 pt-4">
-            <div className="h-4 w-24 rounded bg-[#F1E9DE]" />
-            <div className="h-10 w-3/4 rounded bg-[#F1E9DE]" />
-            <div className="h-6 w-1/2 rounded bg-[#F1E9DE]" />
-            <div className="h-32 rounded-2xl bg-[#F1E9DE]" />
-            <div className="h-14 rounded-full bg-[#F1E9DE]" />
+            <div className="h-4 w-24 rounded bg-[var(--color-surface-soft)]" />
+            <div className="h-10 w-3/4 rounded bg-[var(--color-surface-soft)]" />
+            <div className="h-6 w-1/2 rounded bg-[var(--color-surface-soft)]" />
+            <div className="h-32 rounded-2xl bg-[var(--color-surface-soft)]" />
+            <div className="h-14 rounded-full bg-[var(--color-surface-soft)]" />
           </div>
         </div>
       </div>
@@ -197,18 +220,18 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
   // ---------- Not found ----------
   if (notFound || !food || !activeVariation) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FFFBF7] px-6 text-center">
-        <PackageX className="h-14 w-14 text-[#C9BCAE]" strokeWidth={1.5} />
-        <h1 className="text-2xl font-extrabold text-[#161B33]">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--color-canvas)] px-6 text-center">
+        <PackageX className="h-14 w-14 text-[var(--color-border-strong)]" strokeWidth={1.5} />
+        <h1 className="text-2xl font-extrabold text-[var(--color-ink)]">
           This item isn&apos;t on the menu
         </h1>
-        <p className="max-w-sm text-sm text-[#8A7F72]">
+        <p className="max-w-sm text-sm text-[var(--color-ink-soft)]">
           It may have been removed, or the link is incorrect. Head back to the
           menu to keep browsing.
         </p>
         <Link
           href="/"
-          className="mt-2 rounded-full bg-[#E21B70] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#E21B70]/25 transition hover:bg-[#C92C42]"
+          className="mt-2 rounded-full bg-[var(--color-brand)] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--color-brand)]/25 transition hover:bg-[var(--color-chili)]"
         >
           Back to Menu
         </Link>
@@ -218,21 +241,21 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
   return (
     <>
-      <div className="min-h-screen bg-[#FFFBF7] pb-28 lg:pb-16">
+      <div className="min-h-screen bg-[var(--color-canvas)] pb-28 lg:pb-16">
         {/* Breadcrumb */}
-        <div className="mx-auto flex max-width items-center gap-1.5 overflow-x-auto whitespace-nowrap px-4 pt-5 text-xs text-[#8A7F72] lg:px-10">
+        <div className="mx-auto flex max-width items-center gap-1.5 overflow-x-auto whitespace-nowrap px-4 pt-5 text-xs text-[var(--color-ink-soft)] lg:px-10">
           <Link
             href="/"
-            className="flex-shrink-0 transition hover:text-[#E21B70] text-[13px] sm:text-[14px] cursor-pointer"
+            className="flex-shrink-0 transition hover:text-[var(--color-brand)] text-[13px] sm:text-[14px] cursor-pointer"
           >
             Home
           </Link>
           <ChevronRight className="h-3 w-3 flex-shrink-0" />
-          <span className="flex-shrink-0 transition hover:text-[#E21B70] text-[13px] sm:text-[14px] cursor-pointer">
+          <span className="flex-shrink-0 transition hover:text-[var(--color-brand)] text-[13px] sm:text-[14px] cursor-pointer">
             {food.category_name}
           </span>
           <ChevronRight className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate font-medium text-[#161B33] text-[13px] sm:text-[14px] cursor-pointer">
+          <span className="truncate font-medium text-[var(--color-ink)] text-[13px] sm:text-[14px] cursor-pointer">
             {food.name}
           </span>
         </div>
@@ -243,14 +266,14 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             <button
               onClick={() => router.back()}
               aria-label="Go back"
-              className="absolute left-0 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#161B33] shadow-md transition hover:bg-[#F5EFE6] lg:hidden"
+              className="absolute left-0 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--color-ink)] shadow-md transition hover:bg-[var(--color-surface-soft)] lg:hidden"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
 
-            <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-56 w-56 bg-gradient-to-br from-[#FFE9D6] via-[#FFF3EA] to-transparent blur-2xl sm:h-72 sm:w-72 lg:h-96 lg:w-96" />
+            <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-56 w-56 bg-gradient-to-br from-[var(--color-saffron-soft)] via-[var(--color-saffron-soft)] to-transparent blur-2xl sm:h-72 sm:w-72 lg:h-96 lg:w-96" />
 
-            <div className="relative z-[1] aspect-square w-full max-h-[600px] bg-[#eef3f9]">
+            <div className="relative z-[1] aspect-square w-full max-h-[600px] bg-[var(--color-surface-soft)]">
               <div className="relative h-full w-full overflow-hidden p-2 ring-1 ring-black/5">
                 <div className="relative h-full w-full overflow-hidden  ">
                   <AnimatePresence mode="wait">
@@ -275,7 +298,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
                   {!inStock && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-                      <span className="rounded-full bg-[#161B33] px-4 py-2 text-xs font-bold text-white">
+                      <span className="rounded-full bg-[var(--color-ink)] px-4 py-2 text-xs font-bold text-white">
                         Out of Stock
                       </span>
                     </div>
@@ -285,12 +308,12 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
               <div className="absolute left-2 top-2 flex flex-col items-start gap-2">
                 {isSpicy && (
-                  <span className="rounded-full bg-[#1F9D55] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-md">
+                  <span className="rounded-full bg-[var(--color-herb)] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-md">
                     Spicy
                   </span>
                 )}
                 {discountPercent > 0 && inStock && (
-                  <span className="rounded-full bg-[#E21B70] px-3 py-1 text-[11px] font-bold text-white shadow-md">
+                  <span className="rounded-full bg-[var(--color-brand)] px-3 py-1 text-[11px] font-bold text-white shadow-md">
                     -{discountPercent}%
                   </span>
                 )}
@@ -305,7 +328,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                     onClick={() => setActiveImageIdx(idx)}
                     className={`relative h-[80px] w-[80px] shrink-0 overflow-hidden bg-white p-0.5 shadow-md ring-2 transition sm:h-[100px] sm:w-[100px] lg:h-[120px] lg:w-[120px] ${
                       idx === activeImageIdx
-                        ? "ring-[#E21B70]"
+                        ? "ring-[var(--color-brand)]"
                         : "ring-transparent opacity-70 hover:opacity-100"
                     }`}
                   >
@@ -327,25 +350,25 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
           <div className="space-y-6 lg:pt-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[12px] md:text-[14px] font-bold uppercase tracking-widest text-[#1F9D55]">
+                <span className="text-[12px] md:text-[14px] font-bold uppercase tracking-widest text-[var(--color-herb)]">
                   {food.category_name}
                 </span>
                 {food.branch_name && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#8A7F72]">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-ink-soft)]">
                     <MapPin className="h-3 w-3" />
                     {food.branch_name}
                   </span>
                 )}
               </div>
-              <h1 className="mt-1 text-[18px] md:text-[24px] font-extrabold leading-tight text-[#161B33]">
+              <h1 className="mt-1 text-[18px] md:text-[24px] font-extrabold leading-tight text-[var(--color-ink)]">
                 {food.name}
               </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#8A7F72]">
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--color-ink-soft)]">
                 {hasRating && (
-                  <span className="flex items-center gap-1 font-semibold text-[#161B33]">
-                    <Star className="h-3.5 w-3.5 fill-[#F5B93D] text-[#F5B93D]" />
+                  <span className="flex items-center gap-1 font-semibold text-[var(--color-ink)]">
+                    <Star className="h-3.5 w-3.5 fill-[var(--color-saffron)] text-[var(--color-saffron)]" />
                     {food.review_rating}
-                    <span className="font-normal text-[#8A7F72]">
+                    <span className="font-normal text-[var(--color-ink-soft)]">
                       ({food.total_review} review
                       {food.total_review > 1 ? "s" : ""})
                     </span>
@@ -366,23 +389,23 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
             {/* info chips */}
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[#161B33] shadow-sm ring-1 ring-[#F0E9E1]">
-                <Clock className="h-3.5 w-3.5 text-[#E21B70]" />
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[var(--color-ink)] shadow-sm ring-1 ring-[var(--color-surface-soft)]">
+                <Clock className="h-3.5 w-3.5 text-[var(--color-brand)]" />
                 {activeVariation.preparationTime} min
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[#161B33] shadow-sm ring-1 ring-[#F0E9E1]">
-                <ChefHat className="h-3.5 w-3.5 text-[#E21B70]" />
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[var(--color-ink)] shadow-sm ring-1 ring-[var(--color-surface-soft)]">
+                <ChefHat className="h-3.5 w-3.5 text-[var(--color-brand)]" />
                 {activeVariation.kitchen_chef}
               </span>
               {getSpiceCount(activeVariation.spice_level) > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#EAF7EF] px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[#1F9D55] shadow-sm ring-1 ring-[#D3EEDD]">
+                <span className="inline-flex items-center gap-1 rounded-md bg-[var(--color-herb-soft)] px-3 py-1.5 text-[13px] md:text-[16px] font-medium text-[var(--color-herb)] shadow-sm ring-1 ring-[var(--color-herb-soft)]">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <Flame
                       key={i}
                       className={`h-3.5 w-3.5 ${
                         i < getSpiceCount(activeVariation.spice_level)
-                          ? "fill-[#1F9D55] text-[#1F9D55]"
-                          : "text-[#BFE3CC]"
+                          ? "fill-[var(--color-herb)] text-[var(--color-herb)]"
+                          : "text-[var(--color-herb-soft)]"
                       }`}
                     />
                   ))}
@@ -392,7 +415,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                 </span>
               )}
               {lowStock && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF1E9] px-3 py-1.5 text-xs font-medium text-[#C2540C] shadow-sm ring-1 ring-[#FBDCC4]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-saffron-soft)] px-3 py-1.5 text-xs font-medium text-[var(--color-saffron-dark)] shadow-sm ring-1 ring-[var(--color-saffron-soft)]">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Only {activeVariation.stock_quantity} left
                 </span>
@@ -401,11 +424,11 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
             {/* price */}
             <div className="flex items-end gap-3">
-              <span className="text-[24px] md:text-[36px] font-extrabold text-[#E21B70]">
+              <span className="text-[24px] md:text-[36px] font-extrabold text-[var(--color-brand)]">
                 ৳{activeVariation.salePrice}
               </span>
               {savings > 0 && (
-                <span className="pb-1 text-[18px] md:text-[28px] text-[#B7AB9C] line-through">
+                <span className="pb-1 text-[18px] md:text-[28px] text-[var(--color-ink-faint)] line-through">
                   ৳{activeVariation.regularPrice}
                 </span>
               )}
@@ -414,7 +437,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             {/* variation selector */}
             {food.variations.length > 1 && (
               <div>
-                <p className="mb-2 text-[13px] md:text-[16px] font-bold uppercase tracking-wider text-[#8A7F72]">
+                <p className="mb-2 text-[13px] md:text-[16px] font-bold uppercase tracking-wider text-[var(--color-ink-soft)]">
                   Choose a size
                 </p>
                 <div className="flex flex-wrap gap-3">
@@ -429,22 +452,22 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                           onClick={() => setActiveVariationId(v._id)}
                           className={`relative rounded-md border-2 px-4 py-2.5 text-left transition ${
                             isActive
-                              ? "border-[#E21B70] bg-[#FFF1F3]"
-                              : "border-[#F0E9E1] bg-white hover:border-[#E6DACB]"
+                              ? "border-[var(--color-brand)] bg-[var(--color-brand-soft)]"
+                              : "border-[var(--color-surface-soft)] bg-white hover:border-[var(--color-border)]"
                           }`}
                         >
                           <span
-                            className={`block text-sm font-bold ${isActive ? "text-[#E21B70]" : "text-[#161B33]"}`}
+                            className={`block text-sm font-bold ${isActive ? "text-[var(--color-brand)]" : "text-[var(--color-ink)]"}`}
                           >
                             {v.name}
                           </span>
-                          <span className="block text-[13px] md:text-[16px] text-[#8A7F72]">
+                          <span className="block text-[13px] md:text-[16px] text-[var(--color-ink-soft)]">
                             ৳{v.salePrice}
                           </span>
                           {isActive && (
                             <motion.span
                               layoutId="variation-dot"
-                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#E21B70] shadow-sm"
+                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] shadow-sm"
                             >
                               <Check
                                 className="h-3 w-3 text-white"
@@ -463,7 +486,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
             <div className="hidden items-center gap-4 lg:flex">
               <QuantityStepper
                 quantity={quantity}
-                max={activeVariation.stock_quantity}
+                max={maxQuantity}
                 disabled={!inStock}
                 onChange={handleQuantity}
               />
@@ -486,15 +509,15 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
         {/* ---------------- Tabbed details section ---------------- */}
         <div className="mx-auto mt-10 max-width px-4 lg:mt-14 lg:px-10">
-          <div className="flex gap-1 overflow-x-auto border-b border-[#F0E9E1] sm:gap-2">
+          <div className="flex gap-1 overflow-x-auto border-b border-[var(--color-surface-soft)] sm:gap-2">
             {(["description", "nutrition", "chef"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`relative flex-shrink-0 px-3 py-3 text-xs font-semibold transition sm:px-4 sm:text-sm ${
                   activeTab === tab
-                    ? "text-[#E21B70]"
-                    : "text-[#8A7F72] hover:text-[#161B33]"
+                    ? "text-[var(--color-brand)]"
+                    : "text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
                 }`}
               >
                 {tab === "description"
@@ -505,14 +528,14 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                 {activeTab === tab && (
                   <motion.span
                     layoutId="tab-underline"
-                    className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#E21B70]"
+                    className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[var(--color-brand)]"
                   />
                 )}
               </button>
             ))}
           </div>
 
-          <div className="py-6 text-sm leading-relaxed text-[#4A4238]">
+          <div className="py-6 text-sm leading-relaxed text-[var(--color-ink)]">
             <AnimatePresence mode="wait">
               {activeTab === "description" && (
                 <motion.div
@@ -561,14 +584,14 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                   exit={{ opacity: 0 }}
                   className="flex items-center gap-4"
                 >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF1F3] text-[#E21B70]">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand)]">
                     <ChefHat className="h-6 w-6" />
                   </span>
                   <div>
-                    <p className="font-bold text-[#161B33]">
+                    <p className="font-bold text-[var(--color-ink)]">
                       {activeVariation.kitchen_chef}
                     </p>
-                    <p className="text-[#8A7F72]">
+                    <p className="text-[var(--color-ink-soft)]">
                       Handles the {food.category_name.toLowerCase()} station in
                       our kitchen.
                     </p>
@@ -581,11 +604,11 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 
         <ReviewSection foodId={food._id} foodName={food.name} />
         {/* ---------------- Sticky mobile CTA ---------------- */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[#F0E9E1] bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--color-surface-soft)] bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md lg:hidden">
           <div className="mx-auto flex max-w-6xl items-center gap-3">
             <QuantityStepper
               quantity={quantity}
-              max={activeVariation.stock_quantity}
+              max={maxQuantity}
               disabled={!inStock}
               onChange={handleQuantity}
             />
@@ -609,16 +632,16 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
 // ---------------- Sub-components ----------------
 
 const TrustBadge = ({ label }: { label: string }) => (
-  <div className="flex flex-col items-center gap-1.5 rounded-md bg-white px-3 py-3 text-center shadow-sm ring-1 ring-[#F0E9E1]">
-    <Check className="text-[14px] h-4 w-4 text-[#1F9D55]" strokeWidth={3} />
-    <span className="text-[13px] font-medium text-[#8A7F72]">{label}</span>
+  <div className="flex flex-col items-center gap-1.5 rounded-md bg-white px-3 py-3 text-center shadow-sm ring-1 ring-[var(--color-surface-soft)]">
+    <Check className="text-[14px] h-4 w-4 text-[var(--color-herb)]" strokeWidth={3} />
+    <span className="text-[13px] font-medium text-[var(--color-ink-soft)]">{label}</span>
   </div>
 );
 
 const NutritionStat = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-md bg-white p-4 text-center shadow-sm ring-1 ring-[#F0E9E1]">
-    <p className="text-[13px] font-bold capitalize text-[#161B33]">{value}</p>
-    <p className="mt-1 text-[11px] uppercase tracking-wide text-[#8A7F72]">
+  <div className="rounded-md bg-white p-4 text-center shadow-sm ring-1 ring-[var(--color-surface-soft)]">
+    <p className="text-[13px] font-bold capitalize text-[var(--color-ink)]">{value}</p>
+    <p className="mt-1 text-[11px] uppercase tracking-wide text-[var(--color-ink-soft)]">
       {label}
     </p>
   </div>
@@ -635,21 +658,21 @@ const QuantityStepper = ({
   disabled: boolean;
   onChange: (delta: number) => void;
 }) => (
-  <div className="flex shrink-0 items-center rounded-full bg-white shadow-sm ring-1 ring-[#F0E9E1]">
+  <div className="flex shrink-0 items-center rounded-full bg-white shadow-sm ring-1 ring-[var(--color-surface-soft)]">
     <button
       onClick={() => onChange(-1)}
       disabled={disabled || quantity <= 1}
-      className="flex h-11 w-11 items-center justify-center text-[#161B33] transition disabled:opacity-30"
+      className="flex h-11 w-11 items-center justify-center text-[var(--color-ink)] transition disabled:opacity-30"
     >
       <Minus className="h-4 w-4" />
     </button>
-    <span className="w-6 text-center text-sm font-bold text-[#161B33]">
+    <span className="w-6 text-center text-sm font-bold text-[var(--color-ink)]">
       {quantity}
     </span>
     <button
       onClick={() => onChange(1)}
       disabled={disabled || quantity >= max}
-      className="flex h-11 w-11 items-center justify-center text-[#161B33] transition disabled:opacity-30"
+      className="flex h-11 w-11 items-center justify-center text-[var(--color-ink)] transition disabled:opacity-30"
     >
       <Plus className="h-4 w-4" />
     </button>
@@ -675,10 +698,10 @@ const AddToCartButton = ({
     disabled={!inStock}
     className={`flex h-12 items-center cursor-pointer justify-center gap-2 rounded-full px-6 text-[12px] md:text-[14px] font-bold transition ${full ? "w-full" : ""} ${
       !inStock
-        ? "cursor-not-allowed bg-[#F0E9E1] text-[#B7AB9C]"
+        ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-ink-faint)]"
         : justAdded
-          ? "bg-[#1F9D55] text-white"
-          : "bg-[#E21B70] text-white shadow-lg shadow-[#E21B70]/25 hover:bg-[#C92C42]"
+          ? "bg-[var(--color-herb)] text-white"
+          : "bg-[var(--color-brand)] text-white shadow-lg shadow-[var(--color-brand)]/25 hover:bg-[var(--color-chili)]"
     }`}
   >
     <AnimatePresence mode="wait" initial={false}>

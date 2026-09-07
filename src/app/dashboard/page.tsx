@@ -1,9 +1,5 @@
-'use client';
+import DashboardOverview from "../components/DashBoard/Overview/DashboardOverview";
 
-export default function Home() {
-  return (
-    <div>
-    Hello site
-    </div>
-  );
+export default function DashboardHome() {
+  return <DashboardOverview />;
 }

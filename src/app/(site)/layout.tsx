@@ -1,19 +1,15 @@
-import type { Metadata, Viewport } from "next";
-import { Montserrat } from "next/font/google";
-import "../globals.css";
+import type { Metadata } from "next";
+import { Toaster } from "react-hot-toast";
 
 import Navbar from "../Layout/Client/Navbar/Navbar";
 import Footer from "../Layout/Client/Footer/Footer";
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "900"],
-  style: ["normal"],
-  variable: "--font-montserrat",
-  display: "swap",
-});
+import CartDrawer from "../components/Clients/Cart/CartDrawer";
+import UserProvider from "../components/Clients/Auth/UserProvider";
 
 const siteUrl = "https://yourdomain.com";
+
+/* ফন্ট root layout.tsx এ একবারই লোড হয় (Playfair + Plus Jakarta + Hind Siliguri),
+   তাই এখানে আলাদা করে কিছু লোড করার দরকার নেই। */
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -37,20 +33,13 @@ export const metadata: Metadata = {
     "online food",
   ],
 
-  authors: [
-    {
-      name: "My Restaurants App",
-    },
-  ],
+  authors: [{ name: "My Restaurants App" }],
 
   creator: "My Restaurants App",
   publisher: "My Restaurants App",
-
   applicationName: "My Restaurants App",
 
-  alternates: {
-    canonical: "/",
-  },
+  alternates: { canonical: "/" },
 
   robots: {
     index: true,
@@ -99,26 +88,45 @@ export const metadata: Metadata = {
   category: "food",
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#ffffff",
-};
-
 export default function SiteLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <div
-      className={`${montserrat.variable} min-h-full flex flex-col font-montserrat`}
-    >
-      <Navbar />
+    /* কে লগইন আছে সেটা নেভবার, চেকআউট আর অ্যাকাউন্ট পেজ — সবাই এখান থেকেই পায় */
+    <UserProvider>
+      <div className="flex min-h-full flex-col">
+        <Navbar />
 
-      <main className="flex-1">{children}</main>
+        <main className="flex-1">{children}</main>
 
-      <Footer />
-    </div>
+        <Footer />
+
+        {/* কার্ট ড্রয়ার — যেকোনো পেজ থেকে openCart() ডাকলেই খুলবে */}
+        <CartDrawer />
+
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 2600,
+            style: {
+              background: "var(--color-ink)",
+              color: "var(--color-ink-invert)",
+              fontSize: "13.5px",
+              fontWeight: 600,
+              borderRadius: "var(--radius-sm)",
+              boxShadow: "var(--shadow-float)",
+            },
+            success: {
+              iconTheme: { primary: "var(--color-herb)", secondary: "#fff" },
+            },
+            error: {
+              iconTheme: { primary: "var(--color-chili)", secondary: "#fff" },
+            },
+          }}
+        />
+      </div>
+    </UserProvider>
   );
 }

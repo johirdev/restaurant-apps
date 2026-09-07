@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icons from "../../utils/icons";
+import {
+  can,
+  COUNTER,
+  FLOOR_ROLES,
+  KITCHEN_ROLES,
+  MANAGEMENT,
+  OWNERS,
+  ROLE_LABEL,
+  type DashboardRole,
+} from "@/src/app/dashboard/roles";
+import { AuthContext } from "@/src/app/dashboard/AuthProvider";
 
 interface NavChild {
   label: string;
@@ -11,6 +22,8 @@ interface NavChild {
   icon: (p: { className?: string }) => React.ReactNode;
   badge?: number;
   badgeTone?: "indigo" | "green" | "red" | "blue" | "amber";
+  /** কোন রোলগুলো এই লিংকটা দেখবে — খালি রাখলে সবাই */
+  roles?: DashboardRole[];
 }
 
 interface NavItem {
@@ -19,190 +32,152 @@ interface NavItem {
   icon: (p: { className?: string }) => React.ReactNode;
   badge?: number;
   children?: NavChild[];
+  roles?: DashboardRole[];
 }
 
+/* ==========================================================================
+   সাইডবারের মেনু
+   --------------------------------------------------------------------------
+   প্রতিটা আইটেমে `roles` বসানো আছে — শেফ লগইন করলে সে শুধু রান্নাঘর দেখে,
+   ওয়েটার দেখে টেবিল আর POS। ম্যানেজার সব দেখে।
+   ========================================================================== */
 const navItems: NavItem[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
     icon: Icons.Dashboard,
+    roles: MANAGEMENT,
   },
 
-  // ---------------- Menu / Product Management ----------------
+  // ---------------- রোজকার কাজ ----------------
   {
-    label: "Menu Management",
-    icon: Icons.MenuManagement,
-    children: [
-      {
-        label: "Add Category",
-        href: "/dashboard/menu/categories",
-        icon: Icons.Category,
-      },
-      {
-        label: "Add Food Item",
-        href: "/dashboard/menu/food-create",
-        icon: Icons.Review,
-      },
-
-      {
-        label: "All Food",
-        href: "/dashboard/menu/all-items",
-        icon: Icons.Boxes,
-      },
-      // {
-      //   label: "Inventory / Stock",
-      //   href: "/dashboard/menu/inventory",
-      //   icon: Icons.Inventory,
-      // },
-    ],
+    label: "POS / New order",
+    href: "/dashboard/pos",
+    icon: Icons.POS,
+    roles: COUNTER,
+  },
+  {
+    label: "Kitchen",
+    href: "/dashboard/kitchen",
+    icon: Icons.Chef,
+    roles: KITCHEN_ROLES,
+  },
+  {
+    label: "Tables",
+    href: "/dashboard/tables",
+    icon: Icons.Table,
+    roles: FLOOR_ROLES,
   },
 
-  // ---------------- Orders + POS ----------------
+  // ---------------- Order Management ----------------
   {
     label: "Order Management",
     icon: Icons.Orders,
+    roles: FLOOR_ROLES,
     children: [
       {
-        label: "Online Orders",
+        label: "Live orders",
         href: "/dashboard/orders/online",
         icon: Icons.OnlineOrders,
-        badge: 12,
-        badgeTone: "indigo",
       },
       {
-        label: "POS (Counter Orders)",
+        label: "Counter orders",
         href: "/dashboard/orders/pos",
         icon: Icons.POS,
       },
       {
-        label: "Confirmed Orders",
+        label: "Confirmed orders",
         href: "/dashboard/orders/confirmed",
         icon: Icons.ConfirmOrders,
-        badgeTone: "green",
       },
       {
-        label: "Delivery Orders",
+        label: "Delivery orders",
         href: "/dashboard/orders/delivery",
         icon: Icons.DeliveryOrders,
-        badgeTone: "blue",
       },
       {
-        label: "Cancelled Orders",
+        label: "Cancelled orders",
         href: "/dashboard/orders/cancelled",
         icon: Icons.CancelOrders,
-        badgeTone: "red",
       },
     ],
   },
 
-  // ---------------- Table Booking ----------------
+  // ---------------- Menu ----------------
   {
-    label: "Table Booking",
-    icon: Icons.TableBooking,
+    label: "Menu Management",
+    icon: Icons.MenuManagement,
+    roles: MANAGEMENT,
     children: [
       {
-        label: "All Reservations",
-        href: "/dashboard/table-booking",
-        icon: Icons.Reservation,
+        label: "Categories",
+        href: "/dashboard/menu/categories",
+        icon: Icons.Category,
       },
       {
-        label: "Confirmed Bookings",
-        href: "/dashboard/table-booking/confirmed",
-        icon: Icons.ReservationConfirmed,
-        badgeTone: "green",
+        label: "Add food item",
+        href: "/dashboard/menu/food-create",
+        icon: Icons.Review,
       },
       {
-        label: "Manage Tables",
-        href: "/dashboard/table-booking/tables",
-        icon: Icons.Store,
+        label: "All food",
+        href: "/dashboard/menu/all-items",
+        icon: Icons.Boxes,
       },
     ],
   },
-
-  // ---------------- Invoice / Payment ----------------
-  {
-    label: "Invoice & Payment",
-    icon: Icons.Invoice,
-    children: [
-      {
-        label: "All Invoices",
-        href: "/dashboard/invoices",
-        icon: Icons.Invoice,
-      },
-      {
-        label: "Payments",
-        href: "/dashboard/payments",
-        icon: Icons.Payment,
-      },
-      {
-        label: "Revenue Report",
-        href: "/dashboard/payments/revenue",
-        icon: Icons.Revenue,
-      },
-      {
-        label: "Coupons & Discounts",
-        href: "/dashboard/payments/coupons",
-        icon: Icons.Coupon,
-      },
-    ],
-  },
-
-  // ---------------- Pricing ----------------
-  {
-    label: "Pricing Management",
-    icon: Icons.Pricing,
-    href: "/dashboard/add-priceing",
-  },
-
-  // ---------------- Reviews / Media ----------------
-  {
-    label: "Review Management",
-    icon: Icons.Review,
-    href: "/dashboard/reviews",
-  },
-  {
-    label: "Video Management",
-    icon: Icons.Portfolio,
-    href: "/dashboard/add-video-blog",
-  },
-  {
-    label: "Banner Management",
-    icon: Icons.Portfolio,
-    href: "/dashboard/banners",
-  },
-  // {
-  //   label: "Blog Management",
-  //   icon: Icons.Blog,
-  //   href: "/dashboard/add-blog",
-  // },
 
   // ---------------- Reports ----------------
   {
-    label: "Analytics & Reports",
+    label: "Reports",
     icon: Icons.Analytics,
-    href: "/dashboard/analytics",
-  },
-
-  // ---------------- Admin / Staff ----------------
-  {
-    label: "Admin",
-    icon: Icons.Admin,
+    roles: MANAGEMENT,
     children: [
       {
-        label: "Admin List",
-        href: "/dashboard/admins",
-        icon: Icons.Users,
-        badge: 8,
+        label: "Sales",
+        href: "/dashboard/reports/sales",
+        icon: Icons.Revenue,
       },
       {
-        label: "Staff / Waiters",
+        label: "By table",
+        href: "/dashboard/reports/tables",
+        icon: Icons.Table,
+      },
+      {
+        label: "By staff",
+        href: "/dashboard/reports/staff",
+        icon: Icons.Staff,
+      },
+      {
+        label: "Kitchen output",
+        href: "/dashboard/reports/kitchen",
+        icon: Icons.Chef,
+      },
+    ],
+  },
+
+  // ---------------- People ----------------
+  {
+    label: "Customers",
+    icon: Icons.Users,
+    href: "/dashboard/customers",
+    roles: MANAGEMENT,
+  },
+  {
+    label: "Team",
+    icon: Icons.Admin,
+    roles: MANAGEMENT,
+    children: [
+      {
+        label: "Staff / waiters",
         href: "/dashboard/admins/staff",
         icon: Icons.Staff,
       },
       {
-        label: "Discount Banner",
-        href: "/dashboard/admins/discount-banner",
-        icon: Icons.Staff,
+        label: "Admin list",
+        href: "/dashboard/admins",
+        icon: Icons.Users,
+        roles: OWNERS,
       },
     ],
   },
@@ -212,6 +187,7 @@ const navItems: NavItem[] = [
     label: "Settings",
     icon: Icons.Settings,
     href: "/dashboard/settings",
+    roles: MANAGEMENT,
   },
 ];
 
@@ -219,11 +195,11 @@ const badgeToneStyles: Record<
   NonNullable<NavChild["badgeTone"]>,
   { bg: string; color: string }
 > = {
-  indigo: { bg: "rgba(99,102,241,0.25)", color: "#a5b4fc" },
-  green: { bg: "rgba(34,197,94,0.2)", color: "#4ade80" },
-  red: { bg: "rgba(239,68,68,0.2)", color: "#f87171" },
-  blue: { bg: "rgba(59,130,246,0.2)", color: "#60a5fa" },
-  amber: { bg: "rgba(245,158,11,0.2)", color: "#fbbf24" },
+  indigo: { bg: "rgba(99,102,241,0.25)", color: "var(--accent-primary)" },
+  green: { bg: "rgba(34,197,94,0.2)", color: "var(--color-herb)" },
+  red: { bg: "rgba(239,68,68,0.2)", color: "var(--color-chili)" },
+  blue: { bg: "rgba(59,130,246,0.2)", color: "var(--color-info)" },
+  amber: { bg: "rgba(245,158,11,0.2)", color: "var(--color-saffron)" },
 };
 
 interface SidebarProps {
@@ -233,7 +209,26 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { adminData } = useContext(AuthContext);
+  const role = adminData?.role;
+
   const [openGroups, setOpenGroups] = useState<string[]>(["Order Management"]);
+
+  /**
+   * রোল অনুযায়ী মেনু ছেঁকে নেওয়া। যে গ্রুপের সব শিশু-লিংক বাদ পড়ে যায়,
+   * সেই গ্রুপটাও দেখানোর মানে হয় না — তাই খালি গ্রুপ ফেলে দেওয়া হয়।
+   */
+  const visibleItems = useMemo(() => {
+    return navItems
+      .filter((item) => !item.roles || can(role, item.roles))
+      .map((item) => ({
+        ...item,
+        children: item.children?.filter(
+          (child) => !child.roles || can(role, child.roles),
+        ),
+      }))
+      .filter((item) => item.href || (item.children?.length ?? 0) > 0);
+  }, [role]);
 
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) =>
@@ -265,7 +260,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         `}
         style={{
           background:
-            "linear-gradient(180deg, #0f1729 0%, #111827 60%, #131921 100%)",
+            "linear-gradient(180deg, var(--color-admin-sidebar) 0%, var(--color-admin-bg) 60%, var(--color-admin-bg) 100%)",
           borderRight: "1px solid rgba(99,102,241,0.15)",
           boxShadow: "4px 0 24px rgba(0,0,0,0.4)",
         }}
@@ -279,7 +274,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                background: "linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover))",
               }}
             >
               <Icons.Store className="w-5 h-5 text-white" />
@@ -299,9 +294,24 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
+        {/* কে লগ-ইন আছে — শিফট বদলের সময় ভুল অ্যাকাউন্টে কাজ করা ঠেকায় */}
+        {adminData && (
+          <div
+            className="px-5 py-3"
+            style={{ borderBottom: "1px solid rgba(99,102,241,0.15)" }}
+          >
+            <p className="truncate text-[13px] font-medium text-white">
+              {adminData.name || adminData.email || "Signed in"}
+            </p>
+            <p className="mt-0.5 text-[11.5px] text-gray-400">
+              {ROLE_LABEL[role ?? ""] ?? role}
+            </p>
+          </div>
+        )}
+
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const hasChildren = item.children && item.children.length > 0;
             const groupOpen = openGroups.includes(item.label);
             const groupActive = isGroupActive(item);
@@ -349,7 +359,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                           className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                           style={{
                             background: "rgba(99,102,241,0.25)",
-                            color: "#a5b4fc",
+                            color: "var(--accent-primary)",
                             fontSize: "10px",
                           }}
                         >
@@ -490,7 +500,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                     style={{
                       background: "rgba(99,102,241,0.25)",
-                      color: "#a5b4fc",
+                      color: "var(--accent-primary)",
                       fontSize: "10px",
                     }}
                   >
@@ -511,7 +521,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
               style={{
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                background: "linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover))",
               }}
             >
               A

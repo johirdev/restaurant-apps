@@ -25,8 +25,6 @@ interface FoodsSliderProps {
   subtitle?: string;
   /** Overrides the ?category_id= query param when provided. */
   categoryId?: string;
-  onAddToCart?: (food: FoodItem, variation: any, qty: number) => void;
-  onBuyNow?: (food: FoodItem, variation: any, qty: number) => void;
 }
 
 const AUTO_SLIDE_INTERVAL = 5000; // ms
@@ -36,8 +34,6 @@ const FoodsSlider = ({
   title,
   subtitle,
   categoryId,
-  onAddToCart,
-  onBuyNow,
 }: FoodsSliderProps) => {
   const searchParams = useSearchParams();
   const activeCategoryId =
@@ -309,11 +305,8 @@ const FoodsSlider = ({
               key={food._id}
               className="w-[calc(50%-8px)] md:w-[calc(25%-12px)] flex-shrink-0"
             >
-              <FoodCard
-                food={food}
-                onAddToCart={onAddToCart}
-                onBuyNow={onBuyNow}
-              />
+              {/* কার্ট এখন গ্লোবাল Zustand স্টোরে — কার্ড নিজেই যোগ করে */}
+              <FoodCard food={food} />
             </div>
           ))}
         </div>

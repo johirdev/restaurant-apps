@@ -189,7 +189,7 @@ const FoodCategory = ({
   // ------------------------------------------------------------
   if (loading) {
     return (
-      <div className="relative  flex items-center gap-2.5 rounded-[20px] bg-[#fbf1e4] px-2 py-6 sm:rounded-[24px] sm:py-8 md:rounded-[28px] md:py-9 lg:py-10">
+      <div className="relative  flex items-center gap-2.5 rounded-[20px] bg-[var(--color-canvas)] px-2 py-6 sm:rounded-[24px] sm:py-8 md:rounded-[28px] md:py-9 lg:py-10">
         <div className="flex w-full max-width gap-4 overflow-hidden px-9 py-1 sm:gap-5 sm:px-10 md:gap-8 md:px-14 lg:gap-10 lg:px-16">
           {Array.from({ length: 7 }).map((_, i) => (
             <div
@@ -207,7 +207,7 @@ const FoodCategory = ({
 
   if (error) {
     return (
-      <div className="rounded-[20px] bg-[#fbf1e4] px-6 py-8 text-center text-[13px] text-neutral-500">
+      <div className="rounded-[20px] bg-[var(--color-canvas)] px-6 py-8 text-center text-[13px] text-neutral-500">
         Couldn&apos;t load categories right now.
       </div>
     );
@@ -215,7 +215,7 @@ const FoodCategory = ({
 
   if (categories.length === 0) {
     return (
-      <div className="rounded-[20px] bg-[#fbf1e4] px-6 py-8 text-center text-[13px] text-neutral-500">
+      <div className="rounded-[20px] bg-[var(--color-canvas)] px-6 py-8 text-center text-[13px] text-neutral-500">
         No categories to show yet.
       </div>
     );
@@ -241,7 +241,7 @@ const FoodCategory = ({
           <path
             d="M0,55 C 90,15 160,90 260,55 C 360,20 430,88 530,52 C 630,18 700,85 800,50 C 870,25 930,70 1000,45"
             fill="none"
-            stroke="#f2843d"
+            stroke="var(--color-saffron)"
             strokeWidth="1.6"
             strokeLinecap="round"
           />
@@ -251,7 +251,7 @@ const FoodCategory = ({
           type="button"
           aria-label="Scroll left"
           onClick={() => scrollByAmount(-260)}
-          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#E21B70] text-white  transition hover:scale-[1.06] hover:bg-[#e21b71b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
+          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] text-white  transition hover:scale-[1.06] hover:bg-[var(--color-brand)b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
         >
           <svg
             viewBox="0 0 24 24"
@@ -302,7 +302,7 @@ const FoodCategory = ({
                     <span
                       className={`group relative flex h-[104px] w-[104px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-50 to-sky-100 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_10px_22px_rgba(0,0,0,0.14)] sm:h-[96px] sm:w-[96px] md:h-[130px] md:w-[130px] lg:h-[300px] lg:w-[300px] ${
                         active
-                          ? "outline outline-[3px] outline-offset-[3px] outline-[#E21B70]"
+                          ? "outline outline-[3px] outline-offset-[3px] outline-[var(--color-brand)]"
                           : ""
                       }`}
                     >
@@ -326,7 +326,7 @@ const FoodCategory = ({
                         </span>
                       )}
                     </span>
-                    <span className="group-hover:text-[#E21B70] text-[10px] font-bold uppercase leading-tight tracking-wide sm:text-[11px] md:text-[13px] lg:text-[14px]">
+                    <span className="group-hover:text-[var(--color-brand)] text-[10px] font-bold uppercase leading-tight tracking-wide sm:text-[11px] md:text-[13px] lg:text-[14px]">
                       {category.name}
                     </span>
                   </button>
@@ -340,7 +340,7 @@ const FoodCategory = ({
           type="button"
           aria-label="Scroll right"
           onClick={() => scrollByAmount(260)}
-          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#E21B70] text-white  transition hover:scale-[1.06] hover:bg-[#e21b71b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
+          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] text-white  transition hover:scale-[1.06] hover:bg-[var(--color-brand)b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
         >
           <svg
             viewBox="0 0 24 24"

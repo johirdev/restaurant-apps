@@ -353,7 +353,7 @@ const Categories = () => {
     if (sub === "Hot")
       return { bg: "rgba(239,68,68,0.12)", color: "var(--accent-red)" };
     if (sub === "Popular")
-      return { bg: "var(--accent-purple-soft)", color: "#a78bfa" };
+      return { bg: "var(--accent-purple-soft)", color: "var(--accent-primary)" };
     return null;
   };
 

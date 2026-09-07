@@ -1,52 +1,49 @@
 /* ==========================================================================
-   ADMIN PANEL — GLOBAL THEME
-   Dark theme only (no light-theme variant, by design).
-   Change a value here once -> it updates everywhere the utility class is used.
-   Import this ONCE in your root layout, e.g. src/app/layout.tsx:
-       import "./admin-theme.css";  // adjust path to where you place this file
+   ADMIN PANEL — COMPONENT LAYER
+   --------------------------------------------------------------------------
+   ⚠️ এখানে কোনো hex রঙ নেই।
+   সব রঙ globals.css এর @theme টোকেন থেকে আসে (--color-admin-*, --color-brand …)।
+   ড্যাশবোর্ডের রঙ বদলাতে চাইলে globals.css এর "3. SURFACES — অ্যাডমিন
+   ড্যাশবোর্ড" অংশটা এডিট করুন — এই ফাইলে হাত দিতে হবে না।
+
+   globals.css root layout এ ইমপোর্ট করা, তাই টোকেনগুলো এখানে এমনিতেই পাওয়া যায়।
    ========================================================================== */
 
 :root {
-  /* ---------- Font ---------- */
-  --font-primary: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
+  /* পুরোনো ভ্যারিয়েবল নামগুলো টোকেনের সাথে ম্যাপ করা — যেসব কম্পোনেন্ট
+     এখনো var(--bg-card) লিখছে সেগুলোও নতুন থিম মেনে চলবে। */
+  --font-primary: var(--font-body);
 
-  /* ---------- Surfaces ---------- */
-  --bg-app: #0b1120;       /* page background */
-  --bg-sidebar: #0f1729;   /* sidebar background */
-  --bg-card: #141b2d;      /* card / panel background */
-  --bg-elevated: #1b2338;  /* zebra-striped rows, hovered surfaces */
-  --bg-input: #10182b;     /* input fields */
-  --bg-hover: #1c2540;     /* generic hover background */
+  --bg-app: var(--color-admin-bg);
+  --bg-sidebar: var(--color-admin-sidebar);
+  --bg-card: var(--color-admin-card);
+  --bg-elevated: var(--color-admin-elevated);
+  --bg-input: var(--color-admin-input);
+  --bg-hover: var(--color-admin-hover);
 
-  /* ---------- Borders ---------- */
-  --border-color: #2a3552;
-  --border-color-strong: #3a4568;
+  --border-color: var(--color-admin-border);
+  --border-color-strong: var(--color-admin-border-strong);
 
-  /* ---------- Text ---------- */
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: var(--color-admin-ink);
+  --text-secondary: var(--color-admin-ink-soft);
+  --text-muted: var(--color-admin-ink-faint);
 
-  /* ---------- Brand / accent colors ---------- */
-  --accent-primary: #6d4cef;        /* main brand purple (buttons, active states) */
-  --accent-primary-hover: #7e60f4;
-  --accent-blue: #3b82f6;
-  --accent-blue-hover: #2563eb;
-  --accent-green: #10b981;
-  --accent-green-hover: #059669;
-  --accent-red: #ef4444;
-  --accent-red-hover: #dc2626;
-  --accent-orange: #ffa41c;
+  /* ব্র্যান্ড অ্যাকসেন্ট — পাবলিক সাইটের সাথে একই রঙ, তাই দুটো একই ব্র্যান্ড মনে হয় */
+  --accent-primary: var(--color-brand);
+  --accent-primary-hover: var(--color-brand-dark);
+  --accent-blue: var(--color-info);
+  --accent-blue-hover: var(--color-info);
+  --accent-green: var(--color-herb);
+  --accent-green-hover: var(--color-herb-dark);
+  --accent-red: var(--color-chili);
+  --accent-red-hover: var(--color-chili-dark);
+  --accent-orange: var(--color-saffron);
 
-  --accent-purple-soft: rgba(109, 76, 239, 0.15);
-  --accent-blue-soft: rgba(59, 130, 246, 0.12);
-  --accent-green-soft: rgba(16, 185, 129, 0.12);
-
-  /* ---------- Radius ---------- */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --accent-purple-soft: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  --accent-blue-soft: color-mix(in srgb, var(--color-info) 14%, transparent);
+  --accent-green-soft: color-mix(in srgb, var(--color-herb) 14%, transparent);
+  --accent-red-soft: color-mix(in srgb, var(--color-chili) 14%, transparent);
+  --accent-orange-soft: color-mix(in srgb, var(--color-saffron) 16%, transparent);
 }
 
 /* Apply base font + colors to the whole admin area */
@@ -76,14 +73,37 @@
 .text-danger { color: var(--accent-red); }
 .text-success { color: var(--accent-green); }
 .text-highlight { color: var(--accent-blue); }
+.text-accent { color: var(--accent-primary); }
+
+/* ---------- Panel / card ---------- */
+.admin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+.admin-card-hover {
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.admin-card-hover:hover {
+  border-color: var(--border-color-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
 
 /* ---------- Buttons ---------- */
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border-radius: var(--radius-sm);
   font-family: var(--font-primary);
-  font-weight: 500;
-  transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease,
+    transform 0.12s ease;
 }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-primary { background: var(--accent-primary); color: #fff; }
@@ -105,6 +125,9 @@
 }
 .btn-outline:hover:not(:disabled) { background: var(--bg-hover); }
 
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+
 /* ---------- Inputs ---------- */
 .input-field {
   background: var(--bg-input);
@@ -115,14 +138,14 @@
 .input-field::placeholder { color: var(--text-muted); }
 .input-field:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px var(--accent-blue-soft);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-purple-soft);
 }
 .input-field.input-error { border-color: var(--accent-red); }
 
 /* ---------- Role pills (used in create/edit admin form) ---------- */
 .role-pill {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1.5px solid var(--border-color-strong);
   color: var(--text-secondary);
   background: transparent;
@@ -136,7 +159,7 @@
 .role-pill.active-superadmin {
   background: var(--accent-purple-soft);
   border-color: var(--accent-primary);
-  color: #a78bfa;
+  color: var(--accent-primary);
 }
 .role-pill.active-view {
   background: var(--accent-green-soft);
@@ -147,3 +170,65 @@
 /* ---------- Table ---------- */
 .table-row-alt { background: var(--bg-elevated); }
 .table-row-hover:hover { background: var(--bg-hover); }
+
+.admin-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.admin-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.admin-table tbody tr { transition: background 0.14s ease; }
+.admin-table tbody tr:hover { background: var(--bg-hover); }
+
+/* ---------- Status chips ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+.chip-pending   { background: var(--accent-orange-soft); color: var(--accent-orange); }
+.chip-confirmed { background: var(--accent-blue-soft);   color: var(--accent-blue); }
+.chip-preparing { background: var(--accent-orange-soft); color: var(--accent-orange); }
+.chip-ready     { background: var(--accent-blue-soft);   color: var(--accent-blue); }
+.chip-out_for_delivery { background: var(--accent-purple-soft); color: var(--accent-primary); }
+.chip-delivered { background: var(--accent-green-soft);  color: var(--accent-green); }
+.chip-cancelled { background: var(--accent-red-soft);    color: var(--accent-red); }
+.chip-muted     { background: var(--bg-elevated);        color: var(--text-secondary); }
+
+/* ---------- Skeleton (dark variant) ---------- */
+.admin-skeleton {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+.admin-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent);
+  animation: shimmer 1.4s infinite;
+}

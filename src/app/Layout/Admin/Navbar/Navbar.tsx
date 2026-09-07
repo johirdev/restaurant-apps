@@ -64,7 +64,7 @@ export default function Navbar({
       className="sticky top-0 z-40 flex items-center justify-between gap-2 px-3 sm:px-6 h-16"
       style={{
         background:
-          "linear-gradient(180deg, #0f1729 0%, #111827 60%, #131921 100%)",
+          "linear-gradient(180deg, var(--color-admin-sidebar) 0%, var(--color-admin-bg) 60%, var(--color-admin-bg) 100%)",
         borderBottom: "1px solid rgba(99,102,241,0.15)",
       }}
     >
@@ -83,7 +83,7 @@ export default function Navbar({
             className="text-white font-semibold text-base sm:text-lg leading-none truncate"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Admin <span className="text-[#06B6D4]">Panel</span>
+            Admin <span className="text-[var(--color-info)]">Panel</span>
           </h1>
           <p className="hidden sm:block text-gray-500 text-xs mt-1 truncate">
             {pageTitle}
@@ -131,7 +131,7 @@ export default function Navbar({
               <span
                 className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
                 style={{
-                  background: "#6366f1",
+                  background: "var(--accent-primary)",
                   fontSize: "9px",
                   boxShadow: "0 0 8px rgba(99,102,241,0.6)",
                 }}
@@ -146,7 +146,7 @@ export default function Navbar({
             <div
               className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-12 sm:w-80 max-w-[calc(100vw-1rem)] rounded-2xl overflow-hidden z-50"
               style={{
-                background: "#111827",
+                background: "var(--color-admin-bg)",
                 border: "1px solid rgba(99,102,241,0.2)",
                 boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
               }}
@@ -165,7 +165,7 @@ export default function Navbar({
                   className="text-xs px-2 py-0.5 rounded-full font-semibold"
                   style={{
                     background: "rgba(99,102,241,0.2)",
-                    color: "#a5b4fc",
+                    color: "var(--accent-primary)",
                   }}
                 >
                   {unreadCount} new
@@ -202,7 +202,7 @@ export default function Navbar({
                 <button
                   className="text-sm font-medium transition-colors"
                   style={{
-                    color: "#6366f1",
+                    color: "var(--accent-primary)",
                     fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
@@ -235,7 +235,7 @@ export default function Navbar({
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
               style={{
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                background: "linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover))",
                 boxShadow: "0 0 12px rgba(99,102,241,0.4)",
               }}
             >
@@ -262,7 +262,7 @@ export default function Navbar({
             <div
               className="absolute right-0 top-12 w-52 max-w-[calc(100vw-1rem)] rounded-2xl overflow-hidden z-50"
               style={{
-                background: "#111827",
+                background: "var(--color-admin-bg)",
                 border: "1px solid rgba(99,102,241,0.2)",
                 boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
               }}
@@ -310,7 +310,7 @@ export default function Navbar({
         <div
           className="md:hidden absolute left-0 right-0 top-16 px-3 py-3"
           style={{
-            background: "#111827",
+            background: "var(--color-admin-bg)",
             borderBottom: "1px solid rgba(99,102,241,0.15)",
             boxShadow: "0 12px 24px rgba(0,0,0,0.35)",
           }}

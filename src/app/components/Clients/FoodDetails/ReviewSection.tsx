@@ -100,24 +100,24 @@ const ReviewSection = ({ foodId, foodName }: ReviewSectionProps) => {
   const reviews = STATIC_REVIEWS; // TODO: replace with API fetch by foodId
 
   return (
-    <div className="mx-auto mt-4 max-width border-t border-[#F0E9E1] px-4 pt-8 lg:px-10">
+    <div className="mx-auto mt-4 max-width border-t border-[var(--color-surface-soft)] px-4 pt-8 lg:px-10">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[16px] md:text-[20px] font-extrabold text-[#161B33]">
+        <h2 className="text-[16px] md:text-[20px] font-extrabold text-[var(--color-ink)]">
           Customer Reviews{" "}
-          <span className="text-[#8A7F72] font-medium text-sm">
+          <span className="text-[var(--color-ink-soft)] font-medium text-sm">
             ({reviews.length})
           </span>
         </h2>
         <button
           onClick={() => setShowForm(true)}
-          className="flex-shrink-0 rounded-full bg-[#E21B70] px-4 py-2.5 text-[12px] md:text-[13px] font-bold text-white shadow-md shadow-[#E21B70]/25 transition hover:bg-[#C92C42] cursor-pointer"
+          className="flex-shrink-0 rounded-full bg-[var(--color-brand)] px-4 py-2.5 text-[12px] md:text-[13px] font-bold text-white shadow-md shadow-[var(--color-brand)]/25 transition hover:bg-[var(--color-chili)] cursor-pointer"
         >
           Write a Review
         </button>
       </div>
 
       {reviews.length === 0 ? (
-        <p className="mt-6 text-sm text-[#8A7F72]">
+        <p className="mt-6 text-sm text-[var(--color-ink-soft)]">
           No reviews yet. Be the first to review {foodName}.
         </p>
       ) : (
@@ -142,9 +142,9 @@ export default ReviewSection;
 /* ---------------- Review card ---------------- */
 
 const ReviewCard = ({ review }: { review: Review }) => (
-  <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#F0E9E1] sm:p-5">
+  <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[var(--color-surface-soft)] sm:p-5">
     <div className="flex items-start gap-3">
-      <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-full ring-1 ring-[#F0E9E1]">
+      <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-full ring-1 ring-[var(--color-surface-soft)]">
         {review?.user_avatar ? (
           <Image
             // src={review?.user_avatar}
@@ -154,7 +154,7 @@ const ReviewCard = ({ review }: { review: Review }) => (
             className="object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[#FFF1F3] text-sm font-bold text-[#E21B70]">
+          <div className="flex h-full w-full items-center justify-center bg-[var(--color-brand-soft)] text-sm font-bold text-[var(--color-brand)]">
             {getInitial(review.user_name)}
           </div>
         )}
@@ -162,10 +162,10 @@ const ReviewCard = ({ review }: { review: Review }) => (
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-1">
-          <p className="truncate text-[13px] md:text-[14px] font-bold text-[#161B33]">
+          <p className="truncate text-[13px] md:text-[14px] font-bold text-[var(--color-ink)]">
             {review.user_name}
           </p>
-          <span className="text-[11px] text-[#8A7F72]">
+          <span className="text-[11px] text-[var(--color-ink-soft)]">
             {formatDate(review.createdAt)}
           </span>
         </div>
@@ -176,17 +176,17 @@ const ReviewCard = ({ review }: { review: Review }) => (
               key={i}
               className={`h-3.5 w-3.5 ${
                 i < review.rating
-                  ? "fill-[#F5B93D] text-[#F5B93D]"
-                  : "text-[#E6DACB]"
+                  ? "fill-[var(--color-saffron)] text-[var(--color-saffron)]"
+                  : "text-[var(--color-border)]"
               }`}
             />
           ))}
-          <span className="ml-1 text-[11px] text-[#8A7F72]">
+          <span className="ml-1 text-[11px] text-[var(--color-ink-soft)]">
             Order #{review.order_id}
           </span>
         </div>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-[#4A4238]">
+        <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink)]">
           {review.message}
         </p>
 
@@ -195,7 +195,7 @@ const ReviewCard = ({ review }: { review: Review }) => (
             {review?.images?.map((img) => (
               <div
                 key={img.public_id}
-                className="relative h-16 w-16 overflow-hidden rounded-md ring-1 ring-[#F0E9E1]"
+                className="relative h-16 w-16 overflow-hidden rounded-md ring-1 ring-[var(--color-surface-soft)]"
               >
                 <Image
                   src={img?.url}
@@ -276,12 +276,12 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
       >
         {/* header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-[16px] md:text-[18px] font-extrabold text-[#161B33]">
+          <h3 className="text-[16px] md:text-[18px] font-extrabold text-[var(--color-ink)]">
             Write a Review
           </h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5EFE6] text-[#161B33] transition hover:bg-[#F0E9E1] cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-[var(--color-ink)] transition hover:bg-[var(--color-surface-soft)] cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -290,7 +290,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
         <div className="mt-5 space-y-4">
           {/* profile picture + name */}
           <div className="flex items-center gap-4">
-            <label className="relative flex h-16 w-16 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#F5EFE6] ring-1 ring-[#F0E9E1]">
+            <label className="relative flex h-16 w-16 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[var(--color-surface-soft)] ring-1 ring-[var(--color-surface-soft)]">
               {avatarPreview ? (
                 <Image
                   src={avatarPreview}
@@ -299,9 +299,9 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
                   className="object-cover"
                 />
               ) : (
-                <UserIcon className="h-6 w-6 text-[#B7AB9C]" />
+                <UserIcon className="h-6 w-6 text-[var(--color-ink-faint)]" />
               )}
-              <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#E21B70] text-white ring-2 ring-white">
+              <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-white ring-2 ring-white">
                 <Camera className="h-2.5 w-2.5" />
               </span>
               <input
@@ -313,7 +313,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
             </label>
 
             <div className="flex-1">
-              <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[#8A7F72]">
+              <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
                 Your Name
               </label>
               <input
@@ -321,7 +321,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Tanvir Ahmed"
-                className="w-full rounded-md border border-[#F0E9E1] bg-[#FFFBF7] px-3 py-2.5 text-sm text-[#161B33] outline-none transition focus:border-[#E21B70]"
+                className="w-full rounded-md border border-[var(--color-surface-soft)] bg-[var(--color-canvas)] px-3 py-2.5 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-brand)]"
               />
             </div>
           </div>
@@ -329,7 +329,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
           {/* order id + food id */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[#8A7F72]">
+              <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
                 Order ID
               </label>
               <input
@@ -337,11 +337,11 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 placeholder="ORD-10293"
-                className="w-full rounded-md border border-[#F0E9E1] bg-[#FFFBF7] px-3 py-2.5 text-sm text-[#161B33] outline-none transition focus:border-[#E21B70]"
+                className="w-full rounded-md border border-[var(--color-surface-soft)] bg-[var(--color-canvas)] px-3 py-2.5 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-brand)]"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[#8A7F72]">
+              <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
                 Food ID
               </label>
               <input
@@ -349,14 +349,14 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
                 value={foodId}
                 disabled
                 readOnly
-                className="w-full cursor-not-allowed rounded-md border border-[#F0E9E1] bg-[#F5EFE6] px-3 py-2.5 text-sm text-[#8A7F72] outline-none"
+                className="w-full cursor-not-allowed rounded-md border border-[var(--color-surface-soft)] bg-[var(--color-surface-soft)] px-3 py-2.5 text-sm text-[var(--color-ink-soft)] outline-none"
               />
             </div>
           </div>
 
           {/* rating */}
           <div>
-            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[#8A7F72]">
+            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
               Rating
             </label>
             <div className="flex items-center gap-1">
@@ -375,8 +375,8 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
                     <Star
                       className={`h-7 w-7 transition ${
                         filled
-                          ? "fill-[#F5B93D] text-[#F5B93D]"
-                          : "text-[#E6DACB]"
+                          ? "fill-[var(--color-saffron)] text-[var(--color-saffron)]"
+                          : "text-[var(--color-border)]"
                       }`}
                     />
                   </button>
@@ -387,7 +387,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
 
           {/* message */}
           <div>
-            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[#8A7F72]">
+            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
               Message
             </label>
             <textarea
@@ -395,20 +395,20 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
               placeholder="খাবারটি কেমন লেগেছে লিখুন..."
-              className="w-full resize-none rounded-md border border-[#F0E9E1] bg-[#FFFBF7] px-3 py-2.5 text-sm text-[#161B33] outline-none transition focus:border-[#E21B70]"
+              className="w-full resize-none rounded-md border border-[var(--color-surface-soft)] bg-[var(--color-canvas)] px-3 py-2.5 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-brand)]"
             />
           </div>
 
           {/* image uploads (max 2) */}
           <div>
-            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[#8A7F72]">
+            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
               Photos ({imagePreviews.length}/{MAX_REVIEW_IMAGES})
             </label>
             <div className="flex flex-wrap gap-3">
               {imagePreviews.map((src, idx) => (
                 <div
                   key={idx}
-                  className="relative h-20 w-20 overflow-hidden rounded-md ring-1 ring-[#F0E9E1]"
+                  className="relative h-20 w-20 overflow-hidden rounded-md ring-1 ring-[var(--color-surface-soft)]"
                 >
                   <Image
                     src={src}
@@ -426,7 +426,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
               ))}
 
               {imagePreviews.length < MAX_REVIEW_IMAGES && (
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-[#E6DACB] bg-[#FFFBF7] text-[#B7AB9C] transition hover:border-[#E21B70] hover:text-[#E21B70]">
+                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-[var(--color-border)] bg-[var(--color-canvas)] text-[var(--color-ink-faint)] transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]">
                   <ImagePlus className="h-5 w-5" />
                   <span className="text-[10px] font-medium">Add</span>
                   <input
@@ -448,7 +448,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="flex items-start gap-2 rounded-md bg-[#FFF1F3] px-3 py-2.5 text-[13px] font-medium text-[#E21B70] ring-1 ring-[#FBD3DD]"
+                className="flex items-start gap-2 rounded-md bg-[var(--color-brand-soft)] px-3 py-2.5 text-[13px] font-medium text-[var(--color-brand)] ring-1 ring-[var(--color-brand-soft)]"
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <span>{errorMsg}</span>
@@ -459,7 +459,7 @@ const ReviewFormModal = ({ foodId, onClose }: ReviewFormModalProps) => {
           {/* submit */}
           <button
             onClick={handleSubmit}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E21B70] py-3 text-sm font-bold text-white shadow-lg shadow-[#E21B70]/25 transition hover:bg-[#C92C42] cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-brand)] py-3 text-sm font-bold text-white shadow-lg shadow-[var(--color-brand)]/25 transition hover:bg-[var(--color-chili)] cursor-pointer"
           >
             <Send className="h-4 w-4" />
             Submit Review

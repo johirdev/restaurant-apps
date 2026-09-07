@@ -158,7 +158,7 @@ const DoodleHand = () => (
 
 const Footer = () => {
   return (
-    <footer className="relative overflow-hidden bg-[#0d0d0d] px-6 py-16 text-white sm:px-10 lg:px-20">
+    <footer className="relative overflow-hidden bg-[var(--color-ink)] px-6 py-16 text-white sm:px-10 lg:px-20">
       {/* background doodles */}
       <DoodleCow />
       <DoodleHand />
@@ -173,12 +173,12 @@ const Footer = () => {
               <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none">
                 <path
                   d="M8 24 C8 14 24 6 32 12 C28 8 12 6 8 24 Z"
-                  fill="#ffcc33"
+                  fill="var(--color-saffron)"
                 />
-                <path d="M10 26 L30 26 L20 36 Z" fill="#ffcc33" />
-                <circle cx="16" cy="28" r="1.6" fill="#c0392b" />
-                <circle cx="22" cy="30" r="1.6" fill="#c0392b" />
-                <circle cx="19" cy="25" r="1.6" fill="#c0392b" />
+                <path d="M10 26 L30 26 L20 36 Z" fill="var(--color-saffron)" />
+                <circle cx="16" cy="28" r="1.6" fill="var(--color-chili-dark)" />
+                <circle cx="22" cy="30" r="1.6" fill="var(--color-chili-dark)" />
+                <circle cx="19" cy="25" r="1.6" fill="var(--color-chili-dark)" />
               </svg>
             </span>
             <span>

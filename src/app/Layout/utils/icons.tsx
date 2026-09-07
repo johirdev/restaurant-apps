@@ -57,6 +57,7 @@ import {
   Truck,
   XCircle,
   CookingPot,
+  ChefHat,
   Users2,
   ShieldCheck,
   CalendarClock,
@@ -116,6 +117,12 @@ export const Icons = {
   ),
   CancelOrders: (p: IconProps) => <XCircle className={p.className} />,
   Truck: (p: IconProps) => <Truck className={p.className} />,
+
+  // ---- Kitchen & Tables ----
+  Chef: (p: IconProps) => <ChefHat className={p.className} />,
+  Table: (p: IconProps) => (
+    <MdOutlineTableRestaurant className={p.className} />
+  ),
 
   // ---- Table Booking / Reservation ----
   TableBooking: (p: IconProps) => (

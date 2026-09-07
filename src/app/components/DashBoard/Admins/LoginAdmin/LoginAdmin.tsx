@@ -39,18 +39,18 @@ interface Errors {
 // Brand tokens — matches the dark indigo/purple theme used across the
 // Sidebar and Navbar so the admin panel feels like one cohesive product.
 const THEME = {
-  "--bg-page-1": "#0f1729",
-  "--bg-page-2": "#111827",
-  "--bg-page-3": "#131921",
-  "--bg-card": "#111827",
+  "--bg-page-1": "var(--color-admin-sidebar)",
+  "--bg-page-2": "var(--color-admin-bg)",
+  "--bg-page-3": "var(--color-admin-bg)",
+  "--bg-card": "var(--color-admin-bg)",
   "--bg-input": "rgba(255,255,255,0.05)",
-  "--brand-indigo": "#6366f1",
-  "--brand-purple": "#8b5cf6",
+  "--brand-indigo": "var(--accent-primary)",
+  "--brand-purple": "var(--accent-primary-hover)",
   "--brand-glow": "rgba(99,102,241,0.18)",
   "--brand-glow-strong": "rgba(99,102,241,0.3)",
   "--text-primary": "#ffffff",
-  "--text-secondary": "#cbd5e1",
-  "--text-muted": "#6b7280",
+  "--text-secondary": "var(--color-admin-ink-soft)",
+  "--text-muted": "var(--color-admin-ink-faint)",
   "--border-subtle": "rgba(99,102,241,0.15)",
   "--border-focus": "rgba(99,102,241,0.6)",
   "--shadow-card": "0 20px 60px rgba(0,0,0,0.5)",
@@ -79,6 +79,14 @@ export default function LoginAdmin() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState("");
+
+  /**
+   * ব্যস্ত সময়ে ওয়েটার/শেফকে প্রতিবার ক্যাপচা লেখানো বাড়াবাড়ি — তাই
+   * দুইবার ভুল হওয়ার পরেই কেবল ক্যাপচা দেখানো হয়। ব্রুট-ফোর্স ঠেকানোর
+   * কাজটা তখনো হয়, কিন্তু স্বাভাবিক লগইন এক সেকেন্ডেই শেষ।
+   */
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const captchaRequired = failedAttempts >= 2;
 
   const router = useRouter();
 
@@ -112,7 +120,7 @@ export default function LoginAdmin() {
     const validationErrors: Errors = {};
     if (!formData.email) validationErrors.email = "Email is required";
     if (!formData.password) validationErrors.password = "Password is required";
-    if (captchaInput !== captcha)
+    if (captchaRequired && captchaInput !== captcha)
       validationErrors.captcha = "Captcha does not match";
 
     setErrors(validationErrors);
@@ -125,21 +133,58 @@ export default function LoginAdmin() {
 
     setLoading(true);
 
+    /**
+     * একটাই লগইন ফর্ম, দুই রকম অ্যাকাউন্ট:
+     *   Admin  → superadmin / admin / viewOnly
+     *   Staff  → manager / chef / waiter / cashier / cleaner
+     * দুটো এন্ডপয়েন্ট একই আকারের টোকেন দেয়, তাই কে কোনটা সেটা কর্মীকে
+     * জিজ্ঞেস না করে আমরা নিজেরাই মিলিয়ে নিই।
+     */
+    const attempts: { url: string; body: Record<string, string> }[] = [
+      {
+        url: "/api/v1/admins/login",
+        body: { admin_email: formData.email, admin_password: formData.password },
+      },
+      {
+        url: "/api/v1/staffs/login",
+        body: { staff_email: formData.email, staff_password: formData.password },
+      },
+    ];
+
+    let lastMessage = "Email or password is not correct";
+
     try {
-      const res = await axios.post("/api/v1/admins/login", {
-        admin_email: formData.email,
-        admin_password: formData.password,
-      });
+      for (const attempt of attempts) {
+        try {
+          const res = await axios.post(attempt.url, attempt.body);
+          if (res.data?.success && res.data?.data?.access_token) {
+            loginAdmin(res.data.data.access_token);
+            setFailedAttempts(0);
+            toast.success(res.data.message || "Login successful!");
+            router.push("/dashboard");
+            return;
+          }
+        } catch (err: any) {
+          const status = err?.response?.status;
+          const message = err?.response?.data?.message;
 
-      const data = res.data;
-
-      if (data.success) {
-        loginAdmin(data.data.access_token);
-        toast.success(data.message || "Login successful!");
-        router.push("/dashboard");
+          // ৪০১ মানে অ্যাকাউন্টটা পাওয়া গেছে কিন্তু পাসওয়ার্ড ভুল —
+          // তখন অন্য টেবিলে খোঁজার আর মানে নেই
+          if (status === 401 && /password/i.test(message || "")) {
+            lastMessage = message;
+            break;
+          }
+          // ব্লক / নিষ্ক্রিয় অ্যাকাউন্টের বার্তাও হুবহু দেখানো দরকার
+          if (status === 403 || status === 429) {
+            lastMessage = message || lastMessage;
+            break;
+          }
+          if (message) lastMessage = message;
+        }
       }
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || "Login failed");
+
+      setServerError(lastMessage);
+      setFailedAttempts((n) => n + 1);
     } finally {
       setLoading(false);
       generateCaptcha();
@@ -193,7 +238,7 @@ export default function LoginAdmin() {
               Restaurant Admin
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Sign in to manage your restaurant
+              Managers, chefs and waiters sign in here too
             </p>
           </div>
 
@@ -270,7 +315,8 @@ export default function LoginAdmin() {
               )}
             </div>
 
-            {/* Captcha */}
+            {/* Captcha — শুধু বারবার ভুল হলে */}
+            {captchaRequired && (
             <div>
               <label
                 htmlFor="captcha"
@@ -318,6 +364,7 @@ export default function LoginAdmin() {
                 <p className="mt-1 text-xs text-red-400">{errors.captcha}</p>
               )}
             </div>
+            )}
 
             {/* Remember me */}
             <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-secondary)]">
