@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { SortOrder } from "mongoose";
 import OrderModel from "../models/order.model";
+import OrderSequenceModel from "../models/orderSequence.model";
 import FoodModel from "../models/food.model";
 import TableModel from "../models/table.model";
 import { StaffModel } from "../models/staff.model";
@@ -37,12 +38,26 @@ async function generateOrderNumber(prefix: string): Promise<string> {
     String(now.getDate()).padStart(2, "0"),
   ].join("");
 
+  const key = `${prefix}-${stamp}`;
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const countToday = await OrderModel.countDocuments({
+    order_number: new RegExp(`^${prefix}-${stamp}-`),
     createdAt: { $gte: startOfDay },
   });
 
-  return `${prefix}-${stamp}-${String(countToday + 1).padStart(4, "0")}`;
+  await OrderSequenceModel.findOneAndUpdate(
+    { key },
+    { $setOnInsert: { key, value: countToday } },
+    { upsert: true, new: false, setDefaultsOnInsert: true },
+  );
+
+  const sequence = await OrderSequenceModel.findOneAndUpdate(
+    { key },
+    { $inc: { value: 1 } },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  ).lean();
+
+  return `${prefix}-${stamp}-${String(sequence.value).padStart(4, "0")}`;
 }
 
 /* ==========================================================================
@@ -182,51 +197,40 @@ const createOrder = async (
     settings,
   );
 
-  // একই সেকেন্ডে দুটো অর্ডার এলে order_number সংঘর্ষ হতে পারে — কয়েকবার চেষ্টা করি
-  for (let attempt = 0; attempt < 5; attempt++) {
-    try {
-      const order = await OrderModel.create({
-        order_number: await generateOrderNumber(settings.order_prefix),
-        user_id: meta.user_id || "",
-        items,
-        customer: payload.customer,
-        order_type: payload.order_type,
+  const order = await OrderModel.create({
+    order_number: await generateOrderNumber(settings.order_prefix),
+    user_id: meta.user_id || "",
+    items,
+    customer: payload.customer,
+    order_type: payload.order_type,
 
-        table_id: table?._id ?? null,
-        table_name: table?.name || "",
-        table_number: payload.table_number || table?.name || "",
-        guests: payload.guests || 0,
+    table_id: table?._id ?? null,
+    table_name: table?.name || "",
+    table_number: payload.table_number || table?.name || "",
+    guests: payload.guests || 0,
 
-        taken_by: meta.taken_by || {},
-        waiter,
+    taken_by: meta.taken_by || {},
+    waiter,
 
-        payment_method: payload.payment_method,
-        payment_status: "unpaid",
+    payment_method: payload.payment_method,
+    payment_status: "unpaid",
+    status: "pending",
+    pricing,
+    coupon_code: payload.coupon_code || "",
+    source: meta.source || "web",
+    placed_ip: meta.ip || "",
+    scheduled_for: payload.scheduled_for ?? undefined,
+    status_history: [
+      {
         status: "pending",
-        pricing,
-        coupon_code: payload.coupon_code || "",
-        source: meta.source || "web",
-        placed_ip: meta.ip || "",
-        scheduled_for: payload.scheduled_for ?? undefined,
-        status_history: [
-          {
-            status: "pending",
-            at: new Date(),
-            by: meta.taken_by?.name || "customer",
-          },
-        ],
-      });
+        at: new Date(),
+        by: meta.taken_by?.name || "customer",
+      },
+    ],
+  });
 
-      // দখল করা হয় না — কনফার্মের সময় হবে
-      return order;
-    } catch (err: any) {
-      const isDuplicateOrderNumber =
-        err?.code === 11000 && err?.keyPattern?.order_number;
-      if (!isDuplicateOrderNumber || attempt === 4) throw err;
-    }
-  }
-
-  throw Conflict("Could not generate a unique order number, please try again");
+  // দখল করা হয় না — কনফার্মের সময় হবে
+  return order;
 };
 
 /* ==========================================================================
