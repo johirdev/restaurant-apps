@@ -1,0 +1,668 @@
+/* ==========================================================================
+   CONTACT PAGE
+   --------------------------------------------------------------------------
+   About পাতার মতোই — সব রঙ globals.css এর টোকেন থেকে, কোনো hex নেই।
+   "এখন খোলা?" ব্যাজের চেহারাটা aboutPage.css এ একবারই লেখা আছে
+   (`.open-badge`), তাই এখানে আর লেখা হয়নি — দুই পাতাতেই একই ব্যাজ।
+   ========================================================================== */
+
+.contact-page {
+  background: var(--color-background);
+  color: var(--color-ink);
+  overflow-x: clip;
+}
+
+/* ==========================================================================
+   হিরো — হালকা রঙিন, ছবি ছাড়া (ফর্মটাই এখানে নায়ক)
+   ========================================================================== */
+.contact-hero {
+  position: relative;
+  isolation: isolate;
+  padding: 64px 20px 96px;
+  background: var(--color-brand-tint);
+  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .contact-hero {
+    padding: 84px 40px 120px;
+  }
+}
+
+/* কোণ থেকে ছড়ানো নরম আভা */
+.contact-hero__glow {
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  z-index: -1;
+  height: 420px;
+  background:
+    radial-gradient(
+      42% 60% at 20% 40%,
+      color-mix(in srgb, var(--color-brand) 20%, transparent) 0%,
+      transparent 68%
+    ),
+    radial-gradient(
+      38% 55% at 82% 30%,
+      color-mix(in srgb, var(--color-saffron) 22%, transparent) 0%,
+      transparent 66%
+    );
+  pointer-events: none;
+}
+
+.contact-hero__inner {
+  max-width: 760px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.contact-crumbs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+}
+.contact-crumbs a:hover {
+  color: var(--color-brand);
+}
+.contact-crumbs [aria-current="page"] {
+  color: var(--color-ink);
+}
+
+.contact-hero__title {
+  margin-top: 12px;
+  font-size: clamp(30px, 5.2vw, 52px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.contact-hero__intro {
+  max-width: 58ch;
+  margin: 18px auto 0;
+  font-size: clamp(15px, 1.6vw, 17px);
+  line-height: 1.78;
+  color: var(--color-ink-soft);
+}
+
+/* ==========================================================================
+   যোগাযোগের কার্ড — হিরোর নিচ থেকে উঠে থাকে
+   ========================================================================== */
+.contact-cards {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 14px;
+  margin-top: -52px;
+  padding: 0 20px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .contact-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .contact-cards {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    padding: 0 40px;
+  }
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 26px 24px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  transition:
+    transform 0.28s var(--ease-out-soft),
+    box-shadow 0.28s var(--ease-out-soft),
+    border-color 0.28s var(--ease-out-soft);
+}
+.contact-card:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in srgb, var(--color-brand) 32%, transparent);
+  box-shadow: var(--shadow-lifted);
+}
+
+/* টেবিল বুকিংয়ের কার্ডটা আলাদা করে চোখে পড়ুক */
+.contact-card--accent {
+  background: linear-gradient(
+    170deg,
+    var(--color-ink) 0%,
+    color-mix(in srgb, var(--color-ink) 88%, var(--color-brand)) 100%
+  );
+  border-color: transparent;
+  color: var(--color-ink-invert);
+}
+.contact-card--accent .contact-card__title,
+.contact-card--accent .contact-card__text {
+  color: var(--color-ink-invert);
+}
+.contact-card--accent .contact-card__text {
+  opacity: 0.82;
+}
+.contact-card--accent .contact-card__icon {
+  background: color-mix(in srgb, var(--color-saffron) 24%, transparent);
+  color: var(--color-saffron);
+}
+.contact-card--accent .contact-card__link {
+  color: var(--color-saffron);
+}
+
+.contact-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+.contact-card__icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.contact-card__title {
+  margin-top: 16px;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.contact-card__text {
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere; /* লম্বা ইমেইল ঠিকানা কার্ড ভেঙে বেরোয় না */
+}
+.contact-card__text a:hover {
+  color: var(--color-brand);
+}
+
+.contact-card__sub {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--color-ink-faint);
+}
+.contact-card__sub a {
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+.contact-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-brand);
+}
+.contact-card__link svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.18s var(--ease-out-soft);
+}
+.contact-card__link:hover svg {
+  transform: translateX(3px);
+}
+
+/* ==========================================================================
+   ফর্ম + পাশের প্যানেল
+   ========================================================================== */
+.contact-main {
+  display: grid;
+  gap: 24px;
+  padding: 72px 20px 88px;
+}
+
+@media (min-width: 1024px) {
+  .contact-main {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 32px;
+    padding: 96px 40px 104px;
+    align-items: start;
+  }
+}
+
+/* ---------- ফর্ম ---------- */
+.contact-form {
+  padding: 30px 24px 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+}
+
+@media (min-width: 768px) {
+  .contact-form {
+    padding: 38px 36px 34px;
+  }
+}
+
+.contact-form__title {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.contact-form__hint {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--color-ink-soft);
+}
+
+.contact-form__grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .contact-form__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.contact-field {
+  display: block;
+}
+.contact-field--full {
+  grid-column: 1 / -1;
+}
+
+.contact-field__label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.contact-field__label i {
+  margin-left: 3px;
+  font-style: normal;
+  color: var(--color-chili);
+}
+
+.contact-input {
+  height: 46px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.contact-textarea {
+  height: auto;
+  min-height: 132px;
+  padding: 12px 14px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+/* ব্রাউজারের নিজের তীরটা রেখে শুধু জায়গা করে দিই */
+.contact-select {
+  padding-right: 10px;
+  cursor: pointer;
+}
+
+.contact-field__error {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-chili);
+}
+
+/* মধুর ফাঁদ — চোখে পড়ে না, কিন্তু DOM এ থাকে (বট এটাই ভরে ফেলে) */
+.contact-form__trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-form__submit {
+  width: 100%;
+  height: 50px;
+  margin-top: 24px;
+  font-size: 15px;
+}
+.contact-form__submit svg {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes contact-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.contact-form__spin {
+  animation: contact-spin 0.9s linear infinite;
+}
+
+.contact-form__note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  text-align: center;
+  color: var(--color-ink-faint);
+}
+
+/* ---------- পাঠানোর পরের পর্দা ---------- */
+.contact-form--done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+  text-align: center;
+}
+
+.contact-done__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: var(--color-herb-soft);
+  color: var(--color-herb);
+}
+.contact-done__icon svg {
+  width: 34px;
+  height: 34px;
+}
+
+.contact-done__title {
+  margin-top: 20px;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.contact-done__text {
+  max-width: 44ch;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--color-ink-soft);
+}
+
+.contact-done__again {
+  height: 44px;
+  margin-top: 24px;
+  padding: 0 22px;
+  font-size: 14px;
+}
+
+/* ---------- পাশের প্যানেল ---------- */
+.contact-side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.contact-panel {
+  padding: 24px 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-flat);
+}
+
+.contact-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.contact-panel__head h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.contact-panel__text {
+  margin-top: 8px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+}
+
+/* ---------- সময়সূচি ---------- */
+.contact-hours {
+  display: grid;
+  gap: 2px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.contact-hours li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.contact-hours__day {
+  font-weight: 600;
+}
+
+.contact-hours__dots {
+  flex: 1;
+  height: 1px;
+  min-width: 14px;
+  background-image: radial-gradient(
+    circle,
+    var(--color-border-strong) 1px,
+    transparent 1px
+  );
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+  transform: translateY(-3px);
+}
+
+.contact-hours__time {
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.contact-hours__closed {
+  font-weight: 700;
+  color: var(--color-chili);
+}
+
+/* ---------- সোশ্যাল ---------- */
+.contact-socials {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  grid-template-columns: repeat(2, 1fr);
+}
+.contact-socials a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  transition:
+    background 0.18s var(--ease-out-soft),
+    color 0.18s var(--ease-out-soft),
+    transform 0.18s var(--ease-spring);
+}
+.contact-socials a svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.contact-socials a:hover {
+  transform: translateY(-2px);
+  background: var(--color-brand);
+  color: var(--color-ink-invert);
+}
+
+/* ---------- অর্ডারের ডাক ---------- */
+.contact-panel--cta {
+  text-align: center;
+  background: linear-gradient(
+    170deg,
+    var(--color-brand) 0%,
+    var(--color-brand-dark) 100%
+  );
+  border-color: transparent;
+  color: var(--color-ink-invert);
+  box-shadow: var(--shadow-brand);
+}
+.contact-panel--cta > svg {
+  width: 30px;
+  height: 30px;
+  margin-inline: auto;
+}
+.contact-panel--cta h3 {
+  margin-top: 12px;
+  font-size: 17px;
+  font-weight: 800;
+}
+.contact-panel--cta p {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.65;
+  opacity: 0.88;
+}
+.contact-panel--cta .site-btn {
+  height: 44px;
+  margin-top: 18px;
+  padding: 0 24px;
+  font-size: 14px;
+  /* রঙিন প্যানেলের উপরে গোলাপি বোতাম মিশে যেত, তাই সাদা */
+  background: var(--color-surface);
+  color: var(--color-brand-dark);
+  box-shadow: var(--shadow-raised);
+}
+.contact-panel--cta .site-btn:hover {
+  background: var(--color-surface);
+  color: var(--color-brand-darker);
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   ম্যাপ
+   ========================================================================== */
+.contact-map {
+  position: relative;
+  border-top: 1px solid var(--color-border);
+}
+
+.contact-map__frame {
+  position: relative;
+  height: 380px;
+  background: var(--color-surface-soft);
+}
+
+@media (min-width: 768px) {
+  .contact-map__frame {
+    height: 480px;
+  }
+}
+
+.contact-map__frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  /* ম্যাপের কড়া রঙটা পাতার বাকি অংশের সাথে মেলে না — সামান্য নরম করি */
+  filter: saturate(0.92) contrast(1.02);
+}
+
+/* ঠিকানার কার্ডটা ম্যাপের উপরে ভাসে (বড় স্ক্রিনে) */
+.contact-map__card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (min-width: 900px) {
+  .contact-map__card {
+    position: absolute;
+    left: 40px;
+    bottom: 40px;
+    width: min(460px, calc(100% - 80px));
+    padding: 24px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lifted);
+  }
+}
+
+.contact-map__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+.contact-map__icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.contact-map__card h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+.contact-map__card p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.contact-map__btn {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 13.5px;
+}
+.contact-map__btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (min-width: 900px) {
+  .contact-map__card > div {
+    flex: 1;
+  }
+  .contact-map__btn {
+    width: 100%;
+  }
+}

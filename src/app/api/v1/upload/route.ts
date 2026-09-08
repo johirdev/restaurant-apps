@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyTokenAndRole } from "@/src/middlewares/adminRoleAccess.middlewares";
 import { optionalUser } from "@/src/middlewares/requireUser";
 import { ANY_STAFF } from "@/src/middlewares/requireAuth";
+import { connectDB } from "@/src/config/db";
 
 // Buffer/streams নিয়ে কাজ করতে হলে Node.js runtime বাধ্যতামূলক
 export const runtime = "nodejs";
@@ -42,11 +43,18 @@ const ALLOWED_FOLDERS = new Set([
  * আগে এই রুট একদম খোলা ছিল — যে কেউ আপনার Cloudinary কোটা শেষ করে
  * দিতে পারত, তাই সেটা বন্ধ করা হলো।
  */
-function whoIsUploading(req: NextRequest): { ok: boolean; isStaff: boolean } {
+async function whoIsUploading(
+  req: NextRequest,
+): Promise<{ ok: boolean; isStaff: boolean }> {
   const staff = verifyTokenAndRole(req, ANY_STAFF as unknown as string[]);
   if (staff.success) return { ok: true, isStaff: true };
 
-  const customer = optionalUser(req);
+  // কাস্টমারের সেশনটা ডাটাবেসেও মিলিয়ে দেখা হয় (ব্লক করা হয়েছে কিনা,
+  // পাসওয়ার্ড বদলে গেছে কিনা) — এই রুটটা `catchAsync` ব্যবহার করে না,
+  // তাই কানেকশনটা এখানে নিজেই নিশ্চিত করতে হয়
+  await connectDB();
+
+  const customer = await optionalUser(req);
   if (customer) return { ok: true, isStaff: false };
 
   return { ok: false, isStaff: false };
@@ -59,7 +67,7 @@ const fail = (message: string, status: number) =>
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = whoIsUploading(req);
+    const auth = await whoIsUploading(req);
     if (!auth.ok) {
       return fail("Please log in before uploading an image", 401);
     }
@@ -129,7 +137,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const auth = whoIsUploading(req);
+    const auth = await whoIsUploading(req);
     if (!auth.ok) {
       return fail("Please log in before deleting an image", 401);
     }

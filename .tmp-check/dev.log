@@ -1,0 +1,289 @@
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.110:3000
+- Environments: .env
+✓ Ready in 1018ms
+
+○ Compiling /account ...
+ GET /dashboard/customers 200 in 7.8s (next.js: 4.4s, application-code: 3.3s)
+ GET /account 200 in 7.9s (next.js: 6.5s, application-code: 1342ms)
+○ Compiling /api/v1/categories ...
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ GET /api/v1/settings 200 in 5.4s (next.js: 3.7s, application-code: 1751ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ GET /api/v1/users/favorite-dishes 200 in 1469ms (next.js: 796ms, application-code: 674ms)
+ GET /api/v1/categories 200 in 5.5s (next.js: 3.9s, application-code: 1558ms)
+ GET /api/v1/users?page=1&limit=12&sortBy=createdAt&sortOrder=desc 200 in 1559ms (next.js: 643ms, application-code: 916ms)
+ GET /api/v1/users/unverified 200 in 1593ms (next.js: 301ms, application-code: 1292ms)
+ GET /api/v1/users?page=1&limit=12&sortBy=createdAt&sortOrder=desc 200 in 159ms (next.js: 8ms, application-code: 151ms)
+ GET /api/v1/users/me 200 in 5.7s (next.js: 3.3s, application-code: 2.4s)
+ GET /api/v1/users/unverified 200 in 112ms (next.js: 7ms, application-code: 105ms)
+ GET /api/v1/users/favorite-dishes 200 in 406ms (next.js: 9ms, application-code: 397ms)
+ GET /api/v1/settings 200 in 483ms (next.js: 7ms, application-code: 475ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/account" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" className="plus_jakar...">
+                          <body
+                            className="min-h-full flex flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+    at <unknown> (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3439:25)
+    at runWithFiberInDEV (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at emitPendingHydrationWarnings (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3438:13)
+    at completeWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6885:102)
+    at runWithFiberInDEV (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:131)
+    at completeUnitOfWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9622:23)
+    at performUnitOfWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64) (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3439:25)
+ POST /api/v1/users/logout 200 in 112ms (next.js: 100ms, application-code: 12ms)
+ GET / 200 in 394ms (next.js: 143ms, application-code: 251ms)
+ GET /login?next=%2Faccount 200 in 399ms (next.js: 286ms, application-code: 113ms)
+ GET /forgot-password 200 in 199ms (next.js: 77ms, application-code: 122ms)
+[SMS DEV] → 8801824842336: 519702 is your HyperTouch password reset code, valid for 5 minutes. If you did not ask to reset your password, ignore this message.
+ POST /api/v1/users/password/forgot 200 in 391ms (next.js: 97ms, application-code: 294ms)
+ POST /api/v1/users/password/verify 200 in 450ms (next.js: 149ms, application-code: 301ms)
+ POST /api/v1/users/password/reset 200 in 1023ms (next.js: 95ms, application-code: 928ms)
+ GET /login?reset=1 200 in 83ms (next.js: 7ms, application-code: 76ms)
+ POST /api/v1/users/login 401 in 573ms (next.js: 87ms, application-code: 486ms)
+ POST /api/v1/users/login 200 in 456ms (next.js: 4ms, application-code: 452ms)
+ GET /account 200 in 133ms (next.js: 12ms, application-code: 121ms)
+ GET /account?complete=1 200 in 79ms (next.js: 5ms, application-code: 74ms)
+ GET /account 200 in 219ms (next.js: 68ms, application-code: 152ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ PATCH /api/v1/users/me 200 in 117ms (next.js: 5ms, application-code: 112ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ PATCH /api/v1/users/me 200 in 121ms (next.js: 4ms, application-code: 117ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" className="plus_jakar...">
+                          <body
+                            className="min-h-full flex flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+    at <unknown> (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3439:25)
+    at runWithFiberInDEV (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at emitPendingHydrationWarnings (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3438:13)
+    at completeWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6885:102)
+    at runWithFiberInDEV (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:131)
+    at completeUnitOfWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9622:23)
+    at performUnitOfWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64) (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3439:25)
+ DELETE /api/v1/users/6aa06802db9f7c10d8b6a00c 200 in 3.0s (next.js: 2.9s, application-code: 58ms)
+ GET /api/v1/users/unverified 200 in 66ms (next.js: 6ms, application-code: 60ms)
+ GET /dashboard/customers/6aa0626cdb9f7c10d8b69e3d 200 in 1045ms (next.js: 988ms, application-code: 57ms)
+ GET /api/v1/users/6aa0626cdb9f7c10d8b69e3d 200 in 184ms (next.js: 20ms, application-code: 164ms)
+ GET /api/v1/users/6aa0626cdb9f7c10d8b69e3d 200 in 206ms (next.js: 50ms, application-code: 156ms)
+ GET /dashboard/banners 200 in 131ms (next.js: 78ms, application-code: 53ms)
+ GET /api/v1/banners 200 in 447ms (next.js: 380ms, application-code: 67ms)
+ GET /api/v1/banners 200 in 61ms (next.js: 5ms, application-code: 56ms)
+ GET /dashboard/banners 200 in 393ms (next.js: 6ms, application-code: 388ms)
+ GET /dashboard/banners 200 in 111ms (next.js: 21ms, application-code: 90ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ GET /api/v1/banners 200 in 68ms (next.js: 6ms, application-code: 62ms)
+ GET /api/v1/settings 200 in 91ms (next.js: 27ms, application-code: 65ms)
+ GET /api/v1/banners 200 in 111ms (next.js: 51ms, application-code: 60ms)
+ GET /dashboard/orders/new 200 in 122ms (next.js: 67ms, application-code: 55ms)
+ GET /api/v1/orders?page=1&limit=20&sortBy=createdAt&sortOrder=desc&status=pending 200 in 322ms (next.js: 175ms, application-code: 146ms)
+ GET /api/v1/orders?page=1&limit=20&sortBy=createdAt&sortOrder=desc&status=pending 200 in 634ms (next.js: 223ms, application-code: 410ms)
+ GET /api/v1/orders?page=1&limit=20&sortBy=createdAt&sortOrder=desc&status=pending 200 in 73ms (next.js: 5ms, application-code: 68ms)
+ GET /dashboard/banners 200 in 43ms (next.js: 5ms, application-code: 38ms)
+ GET /api/v1/banners 200 in 65ms (next.js: 6ms, application-code: 59ms)
+ GET /api/v1/banners 200 in 85ms (next.js: 28ms, application-code: 57ms)
+ GET /dashboard/videos 200 in 207ms (next.js: 106ms, application-code: 100ms)
+ GET /api/v1/videos 200 in 169ms (next.js: 110ms, application-code: 59ms)
+ GET /api/v1/videos 200 in 57ms (next.js: 6ms, application-code: 51ms)
+ GET /dashboard/legal 200 in 162ms (next.js: 116ms, application-code: 46ms)
+ GET /api/v1/legal 200 in 238ms (next.js: 131ms, application-code: 106ms)
+ GET /api/v1/legal 200 in 257ms (next.js: 158ms, application-code: 99ms)
+ GET /dashboard/messages 200 in 131ms (next.js: 82ms, application-code: 49ms)
+ GET /api/v1/contact?page=1&limit=12&sortBy=createdAt&sortOrder=desc&status=new 200 in 166ms (next.js: 102ms, application-code: 65ms)
+ GET /api/v1/contact?page=1&limit=12&sortBy=createdAt&sortOrder=desc&status=new 200 in 69ms (next.js: 12ms, application-code: 57ms)
+ GET /api/v1/contact?page=1&limit=12&sortBy=createdAt&sortOrder=desc&status=read 200 in 63ms (next.js: 4ms, application-code: 58ms)
+ GET /api/v1/contact?page=1&limit=12&sortBy=createdAt&sortOrder=desc&status=new 200 in 54ms (next.js: 3ms, application-code: 51ms)
+ GET /api/v1/contact?page=1&limit=12&sortBy=createdAt&sortOrder=desc 200 in 56ms (next.js: 3ms, application-code: 53ms)
+ GET /dashboard/reports/sales 200 in 118ms (next.js: 73ms, application-code: 45ms)
+ GET /api/v1/reports/sales?range=today 200 in 224ms (next.js: 125ms, application-code: 99ms)
+ GET /api/v1/reports/sales?range=today 200 in 509ms (next.js: 157ms, application-code: 352ms)
+ GET /api/v1/reports/sales?range=week 200 in 70ms (next.js: 6ms, application-code: 65ms)
+ GET /dashboard 200 in 133ms (next.js: 87ms, application-code: 46ms)
+ GET /api/v1/orders/stats 200 in 242ms (next.js: 113ms, application-code: 129ms)
+ GET /api/v1/orders/stats 200 in 262ms (next.js: 144ms, application-code: 118ms)
+ GET /dashboard/settings 200 in 156ms (next.js: 112ms, application-code: 44ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ GET /api/v1/settings 200 in 293ms (next.js: 9ms, application-code: 284ms)
+ GET /api/v1/settings 200 in 327ms (next.js: 190ms, application-code: 136ms)
+ GET /dashboard/settings 200 in 409ms (next.js: 6ms, application-code: 403ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" className="plus_jakar...">
+                          <body
+                            className="min-h-full flex flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+    at <unknown> (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3439:25)
+    at runWithFiberInDEV (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at emitPendingHydrationWarnings (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3438:13)
+    at completeWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6885:102)
+    at runWithFiberInDEV (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:131)
+    at completeUnitOfWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9622:23)
+    at performUnitOfWork (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64) (file://C:/Users/UseR/Desktop/coders24/business/restaurant-apps/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3439:25)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ GET /api/v1/settings 200 in 89ms (next.js: 13ms, application-code: 77ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ GET /api/v1/settings 200 in 60ms (next.js: 4ms, application-code: 56ms)
+(node:14856) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+ GET /api/v1/settings 200 in 62ms (next.js: 4ms, application-code: 58ms)
+ GET / 200 in 57ms (next.js: 12ms, application-code: 45ms)
+ GET /api/v1/videos?status=active 200 in 127ms (next.js: 5ms, application-code: 122ms)
+ GET /api/v1/categories 200 in 142ms (next.js: 27ms, application-code: 116ms)
+ GET /api/v1/foods?page=1&limit=12&sortBy=createdAt&sortOrder=desc&status=active 200 in 195ms (next.js: 108ms, application-code: 86ms)
+ GET /api/v1/banners?status=active 200 in 63ms (next.js: 8ms, application-code: 55ms)
+ GET /api/v1/videos?status=active 200 in 59ms (next.js: 6ms, application-code: 52ms)
+ GET /api/v1/categories 200 in 87ms (next.js: 15ms, application-code: 72ms)
+ GET /api/v1/foods?page=1&limit=12&sortBy=createdAt&sortOrder=desc&status=active 200 in 68ms (next.js: 10ms, application-code: 59ms)
+ GET /api/v1/banners?status=active 200 in 78ms (next.js: 28ms, application-code: 50ms)
+ GET / 200 in 1688ms (next.js: 172ms, application-code: 1516ms)
+ GET /dashboard/settings 200 in 541ms (next.js: 183ms, application-code: 358ms)
+ GET / 200 in 552ms (next.js: 285ms, application-code: 267ms)
+ GET /dashboard/settings 200 in 287ms (next.js: 17ms, application-code: 270ms)
+ GET / 200 in 366ms (next.js: 8ms, application-code: 358ms)
+ GET / 200 in 365ms (next.js: 62ms, application-code: 303ms)
+ GET / 200 in 343ms (next.js: 9ms, application-code: 335ms)
+ GET /dashboard/settings 200 in 229ms (next.js: 7ms, application-code: 222ms)
+ GET / 200 in 345ms (next.js: 51ms, application-code: 294ms)
+ GET /dashboard/settings 200 in 231ms (next.js: 61ms, application-code: 170ms)
+ GET /dashboard/settings 200 in 102ms (next.js: 6ms, application-code: 96ms)
+ GET /dashboard/settings 200 in 61ms (next.js: 7ms, application-code: 53ms)
+  Reload env: .env
+ GET /dashboard/settings 200 in 1606ms (next.js: 908ms, application-code: 698ms)
+ GET / 200 in 1615ms (next.js: 1175ms, application-code: 441ms)
+ GET /dashboard/settings 200 in 226ms (next.js: 62ms, application-code: 163ms)
+ GET / 200 in 228ms (next.js: 13ms, application-code: 215ms)
+ GET /dashboard/settings 200 in 121ms (next.js: 6ms, application-code: 116ms)
+ GET / 200 in 125ms (next.js: 50ms, application-code: 75ms)
+✓ Compiled in 538ms
+ GET /dashboard/settings 200 in 588ms (next.js: 307ms, application-code: 281ms)
+ GET / 200 in 600ms (next.js: 202ms, application-code: 398ms)
+ GET /dashboard/settings 200 in 242ms (next.js: 61ms, application-code: 181ms)
+ GET / 200 in 307ms (next.js: 7ms, application-code: 301ms)
+ GET / 200 in 385ms (next.js: 13ms, application-code: 373ms)
+ GET / 200 in 385ms (next.js: 65ms, application-code: 320ms)
+ GET / 200 in 379ms (next.js: 12ms, application-code: 367ms)
+ GET /dashboard/settings 200 in 313ms (next.js: 88ms, application-code: 225ms)
+ GET / 200 in 318ms (next.js: 17ms, application-code: 301ms)
+ GET /dashboard/settings 200 in 175ms (next.js: 7ms, application-code: 168ms)
+ GET /dashboard/settings 200 in 114ms (next.js: 8ms, application-code: 106ms)
+ GET /dashboard/settings 200 in 115ms (next.js: 48ms, application-code: 67ms)
+✓ Compiled in 298ms
+ GET /dashboard/settings 200 in 450ms (next.js: 221ms, application-code: 229ms)
+ GET / 200 in 459ms (next.js: 147ms, application-code: 313ms)
+ GET /dashboard/settings 200 in 229ms (next.js: 46ms, application-code: 184ms)
+ GET / 200 in 239ms (next.js: 8ms, application-code: 231ms)
+ GET / 200 in 268ms (next.js: 6ms, application-code: 263ms)
+ GET / 200 in 269ms (next.js: 44ms, application-code: 225ms)
+ GET / 200 in 185ms (next.js: 8ms, application-code: 177ms)
+ GET /dashboard/settings 200 in 134ms (next.js: 8ms, application-code: 126ms)
+ GET /dashboard/settings 200 in 132ms (next.js: 43ms, application-code: 89ms)
+ GET /dashboard/settings 200 in 53ms (next.js: 6ms, application-code: 47ms)

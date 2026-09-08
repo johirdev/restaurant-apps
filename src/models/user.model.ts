@@ -42,6 +42,13 @@ const userSchema = new Schema<IUserDocument>(
     status: { type: String, enum: ["active", "blocked"], default: "active" },
     phone_verified: { type: Boolean, default: false },
     password_changed_at: { type: Date, default: null },
+    /**
+     * সেশনের প্রজন্ম। পাসওয়ার্ড বদলালে (বা রিসেট হলে) এটা এক ধাপ বাড়ে,
+     * আর টোকেনের ভেতরে বসানো পুরোনো সংখ্যাটা তখন আর মেলে না — ফলে
+     * অন্য যন্ত্রে খোলা থাকা সব সেশন সাথে সাথেই অচল হয়ে যায়।
+     * পুরোনো ডকুমেন্টে ফিল্ডটা নেই, তাই যাচাইয়ের সময় অনুপস্থিত = 0।
+     */
+    token_version: { type: Number, default: 0 },
 
     // ভুল পাসওয়ার্ডের হিসাব — সীমা ছাড়ালে নম্বর/ডিভাইস ব্লক হয়
     login_attempts: { type: Number, default: 0 },

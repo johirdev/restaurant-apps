@@ -57,7 +57,7 @@ const createOrder = catchAsync(async (req: NextRequest) => {
   const payload = await parseBody(req, createOrderSchema);
 
   // লগইন করা থাকলে অর্ডারটা তার অ্যাকাউন্টের সাথে জুড়ে যায় — গেস্টও অর্ডার করতে পারে
-  const user = optionalUser(req);
+  const user = await optionalUser(req);
 
   const order = await OrderService.createOrder(
     // ওয়েব থেকে ছাড় দেওয়ার সুযোগ নেই — নাহলে যে কেউ নিজের বিল কমিয়ে ফেলত

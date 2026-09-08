@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -26,6 +26,7 @@ import {
   EMPTY_IMAGE,
 } from "@/src/lib/upload";
 import { useUser } from "@/src/app/components/Clients/Auth/UserProvider";
+import ImageCropper from "@/src/app/components/Clients/Shared/ImageCropper";
 
 /* ==========================================================================
    নিজের প্রোফাইল — GET/PATCH /api/v1/users/me
@@ -70,11 +71,41 @@ export default function ProfileClient() {
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  /** যে ফাইলটা এই মুহূর্তে কাটা হচ্ছে — null মানে কাটার পর্দা বন্ধ */
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  /**
+   * কাটা ছবিটার স্থানীয় blob: URL। Cloudinary তে ওঠার আগেই অ্যাভাটারে
+   * এটাই বসে, তাই "Use photo" চাপার সাথে সাথেই নতুন ছবিটা চোখে পড়ে —
+   * নেটওয়ার্ক ধীর হলেও পুরোনো ছবিটা তাকিয়ে থাকে না।
+   */
+  const [preview, setPreview] = useState("");
+  /**
+   * ছবিটা বদলেছে কিন্তু এখনো সেভ হয়নি।
+   * ছবি বদলালে কোনো টোস্ট দেখানো হয় না — নতুন ছবিটা সাথে সাথেই দেখা যায়,
+   * তাই টোস্ট শুধু বাড়তি ঝামেলা। বদলে অ্যাভাটারের নিচে ছোট একটা লাইন
+   * বসে, যেটা সেভ করা পর্যন্ত থাকে।
+   */
+  const [imageDirty, setImageDirty] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
     {},
   );
 
   const fileRef = useRef<HTMLInputElement>(null);
+  /**
+   * চালু থাকা blob: URL টা ref এও রাখি। খেয়াল রাখতে হবে — এটাকে
+   * `[preview]` নির্ভর effect এর cleanup দিয়ে ছাড়া যায় না: StrictMode
+   * ডেভেলপমেন্টে effect একবার চালিয়ে cleanup ডেকে আবার চালায়, ফলে
+   * ছবিটা দেখানোর আগেই URL টা বাতিল হয়ে যেত। তাই নতুন ছবি বসানোর
+   * সময় হাতে হাতে পুরোনোটা ছাড়ি, আর একদম শেষেরটা unmount এ।
+   */
+  const previewRef = useRef("");
+
+  const dropPreview = useCallback(() => {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = "";
+  }, []);
+
+  useEffect(() => () => dropPreview(), [dropPreview]);
 
   // সার্ভার থেকে আসা মান দিয়ে ফর্মটা একবার ভরে নিই
   useEffect(() => {
@@ -140,8 +171,11 @@ export default function ProfileClient() {
     setDishDraft("");
   };
 
-  /* ---------------- ছবি ---------------- */
-  const onPickImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  /* ---------------- ছবি ----------------
+     ধাপ দুটো: ফাইল বাছা → কেটে নেওয়া → তারপর আপলোড।
+     সরাসরি আপলোড করি না, কারণ যেকোনো মাপের ছবি অ্যাভাটারের গোল ঘরে
+     বসালে মাথা কেটে যায়; কাটার পর সবার ছবিই এক মাপের বর্গাকার হয়। */
+  const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // একই ছবি আবার বাছলেও যেন change ইভেন্ট আসে
     if (!file) return;
@@ -152,13 +186,32 @@ export default function ProfileClient() {
       return;
     }
 
+    setCropFile(file);
+  };
+
+  /** কাটা শেষ — এবার Cloudinary তে পাঠাই */
+  const onCropped = async (cropped: File) => {
+    setCropFile(null);
+
+    // আপলোড শুরুর আগেই কাটা ছবিটা অ্যাভাটারে বসিয়ে দিই — গ্রাহক
+    // সাথে সাথে দেখে তার বাছাই করা ছবিটাই বসেছে
+    dropPreview();
+    const localUrl = URL.createObjectURL(cropped);
+    previewRef.current = localUrl;
+    setPreview(localUrl);
+
     setUploading(true);
     try {
       // Cloudinary তে যায় → URL ফেরত আসে → পুরোনো ছবিটা মুছে যায়
-      const uploaded = await replaceImage(file, "users", image);
+      const uploaded = await replaceImage(cropped, "users", image);
       setImage(uploaded);
-      toast.success("Photo uploaded — press Save to keep it");
+      // ছবিটা সাথে সাথেই চোখের সামনে বদলে যায়, তাই সফল হলে আর টোস্ট
+      // দেখাই না — নিচের ছোট লেখাটাই মনে করিয়ে দেয় সেভ করা বাকি।
+      setImageDirty(true);
     } catch (err) {
+      // আপলোড হয়নি — প্রিভিউটাও তুলে নিই, নাহলে গ্রাহক ভাববে ছবিটা বসে গেছে
+      dropPreview();
+      setPreview("");
       toast.error(getApiErrorMessage(err, "Image upload failed"));
     } finally {
       setUploading(false);
@@ -169,6 +222,9 @@ export default function ProfileClient() {
   const removeImage = async () => {
     const previous = image;
     setImage(EMPTY_IMAGE);
+    dropPreview();
+    setPreview("");
+    setImageDirty(true);
     await deleteImage(previous.public_id);
   };
 
@@ -202,6 +258,8 @@ export default function ProfileClient() {
         image,
       });
       if (res.data) setUser(res.data);
+      // সেভ হয়ে গেছে — ছবির "সেভ করা বাকি" লেখাটা আর দরকার নেই
+      setImageDirty(false);
       toast.success(res.message);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -209,6 +267,9 @@ export default function ProfileClient() {
       setSaving(false);
     }
   };
+
+  /** অ্যাভাটারে যা দেখা যাবে — কাটা ছবিটা আগে, না থাকলে সেভ করা ছবিটা */
+  const avatarSrc = preview || image.url;
 
   const initials =
     (form.name || user?.phone || "?")
@@ -221,6 +282,16 @@ export default function ProfileClient() {
 
   return (
     <form onSubmit={save} className="space-y-5">
+      {/* ছবি বাছার পর কাটার পর্দা — কাটা শেষ হলেই আপলোড শুরু */}
+      {cropFile && (
+        <ImageCropper
+          file={cropFile}
+          title="Crop your photo"
+          onCropped={onCropped}
+          onCancel={() => setCropFile(null)}
+        />
+      )}
+
       {/* প্রোফাইল অসম্পূর্ণ — অর্ডারের আগে ভরে নেওয়াই ভালো */}
       {needsCompletion && (!user?.name || !user?.district) && (
         <div className="flex items-start gap-3 rounded-md border border-saffron-dark/40 bg-saffron-soft px-4 py-3.5">
@@ -335,16 +406,24 @@ export default function ProfileClient() {
         {/* ================= ডান পাশ — ছবি + প্রিয় খাবার ================= */}
         <div className="space-y-5">
           <div className="site-card px-5 py-6 text-center">
-            <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-[24px] font-extrabold text-brand-dark">
-              {image.url ? (
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-[24px] font-extrabold text-brand-dark">
+              {/* কাটা ছবিটা (preview) থাকলে সেটাই আগে — Cloudinary এর URL
+                  আসতে যত দেরিই হোক, পর্দায় নতুন ছবিটাই দেখা যায় */}
+              {avatarSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={image.url}
+                  src={avatarSrc}
                   alt="Your photo"
                   className="h-full w-full object-cover"
                 />
               ) : (
                 initials
+              )}
+
+              {uploading && (
+                <span className="absolute inset-0 grid place-items-center bg-ink/45">
+                  <Loader2 size={22} className="animate-spin text-white" />
+                </span>
               )}
             </div>
 
@@ -369,24 +448,34 @@ export default function ProfileClient() {
                   </>
                 ) : (
                   <>
-                    <Camera size={14} /> {image.url ? "Change" : "Add photo"}
+                    <Camera size={14} /> {avatarSrc ? "Change" : "Add photo"}
                   </>
                 )}
               </button>
 
-              {image.url && (
+              {avatarSrc && (
                 <button
                   type="button"
                   onClick={removeImage}
+                  disabled={uploading}
                   className="site-btn site-btn-ghost h-9 px-3 text-[13px]"
                 >
                   <X size={14} /> Remove
                 </button>
               )}
             </div>
-            <p className="mt-2 text-[11.5px] text-ink-faint">
-              JPG or PNG, up to {MAX_IMAGE_MB}MB
-            </p>
+            {/* টোস্টের বদলে এই ছোট লাইনটা — সেভ না করা পর্যন্ত থাকে,
+                তাই কেউ ছবি বদলে সেভ করতে ভুলে গেলেও চোখে পড়ে */}
+            {imageDirty && !uploading ? (
+              <p className="mt-2 text-[11.5px] font-semibold text-saffron-dark">
+                Press Save to keep this photo
+              </p>
+            ) : (
+              <p className="mt-2 text-[11.5px] text-ink-faint">
+                JPG or PNG, up to {MAX_IMAGE_MB}MB — you can crop it after
+                picking
+              </p>
+            )}
           </div>
 
           <div className="site-card px-5 py-6">

@@ -25,6 +25,12 @@ export interface TokenClaims {
   name?: string;
   email?: string;
   phone?: string;
+  /**
+   * Token version — কাস্টমারের টোকেনে বসে। পাসওয়ার্ড বদলালে ইউজারের
+   * `token_version` এক ধাপ বাড়ে, তখন এই সংখ্যাটা আর মেলে না আর অন্য
+   * যন্ত্রে খোলা সেশনগুলো সাথে সাথেই অচল হয়ে যায়।
+   */
+  tv?: number;
 }
 
 interface SignedClaims extends TokenClaims {

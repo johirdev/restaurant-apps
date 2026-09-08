@@ -11,7 +11,8 @@ type Props = {
   }>;
 };
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://durbinbangla.vercel.app";
 
 /**
  * Get Food Details
@@ -92,7 +93,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
    */
   if (!food) {
     return {
-      title: "Food Not Found | My Restaurants App",
+      title: "Food Not Found | Durbin Bangla Restaurants",
       description: "The food item you are looking for could not be found.",
 
       robots: {
@@ -164,7 +165,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
       url: foodUrl,
 
-      siteName: "My Restaurants App",
+      siteName: "Durbin Bangla Restaurants",
 
       locale: "en_US",
 
@@ -219,7 +220,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     authors: [
       {
-        name: "My Restaurants App",
+        name: "Durbin Bangla Restaurants",
       },
     ],
   };
@@ -263,7 +264,7 @@ export default async function FoodDetailsPage({ params }: Props) {
 
         brand: {
           "@type": "Brand",
-          name: "My Restaurants App",
+          name: "Durbin Bangla Restaurants",
         },
 
         offers: activeVariation

@@ -6,21 +6,19 @@ import Footer from "../Layout/Client/Footer/Footer";
 import CartDrawer from "../components/Clients/Cart/CartDrawer";
 import UserProvider from "../components/Clients/Auth/UserProvider";
 
-const siteUrl = "https://yourdomain.com";
+const siteUrl = "https://durbinbangla.vercel.app";
 
-/* ফন্ট root layout.tsx এ একবারই লোড হয় (Plus Jakarta Sans + Hind Siliguri),
-   তাই এখানে আলাদা করে কিছু লোড করার দরকার নেই। */
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
 
   title: {
-    default: "My Restaurants App | Discover Great Food",
-    template: "%s | My Restaurants App",
+    default: "Durbin Bangla Restaurants | Discover Great Food",
+    template: "%s | Durbin Bangla Restaurants",
   },
 
   description:
-    "Discover delicious food, explore restaurants, view menus, and find the best dining experiences with My Restaurants App.",
+    "Discover delicious food, explore restaurants, view menus, and find the best dining experiences with Durbin Bangla Restaurants.",
 
   keywords: [
     "restaurant",
@@ -33,11 +31,11 @@ export const metadata: Metadata = {
     "online food",
   ],
 
-  authors: [{ name: "My Restaurants App" }],
+  authors: [{ name: "Durbin Bangla Restaurants" }],
 
-  creator: "My Restaurants App",
-  publisher: "My Restaurants App",
-  applicationName: "My Restaurants App",
+  creator: "Durbin Bangla Restaurants",
+  publisher: "Durbin Bangla Restaurants",
+  applicationName: "Durbin Bangla Restaurants",
 
   alternates: { canonical: "/" },
 
@@ -63,25 +61,25 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "My Restaurants App",
-    title: "My Restaurants App | Discover Great Food",
+    siteName: "Durbin Bangla Restaurants",
+    title: "Durbin Bangla Restaurants | Discover Great Food",
     description:
-      "Discover delicious food, explore restaurants, view menus, and find the best dining experiences with My Restaurants App.",
+      "Discover delicious food, explore restaurants, view menus, and find the best dining experiences with Durbin Bangla Restaurants.",
     images: [
       {
         url: "/site-page.png",
         width: 1200,
         height: 630,
-        alt: "My Restaurants App",
+        alt: "Durbin Bangla Restaurants",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "My Restaurants App | Discover Great Food",
+    title: "Durbin Bangla Restaurants | Discover Great Food",
     description:
-      "Discover delicious food, explore restaurants, view menus, and find the best dining experiences with My Restaurants App.",
+      "Discover delicious food, explore restaurants, view menus, and find the best dining experiences with Durbin Bangla Restaurants.",
     images: ["/site-page.png"],
   },
 

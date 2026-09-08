@@ -58,6 +58,32 @@ export const changePasswordSchema = z.object({
   new_password: passwordSchema,
 });
 
+/** পাসওয়ার্ড ভুলে গেছি — ধাপ ১: নম্বরে রিসেট কোড চাওয়া */
+export const forgotPasswordSchema = z.object({
+  phone: phoneSchema,
+});
+
+/** পাসওয়ার্ড ভুলে গেছি — ধাপ ২: কোডটা মিলিয়ে দেখা */
+export const verifyResetOtpSchema = z.object({
+  phone: phoneSchema,
+  code: otpCodeSchema,
+});
+
+/**
+ * পাসওয়ার্ড ভুলে গেছি — ধাপ ৩: টিকিট দেখিয়ে নতুন পাসওয়ার্ড।
+ * ৬ ডিজিটের কোডটা এখানে আর যায় না; ধাপ ২ সেটা পুড়িয়ে বদলে এই
+ * এক-বারের টিকিটটা দিয়ে দেয়।
+ */
+export const resetPasswordSchema = z.object({
+  phone: phoneSchema,
+  reset_token: z
+    .string()
+    .trim()
+    .min(20, "This reset link has expired. Please ask for a new code.")
+    .max(200),
+  password: passwordSchema,
+});
+
 /** প্রোফাইল আপডেট — সব ফিল্ডই ঐচ্ছিক, যেটা পাঠানো হয় সেটাই বদলায় */
 export const updateProfileSchema = z.object({
   name: z

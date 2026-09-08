@@ -1,0 +1,959 @@
+/* ==========================================================================
+   ABOUT PAGE
+   --------------------------------------------------------------------------
+   একটাও hex রঙ এখানে নেই — সব globals.css এর টোকেন থেকে আসে, তাই ব্র্যান্ড
+   রঙ বদলালে এই পাতার আভা, বোতাম আর বলয় সবই নিজে থেকে বদলে যায়।
+
+   গঠনটা মোবাইল-আগে: ডিফল্ট নিয়মগুলো ছোট স্ক্রিনের, আর প্রতিটা সেকশন
+   বড় স্ক্রিনে গিয়ে দুই কলামে ভাগ হয়।
+   ========================================================================== */
+
+.about-page {
+  background: var(--color-background);
+  color: var(--color-ink);
+  overflow-x: clip; /* সাজের বলয়গুলো যেন আড়াআড়ি স্ক্রল না বানায় */
+}
+
+/* ---------- সেকশনের সাধারণ মাথা ---------- */
+.about-section__head {
+  max-width: 620px;
+  margin-bottom: 34px;
+}
+
+.about-section__title {
+  margin-top: 10px;
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+/* ---------- বোতাম ---------- */
+.about-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: var(--radius-pill);
+  font-size: 14.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    transform 0.18s var(--ease-out-soft),
+    background 0.18s var(--ease-out-soft),
+    color 0.18s var(--ease-out-soft),
+    border-color 0.18s var(--ease-out-soft);
+}
+.about-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.about-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* হিরোর উপরে বসে বলে এটা কাঁচের — পেছনের ছবিটা হালকা দেখা যায় */
+.about-btn--glass {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-ink-invert);
+  border: 1.5px solid rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.about-btn--glass:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.about-btn--outline {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1.5px solid var(--color-border-strong);
+}
+.about-btn--outline:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-brand-tint);
+}
+
+/* লেখার সাথে মিশে থাকা তীরওয়ালা লিংক */
+.about-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--color-brand);
+}
+.about-inline-link span {
+  transition: transform 0.18s var(--ease-out-soft);
+}
+.about-inline-link:hover span {
+  transform: translateX(4px);
+}
+
+/* ==========================================================================
+   হিরো
+   ========================================================================== */
+.about-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: 460px;
+  padding: 96px 20px 120px;
+  color: var(--color-ink-invert);
+}
+
+@media (min-width: 768px) {
+  .about-hero {
+    min-height: 560px;
+    padding: 120px 40px 150px;
+  }
+}
+
+.about-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.about-hero__image {
+  object-fit: cover;
+}
+
+/* ছবির উপরে পর্দা — না দিলে সাদা লেখা হারিয়ে যায় */
+.about-hero__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      70% 60% at 15% 20%,
+      color-mix(in srgb, var(--color-brand) 26%, transparent) 0%,
+      transparent 62%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-ink) 78%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 62%, transparent) 45%,
+      color-mix(in srgb, var(--color-ink) 92%, transparent) 100%
+    );
+}
+
+.about-hero__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+/* ---------- পথনির্দেশ ---------- */
+.about-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+.about-crumbs a:hover {
+  color: var(--color-ink-invert);
+}
+.about-crumbs [aria-current="page"] {
+  color: var(--color-ink-invert);
+}
+
+.about-hero__eyebrow {
+  /* গাঢ় ছবির উপরে ব্র্যান্ড গোলাপি পড়া কঠিন, তাই এখানে স্যাফরন */
+  color: var(--color-saffron);
+}
+
+.about-hero__title {
+  max-width: 15ch;
+  margin-top: 14px;
+  font-size: clamp(34px, 6.4vw, 66px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.about-hero__intro {
+  max-width: 56ch;
+  margin-top: 20px;
+  font-size: clamp(15px, 1.6vw, 17.5px);
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.about-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.about-hero__since {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 26px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-saffron);
+}
+.about-hero__since svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ==========================================================================
+   সংখ্যায় গল্প — হিরোর নিচ থেকে উঠে থাকা কার্ড
+   ========================================================================== */
+.about-stats {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: -62px;
+  padding: 0 20px;
+}
+
+@media (min-width: 900px) {
+  .about-stats {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    padding: 0 40px;
+  }
+}
+
+.about-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 22px 14px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  transition:
+    transform 0.28s var(--ease-out-soft),
+    box-shadow 0.28s var(--ease-out-soft);
+}
+.about-stat:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lifted);
+}
+
+.about-stat__value {
+  font-family: var(--font-bengali);
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-brand);
+}
+
+.about-stat__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+
+/* ==========================================================================
+   গল্প
+   ========================================================================== */
+.about-story {
+  display: grid;
+  gap: 44px;
+  padding: 84px 20px;
+}
+
+@media (min-width: 1024px) {
+  .about-story {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 68px;
+    padding: 112px 40px;
+  }
+}
+
+/* ---------- ছবি ---------- */
+.about-story__media {
+  position: relative;
+}
+
+.about-story__frame {
+  position: relative;
+  aspect-ratio: 4 / 3.4;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lifted);
+}
+
+@media (min-width: 1024px) {
+  .about-story__frame {
+    aspect-ratio: 4 / 4.4;
+    /* এক কোণ গোল, বাকিগুলো নরম — ছাপা মেনুকার্ডের মতো */
+    border-top-left-radius: 180px;
+  }
+}
+
+.about-story__image {
+  object-fit: cover;
+}
+
+/* "since 2013" ব্যাজ — ছবির কোণ থেকে বেরিয়ে থাকে */
+.about-story__badge {
+  position: absolute;
+  right: -6px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(
+    180deg,
+    var(--color-brand) 0%,
+    var(--color-brand-dark) 100%
+  );
+  color: var(--color-ink-invert);
+  box-shadow: var(--shadow-brand);
+}
+.about-story__badge strong {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+}
+.about-story__badge span {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+@media (min-width: 1024px) {
+  .about-story__badge {
+    right: -28px;
+    width: 112px;
+    height: 112px;
+  }
+  .about-story__badge strong {
+    font-size: 25px;
+  }
+}
+
+/* সাজের বলয় — শুধু বড় স্ক্রিনে, পড়ার পথে আসে না */
+.about-story__ring {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .about-story__ring {
+    display: block;
+    position: absolute;
+    z-index: -1;
+    left: -70px;
+    top: -50px;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    border: 26px solid var(--color-brand-soft);
+    pointer-events: none;
+  }
+}
+
+/* ---------- লেখা ---------- */
+.about-story__para {
+  margin-top: 16px;
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--color-ink-soft);
+}
+
+/* ==========================================================================
+   কেন আমরা
+   ========================================================================== */
+.about-values {
+  padding: 84px 20px;
+  background: var(--color-brand-tint);
+  border-block: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .about-values {
+    padding: 104px 40px;
+  }
+}
+
+.about-values__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .about-values__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .about-values__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.about-value {
+  position: relative;
+  padding: 30px 24px 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-flat);
+  transition:
+    transform 0.28s var(--ease-out-soft),
+    box-shadow 0.28s var(--ease-out-soft),
+    border-color 0.28s var(--ease-out-soft);
+}
+.about-value:hover {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--color-brand) 35%, transparent);
+  box-shadow: var(--shadow-float);
+}
+
+.about-value__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  transition: background 0.28s var(--ease-out-soft), color 0.28s var(--ease-out-soft);
+}
+.about-value__icon svg {
+  width: 24px;
+  height: 24px;
+}
+.about-value:hover .about-value__icon {
+  background: var(--color-brand);
+  color: var(--color-ink-invert);
+}
+
+.about-value__title {
+  margin-top: 18px;
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.about-value__text {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--color-ink-soft);
+}
+
+/* ==========================================================================
+   সময়রেখা
+   ========================================================================== */
+.about-timeline {
+  padding: 84px 20px;
+}
+
+@media (min-width: 768px) {
+  .about-timeline {
+    padding: 104px 40px;
+  }
+}
+
+.about-timeline__list {
+  position: relative;
+  display: grid;
+  gap: 26px;
+}
+
+/* মোবাইলে বাঁ পাশে একটা সরু রেখা, ধাপগুলো তার গায়ে ঝোলে */
+.about-timeline__list::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 7px;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--color-brand) 0%,
+    var(--color-brand-soft) 100%
+  );
+}
+
+.about-step {
+  position: relative;
+  padding-left: 36px;
+}
+
+.about-step__dot {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 4px solid var(--color-brand);
+  box-shadow: 0 0 0 4px var(--color-brand-soft);
+}
+
+.about-step__year {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--color-brand);
+}
+
+.about-step__card {
+  padding: 20px 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-flat);
+  transition: box-shadow 0.28s var(--ease-out-soft), transform 0.28s var(--ease-out-soft);
+}
+.about-step:hover .about-step__card {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-raised);
+}
+
+.about-step__title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.about-step__text {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+}
+
+/* ডেস্কটপে রেখাটা মাঝখানে চলে যায়, ধাপগুলো দুপাশে ভাগ হয় */
+@media (min-width: 900px) {
+  .about-timeline__list {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 60px;
+  }
+
+  .about-timeline__list::before {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .about-step {
+    grid-column: 1;
+    padding: 0 44px 44px 0;
+    text-align: right;
+  }
+
+  .about-step:nth-child(even) {
+    grid-column: 2;
+    padding: 44px 0 44px 44px;
+    text-align: left;
+  }
+
+  .about-step__dot {
+    left: auto;
+    right: -8px;
+    top: 4px;
+  }
+
+  .about-step:nth-child(even) .about-step__dot {
+    right: auto;
+    left: -8px;
+    top: 48px;
+  }
+}
+
+/* ==========================================================================
+   শেফের কথা
+   ========================================================================== */
+.about-chef {
+  position: relative;
+  isolation: isolate;
+  padding: 78px 20px;
+  background: var(--color-ink);
+  color: var(--color-ink-invert);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .about-chef {
+    padding: 96px 40px;
+  }
+}
+
+/* ব্র্যান্ড রঙের নরম আভা, কোণ থেকে ছড়ায় */
+.about-chef::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      50% 60% at 12% 15%,
+      color-mix(in srgb, var(--color-brand) 34%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      45% 55% at 88% 85%,
+      color-mix(in srgb, var(--color-saffron) 22%, transparent) 0%,
+      transparent 60%
+    );
+}
+
+.about-chef__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  text-align: center;
+}
+
+@media (min-width: 860px) {
+  .about-chef__inner {
+    flex-direction: row;
+    align-items: center;
+    gap: 54px;
+    text-align: left;
+  }
+}
+
+.about-chef__portrait {
+  position: relative;
+  flex-shrink: 0;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 5px solid color-mix(in srgb, var(--color-saffron) 70%, transparent);
+  box-shadow: var(--shadow-lifted);
+}
+
+@media (min-width: 768px) {
+  .about-chef__portrait {
+    width: 240px;
+    height: 240px;
+  }
+}
+
+.about-chef__image {
+  object-fit: cover;
+}
+
+.about-chef__quote {
+  position: relative;
+  max-width: 68ch;
+}
+
+.about-chef__mark {
+  width: 38px;
+  height: 38px;
+  margin-bottom: 14px;
+  color: var(--color-saffron);
+  opacity: 0.9;
+}
+
+.about-chef__quote p {
+  font-size: clamp(18px, 2.4vw, 25px);
+  font-weight: 500;
+  line-height: 1.62;
+  letter-spacing: -0.01em;
+}
+
+.about-chef__by {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 22px;
+}
+.about-chef__by strong {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+.about-chef__by span {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-saffron);
+}
+
+/* ==========================================================================
+   গ্যালারি
+   ========================================================================== */
+.about-gallery {
+  padding: 84px 20px;
+}
+
+@media (min-width: 768px) {
+  .about-gallery {
+    padding: 104px 40px;
+  }
+}
+
+.about-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .about-gallery__grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.about-gallery__item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+/* প্রথম ছবিটা দুই ঘর জুড়ে — গ্রিডটা তখন আর একঘেয়ে লাগে না */
+.about-gallery__item--wide {
+  grid-column: span 2;
+  aspect-ratio: 2 / 1;
+}
+
+@media (min-width: 768px) {
+  .about-gallery__item--wide {
+    grid-row: span 2;
+    aspect-ratio: 1 / 1;
+  }
+}
+
+.about-gallery__image {
+  object-fit: cover;
+  transition: transform 0.5s var(--ease-out-soft);
+}
+.about-gallery__item:hover .about-gallery__image {
+  transform: scale(1.06);
+}
+
+/* ==========================================================================
+   ভিজিট
+   ========================================================================== */
+.about-visit {
+  padding: 84px 20px 96px;
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .about-visit {
+    padding: 104px 40px 112px;
+  }
+}
+
+.about-visit__inner {
+  display: grid;
+  gap: 40px;
+}
+
+@media (min-width: 1024px) {
+  .about-visit__inner {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 64px;
+    align-items: start;
+  }
+}
+
+.about-visit__facts {
+  display: grid;
+  gap: 14px;
+  margin-top: 26px;
+}
+.about-visit__facts li {
+  display: flex;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+.about-visit__facts svg {
+  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
+  margin-top: 2px;
+  color: var(--color-brand);
+}
+.about-visit__facts a:hover {
+  color: var(--color-brand);
+}
+
+.about-visit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.about-visit__socials {
+  margin-top: 34px;
+}
+.about-visit__socials > span {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+.about-visit__socials ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.about-visit__socials a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-soft);
+  transition:
+    transform 0.18s var(--ease-spring),
+    background 0.18s var(--ease-out-soft),
+    color 0.18s var(--ease-out-soft),
+    border-color 0.18s var(--ease-out-soft);
+}
+.about-visit__socials a svg {
+  width: 18px;
+  height: 18px;
+}
+.about-visit__socials a:hover {
+  transform: translateY(-3px);
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-ink-invert);
+}
+
+/* ---------- খোলার সময়ের কার্ড ---------- */
+.about-hours {
+  padding: 26px 24px 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
+}
+
+.about-hours__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.about-hours__head h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.about-hours__list {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+.about-hours__list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  font-size: 13.5px;
+}
+
+.about-hours__day {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+/* বিন্দুর সারি — দিন আর সময়ের মাঝের ফাঁকটা ভরে দেয় */
+.about-hours__dots {
+  flex: 1;
+  height: 1px;
+  min-width: 16px;
+  background-image: radial-gradient(
+    circle,
+    var(--color-border-strong) 1px,
+    transparent 1px
+  );
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+  transform: translateY(-3px);
+}
+
+.about-hours__time {
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.about-hours__closed {
+  font-weight: 700;
+  color: var(--color-chili);
+}
+
+/* ==========================================================================
+   "এখন খোলা?" ব্যাজ — Contact পাতাতেও একই চেহারা
+   ========================================================================== */
+.open-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-soft);
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+.open-badge i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-ink-faint);
+}
+.open-badge.is-open {
+  background: var(--color-herb-soft);
+  color: var(--color-herb-dark);
+}
+.open-badge.is-open i {
+  background: var(--color-herb);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-herb) 22%, transparent);
+}

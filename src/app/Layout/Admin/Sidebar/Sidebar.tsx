@@ -161,6 +161,12 @@ const navItems: NavItem[] = [
         icon: Icons.Blog,
       },
       {
+        // সাইটের Contact ফর্ম থেকে আসা বার্তা
+        label: "Messages",
+        href: "/dashboard/messages",
+        icon: Icons.Feedback,
+      },
+      {
         // অন্যের লেখা মুছে ফেলা বড় ক্ষমতা — তাই শুধু মালিকেরা
         label: "Customer reviews",
         href: "/dashboard/reviews",

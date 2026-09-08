@@ -81,7 +81,7 @@ const getAllReviews = catchAsync(async (req: NextRequest) => {
 
 /** POST /api/v1/reviews — লগইন করা কাস্টমার নিজের ডেলিভার হওয়া খাবারে রিভিউ দেয় */
 const createReview = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const body = await parseBody(req, createReviewSchema);
   const review = await ReviewService.createReview(auth.id, auth.phone, body);
   return created("Thanks for your review!", review);
@@ -89,7 +89,7 @@ const createReview = catchAsync(async (req: NextRequest) => {
 
 /** GET /api/v1/reviews/mine */
 const getMyReviews = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const reviews = await ReviewService.getMyReviews(auth.id);
   return ok("Your reviews", reviews);
 });
@@ -98,7 +98,7 @@ const getMyReviews = catchAsync(async (req: NextRequest) => {
 const deleteReview = catchAsync<IdCtx>(async (req, { params }) => {
   const { id } = await params;
   const staff = verifyTokenAndRole(req, MODERATORS);
-  const user = staff.success ? null : requireUser(req);
+  const user = staff.success ? null : await requireUser(req);
 
   const review = await ReviewService.deleteReview(
     assertObjectId(id, "review id"),
@@ -109,7 +109,7 @@ const deleteReview = catchAsync<IdCtx>(async (req, { params }) => {
 
 /** কে রিভিউ দিতে পারবে সেটা UI আগেই জানতে চায় (লগইন আছে কিনা) */
 const whoAmI = catchAsync(async (req: NextRequest) => {
-  const user = optionalUser(req);
+  const user = await optionalUser(req);
   return ok("ok", { logged_in: !!user, id: user?.id ?? null });
 });
 

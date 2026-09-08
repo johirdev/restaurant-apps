@@ -75,6 +75,7 @@ const DEFAULT_LINKS: NavLink[] = [
   { label: "Foods", href: "/foods" },
   { label: "Track order", href: "/track-order" },
   { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 // রঙ globals.css এর টোকেন থেকে আসে — এখানে কোনো hex নেই,

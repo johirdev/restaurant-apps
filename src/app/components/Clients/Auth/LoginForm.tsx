@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import { LogIn, Loader2, Phone, ShieldCheck } from "lucide-react";
+import { CheckCircle2, LogIn, Loader2, Phone, ShieldCheck } from "lucide-react";
 import { apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
 import PasswordField from "./PasswordField";
 import { useUser, type SiteUser } from "./UserProvider";
@@ -32,6 +32,9 @@ export default function LoginForm() {
 
   // লগইনের পরে যেখানে ফেরত যাবে — ?next=/checkout এভাবে আসে
   const nextUrl = searchParams.get("next") || "/account";
+
+  // পাসওয়ার্ড রিসেট করে এইমাত্র এখানে এসেছে কিনা (?reset=1)
+  const justReset = searchParams.get("reset") === "1";
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -97,6 +100,15 @@ export default function LoginForm() {
         }}
         className="space-y-5 px-6 py-7 sm:px-8"
       >
+        {/* রিসেটের পর এখানেই এসে পড়ে — নতুন পাসওয়ার্ডটা যে কাজ করছে,
+            সেটা একবার লগইন করেই সে নিশ্চিত হয় */}
+        {justReset && (
+          <div className="flex items-center gap-2 rounded-sm bg-herb-soft px-4 py-2.5 text-[12.5px] font-semibold text-herb-dark">
+            <CheckCircle2 size={15} />
+            Password changed. Log in with your new one.
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <label htmlFor="login-phone" className="text-[13px] font-bold text-ink">
             Mobile number
@@ -125,16 +137,27 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <PasswordField
-          label="Password"
-          value={password}
-          onChange={(v) => {
-            setPassword(v);
-            setError("");
-          }}
-          autoComplete="current-password"
-          disabled={busy}
-        />
+        <div className="space-y-1.5">
+          <PasswordField
+            label="Password"
+            value={password}
+            onChange={(v) => {
+              setPassword(v);
+              setError("");
+            }}
+            autoComplete="current-password"
+            disabled={busy}
+          />
+
+          <div className="text-right">
+            <Link
+              href="/forgot-password"
+              className="text-[12.5px] font-bold text-brand hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
 
         {error && (
           <p className="text-[12.5px] font-semibold text-chili">{error}</p>
@@ -157,8 +180,7 @@ export default function LoginForm() {
         </button>
 
         <p className="flex items-center justify-center gap-1.5 text-center text-[12px] text-ink-faint">
-          <ShieldCheck size={13} /> Forgot your password? Please call us and we
-          will help you get back in.
+          <ShieldCheck size={13} /> Your number and password stay private.
         </p>
       </form>
 

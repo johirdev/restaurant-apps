@@ -5,6 +5,9 @@ import {
   registerWithOtp,
   loginWithPassword,
   changePassword,
+  sendResetOtp,
+  verifyResetOtp,
+  resetPasswordWithTicket,
   clearBlocks,
   AUTH_RULES,
 } from "../services/auth.service";
@@ -27,6 +30,9 @@ import {
   registerSchema,
   loginSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
+  verifyResetOtpSchema,
+  resetPasswordSchema,
   updateProfileSchema,
   adminUpdateUserSchema,
 } from "../validations/user.schema";
@@ -97,13 +103,68 @@ const login = catchAsync(async (req: NextRequest) => {
    PATCH /api/v1/users/me/password  { "current_password", "new_password" }
    ========================================================================== */
 const updateMyPassword = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const { current_password, new_password } = await parseBody(
     req,
     changePasswordSchema,
   );
-  const result = await changePassword(auth.id, current_password, new_password);
-  return ok("Password updated successfully", result);
+  const { token, ...result } = await changePassword(
+    auth.id,
+    current_password,
+    new_password,
+  );
+
+  // পাসওয়ার্ড বদলানোয় বাকি সব যন্ত্রের সেশন বাতিল হয়ে গেছে; এই যন্ত্রটাকে
+  // নতুন প্রজন্মের কুকি দিয়ে দিই, নাহলে সে নিজেই বেরিয়ে যেত
+  return sendResponse({
+    statusCode: 200,
+    success: true,
+    message: "Password updated. You are still signed in on this device.",
+    data: result,
+    headers: { "Set-Cookie": userCookie(token) },
+  });
+});
+
+/* ==========================================================================
+   PUBLIC — পাসওয়ার্ড ভুলে গেছি, ধাপ ১: নম্বরে কোড পাঠাও
+   POST /api/v1/users/password/forgot   { "phone": "01712345678" }
+   ========================================================================== */
+const forgotPassword = catchAsync(async (req: NextRequest) => {
+  const { phone } = await parseBody(req, forgotPasswordSchema);
+  const result = await sendResetOtp(phone, getClientIp(req));
+
+  return ok(
+    "We sent a reset code to your number. Enter it to set a new password.",
+    result,
+  );
+});
+
+/* ==========================================================================
+   PUBLIC — পাসওয়ার্ড ভুলে গেছি, ধাপ ২: কোডটা মিলিয়ে দেখা
+   POST /api/v1/users/password/verify   { "phone", "code" }
+
+   কোডটা এখানেই পুড়ে যায় আর বদলে অল্প সময়ের একটা টিকিট ফেরত আসে —
+   ধাপ ৩ এ ঐ টিকিটটাই নতুন পাসওয়ার্ডের সাথে যায়।
+   ========================================================================== */
+const verifyResetCode = catchAsync(async (req: NextRequest) => {
+  const payload = await parseBody(req, verifyResetOtpSchema);
+  const result = await verifyResetOtp(payload, getClientIp(req));
+
+  return ok("Code verified. Now choose a new password.", result);
+});
+
+/* ==========================================================================
+   PUBLIC — পাসওয়ার্ড ভুলে গেছি, ধাপ ৩: টিকিট দেখিয়ে নতুন পাসওয়ার্ড
+   POST /api/v1/users/password/reset   { "phone", "reset_token", "password" }
+
+   টোকেন ফেরত যায় না — গ্রাহক নতুন পাসওয়ার্ড দিয়ে একবার লগইন করে,
+   তাতেই নিশ্চিত হয় পাসওয়ার্ডটা তার মনে আছে।
+   ========================================================================== */
+const resetPassword = catchAsync(async (req: NextRequest) => {
+  const payload = await parseBody(req, resetPasswordSchema);
+  const result = await resetPasswordWithTicket(payload, getClientIp(req));
+
+  return ok("Your password has been changed. Please log in with it.", result);
 });
 
 /** POST /api/v1/users/logout */
@@ -128,20 +189,20 @@ const getAuthRules = catchAsync(async () =>
    কাস্টমার — নিজের প্রোফাইল
    ========================================================================== */
 const getMe = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const user = await UserService.getMe(auth.id);
   return ok("Profile fetched successfully", user);
 });
 
 const updateMe = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const payload = await parseBody(req, updateProfileSchema);
   const user = await UserService.updateMe(auth.id, payload);
   return ok("Profile updated successfully", user);
 });
 
 const getMyOrders = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const { pagination } = splitQuery(req, [], UserPaginationFields);
   const result = await UserService.getMyOrders(
     auth.id,
@@ -152,7 +213,7 @@ const getMyOrders = catchAsync(async (req: NextRequest) => {
 });
 
 const getMyDishes = catchAsync(async (req: NextRequest) => {
-  const auth = requireUser(req);
+  const auth = await requireUser(req);
   const dishes = await UserService.getMyDishes(auth.id, auth.phone);
   return ok("Dishes you have ordered", dishes);
 });
@@ -246,6 +307,9 @@ export const UserController = {
   register,
   login,
   updateMyPassword,
+  forgotPassword,
+  verifyResetCode,
+  resetPassword,
   logout,
   getAuthRules,
   getMe,

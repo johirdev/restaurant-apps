@@ -135,3 +135,10 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
 /** OTP এর SMS টেক্সট — এক জায়গায় থাকলে ব্র্যান্ডের নাম বদলানো সহজ */
 export const otpMessage = (code: string, minutes: number) =>
   `Your ${APP_NAME} verification code is ${code}. It is valid for ${minutes} minutes. Do not share this code with anyone.`;
+
+/**
+ * পাসওয়ার্ড রিসেটের কোড আলাদা করে লেখা হয় — গ্রাহক যেন বোঝে কোন কাজের
+ * জন্য কোডটা এসেছে। কেউ তার অজান্তে রিসেট চাইলে এই লেখাটাই সতর্ক করে।
+ */
+export const resetOtpMessage = (code: string, minutes: number) =>
+  `${code} is your ${APP_NAME} password reset code, valid for ${minutes} minutes. If you did not ask to reset your password, ignore this message.`;

@@ -28,6 +28,8 @@ export interface IUser {
   status: UserStatus;
   phone_verified: boolean;
   password_changed_at?: Date | null;
+  /** সেশনের প্রজন্ম — পাসওয়ার্ড বদলালে বাড়ে, পুরোনো টোকেন তখন অচল */
+  token_version?: number;
   /** পরপর কয়বার ভুল পাসওয়ার্ড পড়েছে — ঠিক পাসওয়ার্ড দিলে শূন্য হয়ে যায় */
   login_attempts: number;
   /** গোনাটা কখন শুরু হয়েছিল — উইন্ডো পেরোলে আবার শূন্য থেকে গোনা শুরু */
@@ -50,6 +52,8 @@ export interface IUserTokenPayload {
   id: string;
   phone: string;
   role: "user";
+  /** টোকেনটা কোন প্রজন্মের — ইউজারের `token_version` এর সাথে মিলতে হয় */
+  tv?: number;
 }
 
 /* ------------------------------------------------------------------ *
@@ -73,7 +77,7 @@ export const UserPaginationFields = ["page", "limit", "sortBy", "sortOrder"];
  * OTP + ব্লক
  * ------------------------------------------------------------------ */
 /** OTP এখন কেবল অ্যাকাউন্ট তৈরির সময় লাগে; "login" পুরোনো রেকর্ডের জন্য রাখা */
-export type OtpPurpose = "register" | "login";
+export type OtpPurpose = "register" | "login" | "reset";
 
 export interface IOtpDocument extends Document {
   phone: string;
@@ -84,6 +88,10 @@ export interface IOtpDocument extends Document {
   consumed: boolean;
   expires_at: Date;
   createdAt: Date;
+  /** কোড মিলে যাওয়ার পর দেওয়া রিসেট টিকিটের হ্যাশ (purpose: "reset") */
+  reset_token_hash?: string;
+  reset_token_expires_at?: Date | null;
+  reset_token_used?: boolean;
 }
 
 export type AuthBlockType = "phone" | "ip";
