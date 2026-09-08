@@ -6,7 +6,8 @@ const otpSchema = new Schema<IOtpDocument>(
     phone: { type: String, required: true, trim: true, index: true },
     // কোডটা কখনো প্লেইন টেক্সটে রাখা হয় না — ডাটাবেস ফাঁস হলেও OTP বেরোয় না
     code_hash: { type: String, required: true },
-    purpose: { type: String, enum: ["login"], default: "login" },
+    // OTP এখন শুধু অ্যাকাউন্ট খোলার সময় — "login" পুরোনো রেকর্ডগুলোর জন্য রাখা
+    purpose: { type: String, enum: ["register", "login"], default: "register" },
     ip: { type: String, default: "" },
     attempts: { type: Number, default: 0 },
     consumed: { type: Boolean, default: false },

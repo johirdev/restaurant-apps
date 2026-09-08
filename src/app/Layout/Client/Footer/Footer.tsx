@@ -1,270 +1,430 @@
 "use client";
 
 /**
- * Footer
- * -------------------------------
- * Dark themed site footer with:
- *  - Brand logo + address + social icons
- *  - "Hot Menu" quick links list
- *  - "Opening Hours" schedule
- *  - Bottom copyright strip
+ * Footer — সাইটের নিচের অংশ
+ * --------------------------------------------------------------------------
+ * উপরে ভেসে থাকা একটা 3D CTA কার্ড (অর্ডার / ফোন), তারপর চার কলাম:
  *
- * Decorative line-art doodles (cow / hand / taco) are simple inline SVGs
- * standing in for the illustration assets in the reference design —
- * swap the <DoodleXxx /> components for real illustration assets/images
- * whenever you have them.
+ *   ব্র্যান্ড + ঠিকানা + সোশ্যাল | Explore | Hot Menu | Opening Hours
+ *
+ * তারপর ভরসার স্ট্রিপ (ডেলিভারি, হালাল, পেমেন্ট) আর সবশেষে কপিরাইট বার।
+ *
+ * খেয়াল রাখার মতো দুটো জিনিস:
+ *  • আজকের দিনটা `useEffect` এর ভেতর rAF দিয়ে সেট হয় — সার্ভারে render এর
+ *    সময় দিন জানা থাকলে hydration mismatch হতো, তাই মাউন্টের পরে বসে।
+ *  • খোলা/বন্ধ ব্যাজটাও ওই দিনের উপরেই চলে, আলাদা কোনো টাইমার নেই।
+ *
+ * রঙ, রেডিয়াস, শ্যাডো — সব globals.css এর টোকেন থেকে; footer.css এ একটাও
+ * হার্ডকোড করা ব্র্যান্ড রঙ নেই।
  */
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  ArrowUp,
+  BadgeCheck,
+  Bike,
+  ChevronRight,
+  Clock3,
+  CreditCard,
+  Mail,
+  MapPin,
+  Phone,
+  UtensilsCrossed,
+} from "lucide-react";
 
-interface HotMenuItem {
+import "./footer.css";
+
+/* ------------------------------------------------------------------ */
+/* কনটেন্ট — একজায়গায়, পরে API/সেটিংস থেকে আনা সহজ হবে                */
+/* ------------------------------------------------------------------ */
+
+const RESTAURANT = {
+  name: "Panpie",
+  tagline: "QUALITY FOOD",
+  blurb:
+    "কাঠের চুলার আঁচ, রোজ ভোরের বাজার আর তিন প্রজন্মের রেসিপি — এই তিনটেই আমাদের রান্নাঘরের পুরো গল্প।",
+  address: "128 6th Ave, New York, NY 10015, United States",
+  phone: "+1 (212) 555-0148",
+  phoneHref: "tel:+12125550148",
+  email: "hello@panpie.com",
+};
+
+interface FooterLink {
   label: string;
-  href?: string;
+  href: string;
 }
 
+const EXPLORE: FooterLink[] = [
+  { label: "Home", href: "/" },
+  { label: "All foods", href: "/foods" },
+  { label: "Track your order", href: "/track-order" },
+  { label: "My orders", href: "/account" },
+  { label: "Cart & checkout", href: "/cart" },
+];
+
+const HOT_MENU: FooterLink[] = [
+  { label: "BBQ Pizza TinTin", href: "/foods" },
+  { label: "Burger Kingo", href: "/foods" },
+  { label: "Cheesy Garlic Pizza", href: "/foods" },
+  { label: "Chocolate Donuts", href: "/foods" },
+  { label: "Grilled Chicken Sandwich", href: "/foods" },
+];
+
 interface OpeningHour {
+  /** 0 = রবিবার … 6 = শনিবার (Date#getDay এর সাথে মেলানো) */
+  index: number;
   day: string;
   time: string;
   closed?: boolean;
 }
 
-const HOT_MENU: HotMenuItem[] = [
-  { label: "BBQ Pizza TinTin" },
-  { label: "Burger Kingo" },
-  { label: "Chessey Pizza" },
-  { label: "Chocolate Donuts" },
-  { label: "Chicken Sandwich" },
+const OPENING_HOURS: OpeningHour[] = [
+  { index: 1, day: "Mon", time: "10:00 am – 11:00 pm" },
+  { index: 2, day: "Tue", time: "10:00 am – 11:00 pm" },
+  { index: 3, day: "Wed", time: "10:00 am – 11:00 pm" },
+  { index: 4, day: "Thu", time: "10:00 am – 11:30 pm" },
+  { index: 5, day: "Fri", time: "02:00 pm – 11:30 pm" },
+  { index: 6, day: "Sat", time: "09:00 am – 12:00 am" },
+  { index: 0, day: "Sun", time: "", closed: true },
 ];
 
-const OPENING_HOURS: OpeningHour[] = [
-  { day: "Monday", time: "10.00am - 05.00pm" },
-  { day: "Tuesday", time: "10.20am - 05.30pm" },
-  { day: "Wednesday", time: "10.30am - 05.50pm" },
-  { day: "Thursday", time: "11.00am - 07.10pm" },
-  { day: "Friday", time: "", closed: true },
+const TRUST = [
+  { icon: Bike, title: "30 min delivery", note: "শহরের ভেতরে, গরম অবস্থায়" },
+  { icon: BadgeCheck, title: "100% halal", note: "সার্টিফায়েড সাপ্লাই চেইন" },
+  { icon: CreditCard, title: "Secure payment", note: "কার্ড, বিকাশ ও ক্যাশ" },
+];
+
+const LEGAL: FooterLink[] = [
+  { label: "Privacy policy", href: "/privacy" },
+  { label: "Terms of service", href: "/terms" },
+  { label: "Refund policy", href: "/refund" },
 ];
 
 /* ------------------------------------------------------------------ */
-/* Social icons (brand marks not in lucide-react, so inline SVGs)     */
+/* সোশ্যাল ব্র্যান্ড মার্ক — lucide তে নেই, তাই inline SVG            */
 /* ------------------------------------------------------------------ */
 
 const IconFacebook = () => (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M13.5 21v-8.1h2.7l.4-3.2h-3.1V7.7c0-.9.25-1.55 1.57-1.55h1.68V3.3C15.9 3.2 15.03 3.15 14 3.15c-2.2 0-3.7 1.35-3.7 3.83v2.72H7.6v3.2h2.7V21h3.2Z" />
   </svg>
 );
 
+const IconInstagram = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.8 3.8 0 0 1-1.38-.9 3.8 3.8 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2Zm0 1.98c-3.14 0-3.5.01-4.74.07-1.14.05-1.76.24-2.17.4-.55.21-.94.47-1.35.88-.41.41-.67.8-.88 1.35-.16.41-.35 1.03-.4 2.17-.06 1.24-.07 1.6-.07 4.74s.01 3.5.07 4.74c.05 1.14.24 1.76.4 2.17.21.55.47.94.88 1.35.41.41.8.67 1.35.88.41.16 1.03.35 2.17.4 1.24.06 1.6.07 4.74.07s3.5-.01 4.74-.07c1.14-.05 1.76-.24 2.17-.4.55-.21.94-.47 1.35-.88.41-.41.67-.8.88-1.35.16-.41.35-1.03.4-2.17.06-1.24.07-1.6.07-4.74s-.01-3.5-.07-4.74c-.05-1.14-.24-1.76-.4-2.17a3.6 3.6 0 0 0-.88-1.35 3.6 3.6 0 0 0-1.35-.88c-.41-.16-1.03-.35-2.17-.4-1.24-.06-1.6-.07-4.74-.07Zm0 3.37a5.45 5.45 0 1 1 0 10.9 5.45 5.45 0 0 1 0-10.9Zm0 1.98a3.47 3.47 0 1 0 0 6.94 3.47 3.47 0 0 0 0-6.94Zm5.67-3.5a1.27 1.27 0 1 1 0 2.54 1.27 1.27 0 0 1 0-2.54Z" />
+  </svg>
+);
+
 const IconX = () => (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M17.5 3h3l-6.6 7.5L21.5 21h-6.1l-4.8-6.3L4.9 21H2l7.1-8.1L2.6 3h6.3l4.3 5.8L17.5 3Zm-1.1 16.2h1.7L7.7 4.7H5.9l10.5 14.5Z" />
   </svg>
 );
 
-const IconLinkedIn = () => (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-    <path d="M6.94 8.5H3.56V20h3.38V8.5ZM5.25 3.5a1.96 1.96 0 1 0 0 3.92 1.96 1.96 0 0 0 0-3.92ZM20.44 20h-3.37v-5.6c0-1.34-.03-3.06-1.87-3.06-1.87 0-2.15 1.46-2.15 2.96V20H9.68V8.5h3.24v1.57h.05c.45-.86 1.56-1.77 3.21-1.77 3.43 0 4.26 2.26 4.26 5.19V20Z" />
-  </svg>
-);
-
-const IconPinterest = () => (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-    <path d="M12 2.5c-5.25 0-9.5 4.02-9.5 8.98 0 3.7 2.24 6.87 5.42 8.24-.07-.7-.14-1.78.03-2.55.15-.7 1-4.47 1-4.47s-.26-.51-.26-1.27c0-1.19.7-2.08 1.56-2.08.74 0 1.1.55 1.1 1.2 0 .74-.47 1.83-.71 2.85-.2.86.44 1.56 1.31 1.56 1.57 0 2.78-1.63 2.78-3.99 0-2.09-1.53-3.55-3.71-3.55-2.53 0-4.01 1.87-4.01 3.8 0 .75.29 1.55.66 1.99a.27.27 0 0 1 .06.25c-.07.27-.21.85-.24.97-.04.15-.13.19-.3.11-1.1-.5-1.79-2.08-1.79-3.35 0-2.73 1.99-5.24 5.73-5.24 3.01 0 5.35 2.13 5.35 4.97 0 2.97-1.87 5.35-4.47 5.35-.87 0-1.7-.45-1.98-.99l-.54 2.03c-.19.73-.72 1.65-1.07 2.2.81.25 1.66.38 2.55.38 5.25 0 9.5-4.02 9.5-8.98S17.25 2.5 12 2.5Z" />
+const IconYouTube = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8ZM10 15.2V8.8L15.5 12 10 15.2Z" />
   </svg>
 );
 
 const SOCIALS = [
-  { icon: <IconFacebook />, label: "Facebook", href: "#" },
-  { icon: <IconX />, label: "X", href: "#" },
-  { icon: <IconLinkedIn />, label: "LinkedIn", href: "#" },
-  { icon: <IconPinterest />, label: "Pinterest", href: "#" },
+  { label: "Facebook", href: "#", icon: <IconFacebook /> },
+  { label: "Instagram", href: "#", icon: <IconInstagram /> },
+  { label: "X", href: "#", icon: <IconX /> },
+  { label: "YouTube", href: "#", icon: <IconYouTube /> },
 ];
 
 /* ------------------------------------------------------------------ */
-/* Decorative line-art doodles                                        */
+/* ব্র্যান্ড মার্ক                                                     */
 /* ------------------------------------------------------------------ */
 
-const DoodleTaco = () => (
-  <svg
-    viewBox="0 0 160 140"
-    className="pointer-events-none absolute right-0 top-0 h-[130px] w-[150px] text-white/10 md:h-[150px] md:w-[170px]"
-    fill="none"
-    aria-hidden="true"
-  >
-    {/* sparkle */}
-    <g stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M18 8 L18 22" />
-      <path d="M6 20 L16 26" />
-      <path d="M30 16 L20 24" />
-    </g>
-    {/* taco shell */}
-    <path
-      d="M40 70 C40 45 65 30 90 30 C115 30 135 45 135 70"
-      stroke="currentColor"
-      strokeWidth="2.5"
-    />
-    <path
-      d="M35 70 C35 100 60 118 88 118 C116 118 138 100 140 72"
-      stroke="currentColor"
-      strokeWidth="2.5"
-    />
-    <path d="M45 66 Q88 40 132 66" stroke="currentColor" strokeWidth="2" />
-    <path d="M50 78 Q90 100 128 78" stroke="currentColor" strokeWidth="2" />
-    <path d="M58 90 Q90 108 118 90" stroke="currentColor" strokeWidth="2" />
-    <circle cx="70" cy="60" r="2.4" fill="currentColor" />
-    <circle cx="95" cy="55" r="2.4" fill="currentColor" />
-    <circle cx="110" cy="66" r="2.4" fill="currentColor" />
-    <circle cx="80" cy="72" r="2.4" fill="currentColor" />
-  </svg>
+const BrandMark = () => (
+  <span className="site-footer__mark" aria-hidden="true">
+    <svg viewBox="0 0 40 40" fill="none">
+      <path
+        d="M8 24 C8 14 24 6 32 12 C28 8 12 6 8 24 Z"
+        fill="var(--color-saffron)"
+      />
+      <path d="M10 26 L30 26 L20 36 Z" fill="var(--color-saffron)" />
+      <circle cx="16" cy="28" r="1.6" fill="var(--color-chili-dark)" />
+      <circle cx="22" cy="30" r="1.6" fill="var(--color-chili-dark)" />
+      <circle cx="19" cy="25" r="1.6" fill="var(--color-chili-dark)" />
+    </svg>
+  </span>
 );
 
-const DoodleCow = () => (
+/* সাজের লাইন-আর্ট — খুব হালকা, পড়ার পথে আসে না */
+const DoodlePlate = () => (
   <svg
-    viewBox="0 0 200 180"
-    className="pointer-events-none absolute -left-6 bottom-0 h-[170px] w-[190px] text-white/[0.06] md:h-[220px] md:w-[240px]"
+    className="site-footer__doodle site-footer__doodle--plate"
+    viewBox="0 0 200 200"
     fill="none"
     aria-hidden="true"
   >
+    <circle cx="100" cy="100" r="78" stroke="currentColor" strokeWidth="1.5" />
+    <circle cx="100" cy="100" r="58" stroke="currentColor" strokeWidth="1.5" />
     <path
-      d="M30 90 C10 90 5 70 20 60 C15 45 35 35 50 42 C60 25 90 22 105 38 C125 30 150 45 145 65 C165 68 168 92 148 98 C150 120 130 140 105 138 C100 155 70 158 60 142 C35 148 15 130 22 108 C15 105 22 92 30 90 Z"
+      d="M42 44 L42 96 M34 44 L34 70 M50 44 L50 70"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
+      strokeLinecap="round"
     />
-    <circle cx="70" cy="80" r="3" fill="currentColor" />
-    <circle cx="115" cy="78" r="3" fill="currentColor" />
-    <path d="M85 95 Q95 102 105 95" stroke="currentColor" strokeWidth="2" />
-    <path d="M45 55 L35 40" stroke="currentColor" strokeWidth="2" />
-    <path d="M130 50 L142 36" stroke="currentColor" strokeWidth="2" />
-  </svg>
-);
-
-const DoodleHand = () => (
-  <svg
-    viewBox="0 0 160 200"
-    className="pointer-events-none absolute -right-4 bottom-0 h-[180px] w-[150px] text-white/[0.06] md:h-[220px] md:w-[180px]"
-    fill="none"
-    aria-hidden="true"
-  >
     <path
-      d="M55 190 C40 190 30 175 30 155 L30 110 C30 105 34 101 39 101 C44 101 48 105 48 110 L48 60 C48 54 53 49 59 49 C65 49 70 54 70 60 L70 45 C70 39 75 34 81 34 C87 34 92 39 92 45 L92 55 C92 49 97 44 103 44 C109 44 114 49 114 55 L114 130 L120 100 C122 92 130 87 138 90 C145 93 148 101 145 108 L130 150 C122 175 100 190 78 190 Z"
+      d="M158 44 C168 54 168 74 158 84 L158 156"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
+      strokeLinecap="round"
     />
   </svg>
 );
 
-/* ------------------------------------------------------------------ */
-/* Footer                                                              */
+const DoodleLeaf = () => (
+  <svg
+    className="site-footer__doodle site-footer__doodle--leaf"
+    viewBox="0 0 180 180"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path
+      d="M20 160 C20 80 80 20 160 20 C160 100 100 160 20 160 Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    />
+    <path d="M20 160 L160 20" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M60 120 L60 78 M100 80 L100 40 M78 100 L118 100 M40 140 L40 118"
+      stroke="currentColor"
+      strokeWidth="1.2"
+    />
+  </svg>
+);
+
 /* ------------------------------------------------------------------ */
 
 const Footer = () => {
+  /* সার্ভার আর ক্লায়েন্টের HTML যাতে এক থাকে, তাই দিনটা মাউন্টের পরে বসে */
+  const [today, setToday] = useState<number | null>(null);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setToday(new Date().getDay()));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const todayRow = OPENING_HOURS.find((row) => row.index === today);
+  const isOpenToday = todayRow ? !todayRow.closed : false;
+
+  const scrollTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <footer className="relative overflow-hidden bg-[var(--color-ink)] px-6 py-16 text-white sm:px-10 lg:px-20">
-      {/* background doodles */}
-      <DoodleCow />
-      <DoodleHand />
+    <footer className="site-footer">
+      {/* সাজসজ্জা — আলাদা মোড়কে, কারণ ফুটারের overflow খোলা রাখতে হয়
+          (CTA কার্ডটা উপরের দিকে বেরিয়ে থাকে) */}
+      <div className="site-footer__decor" aria-hidden="true">
+        <span className="site-footer__glow site-footer__glow--a" />
+        <span className="site-footer__glow site-footer__glow--b" />
+        <span className="site-footer__mesh" />
+        <DoodlePlate />
+        <DoodleLeaf />
+      </div>
 
-      <div className="relative mx-auto grid max-w-[1400px] grid-cols-1 gap-12 md:grid-cols-3">
-        {/* -------------------------------------------------- */}
-        {/* Brand column */}
-        {/* -------------------------------------------------- */}
-        <div>
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 via-red-500 to-yellow-400">
-              <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none">
-                <path
-                  d="M8 24 C8 14 24 6 32 12 C28 8 12 6 8 24 Z"
-                  fill="var(--color-saffron)"
-                />
-                <path d="M10 26 L30 26 L20 36 Z" fill="var(--color-saffron)" />
-                <circle cx="16" cy="28" r="1.6" fill="var(--color-chili-dark)" />
-                <circle cx="22" cy="30" r="1.6" fill="var(--color-chili-dark)" />
-                <circle cx="19" cy="25" r="1.6" fill="var(--color-chili-dark)" />
-              </svg>
-            </span>
-            <span>
-              <span className="block font-serif text-2xl italic font-bold leading-tight text-white">
-                Panpie
-              </span>
-              <span className="block text-[10px] font-semibold tracking-[0.25em] text-gray-400">
-                QUALITY FOOD
-              </span>
-            </span>
-          </Link>
+      <div className="site-footer__inner">
+        {/* ------------------------------------------------ */}
+        {/* উপরে ভেসে থাকা CTA কার্ড                          */}
+        {/* ------------------------------------------------ */}
+        <div className="footer-cta">
+          <div className="footer-cta__text">
+            <span className="footer-cta__eyebrow">Hungry already?</span>
+            <h2 className="footer-cta__title">
+              আজকের রান্না চুলায়, আপনার প্লেটটাই শুধু বাকি
+            </h2>
+            <p className="footer-cta__note">
+              অনলাইনে অর্ডার করুন, নয়তো এক ফোনেই টেবিল বুক করে ফেলুন।
+            </p>
+          </div>
 
-          <p className="mt-6 max-w-[240px] text-sm leading-relaxed text-gray-400">
-            128 6th Ave, New York, NY 10015 United States, Dcca-1212
-          </p>
-
-          <div className="mt-6 flex items-center gap-3">
-            {SOCIALS.map((s) => (
-              <a
-                key={s.label}
-                href={s.href}
-                aria-label={s.label}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white transition hover:border-white hover:bg-white hover:text-black"
-              >
-                {s.icon}
-              </a>
-            ))}
+          <div className="footer-cta__actions">
+            <Link href="/foods" className="footer-cta__btn footer-cta__btn--solid">
+              <UtensilsCrossed aria-hidden="true" />
+              Order online
+            </Link>
+            <a
+              href={RESTAURANT.phoneHref}
+              className="footer-cta__btn footer-cta__btn--ghost"
+            >
+              <Phone aria-hidden="true" />
+              {RESTAURANT.phone}
+            </a>
           </div>
         </div>
 
-        {/* -------------------------------------------------- */}
-        {/* Hot Menu column */}
-        {/* -------------------------------------------------- */}
-        <div className="relative">
-          <DoodleTaco />
-          <h3 className="text-xl font-bold text-white">Hot Menu</h3>
-          <ul className="mt-6 space-y-4">
-            {HOT_MENU.map((item) => (
-              <li key={item.label}>
-                <Link
-                  href={item.href ?? "#"}
-                  className="group flex items-center gap-2 text-sm text-gray-300 transition hover:text-white"
+        {/* ------------------------------------------------ */}
+        {/* মূল চার কলাম                                      */}
+        {/* ------------------------------------------------ */}
+        <div className="site-footer__grid">
+          {/* ব্র্যান্ড */}
+          <div className="footer-col footer-col--brand">
+            <Link href="/" className="site-footer__brand">
+              <BrandMark />
+              <span>
+                <span className="site-footer__name">{RESTAURANT.name}</span>
+                <span className="site-footer__tagline">
+                  {RESTAURANT.tagline}
+                </span>
+              </span>
+            </Link>
+
+            <p className="site-footer__blurb">{RESTAURANT.blurb}</p>
+
+            <ul className="footer-contact">
+              <li>
+                <MapPin aria-hidden="true" />
+                <span>{RESTAURANT.address}</span>
+              </li>
+              <li>
+                <Phone aria-hidden="true" />
+                <a href={RESTAURANT.phoneHref}>{RESTAURANT.phone}</a>
+              </li>
+              <li>
+                <Mail aria-hidden="true" />
+                <a href={`mailto:${RESTAURANT.email}`}>{RESTAURANT.email}</a>
+              </li>
+            </ul>
+
+            <div className="footer-socials">
+              {SOCIALS.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  aria-label={social.label}
+                  className="footer-socials__link"
                 >
-                  <span className="text-[10px] text-orange-400 transition group-hover:translate-x-0.5">
-                    ▶
-                  </span>
-                  {item.label}
-                </Link>
+                  {social.icon}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Explore */}
+          <div className="footer-col">
+            <h3 className="footer-col__title">Explore</h3>
+            <ul className="footer-links">
+              {EXPLORE.map((link) => (
+                <li key={link.label}>
+                  <Link href={link.href}>
+                    <ChevronRight aria-hidden="true" />
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Hot menu */}
+          <div className="footer-col">
+            <h3 className="footer-col__title">Hot Menu</h3>
+            <ul className="footer-links">
+              {HOT_MENU.map((link) => (
+                <li key={link.label}>
+                  <Link href={link.href}>
+                    <ChevronRight aria-hidden="true" />
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Opening hours */}
+          <div className="footer-col">
+            <h3 className="footer-col__title">Opening Hours</h3>
+
+            <span
+              className={`footer-status${isOpenToday ? " is-open" : ""}`}
+              suppressHydrationWarning
+            >
+              <i aria-hidden="true" />
+              {today === null
+                ? "Weekly schedule"
+                : isOpenToday
+                  ? "Open today"
+                  : "Closed today"}
+            </span>
+
+            <ul className="footer-hours">
+              {OPENING_HOURS.map((row) => (
+                <li
+                  key={row.day}
+                  className={row.index === today ? "is-today" : undefined}
+                  suppressHydrationWarning
+                >
+                  <span className="footer-hours__day">{row.day}</span>
+                  <span className="footer-hours__dots" aria-hidden="true" />
+                  {row.closed ? (
+                    <span className="footer-hours__closed">Closed</span>
+                  ) : (
+                    <span className="footer-hours__time">{row.time}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <p className="footer-hours__note">
+              <Clock3 aria-hidden="true" />
+              ছুটির দিনে রান্নাঘর ১ ঘণ্টা বেশি খোলা থাকে।
+            </p>
+          </div>
+        </div>
+
+        {/* ------------------------------------------------ */}
+        {/* ভরসার স্ট্রিপ                                     */}
+        {/* ------------------------------------------------ */}
+        <ul className="footer-trust">
+          {TRUST.map((item) => {
+            const Icon = item.icon;
+            return (
+              <li key={item.title} className="footer-trust__item">
+                <span className="footer-trust__icon">
+                  <Icon aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>{item.title}</strong>
+                  <span>{item.note}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* ------------------------------------------------ */}
+        {/* নিচের বার                                         */}
+        {/* ------------------------------------------------ */}
+        <div className="footer-bottom">
+          <p className="footer-bottom__copy">
+            © {new Date().getFullYear()} {RESTAURANT.name}. All rights
+            reserved.
+          </p>
+
+          <ul className="footer-bottom__legal">
+            {LEGAL.map((link) => (
+              <li key={link.label}>
+                <Link href={link.href}>{link.label}</Link>
               </li>
             ))}
           </ul>
-        </div>
 
-        {/* -------------------------------------------------- */}
-        {/* Opening Hours column */}
-        {/* -------------------------------------------------- */}
-        <div>
-          <h3 className="text-xl font-bold text-white">Opening Hours</h3>
-          <ul className="mt-6 space-y-4 text-sm">
-            {OPENING_HOURS.map((row) => (
-              <li
-                key={row.day}
-                className="flex items-center gap-1.5 text-gray-300"
-              >
-                <span className="w-[76px] flex-shrink-0">{row.day}</span>
-                <span>:</span>
-                {row.closed ? (
-                  <span className="font-semibold text-orange-400">Closed</span>
-                ) : (
-                  <span className="font-semibold text-white">{row.time}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <button
+            type="button"
+            onClick={scrollTop}
+            className="footer-bottom__top"
+            aria-label="Back to top"
+          >
+            <ArrowUp aria-hidden="true" />
+          </button>
         </div>
-      </div>
-
-      {/* -------------------------------------------------- */}
-      {/* Bottom strip */}
-      {/* -------------------------------------------------- */}
-      <div className="relative mx-auto mt-14 grid max-w-[1400px] grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
-        <div className="h-px bg-white/10" />
-        <p className="whitespace-nowrap text-center text-xs text-gray-400">
-          © 2026 panpie. All Rights Reserved by Restaurant app
-        </p>
-        <div className="h-px bg-white/10" />
       </div>
     </footer>
   );

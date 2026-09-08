@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -63,7 +64,13 @@ interface TableRow {
   status: string;
   waiter_id?: string;
   waiter_name?: string;
-  current_order?: { _id: string; order_number: string } | null;
+  current_order?: {
+    _id: string;
+    order_number: string;
+    status: string;
+    total: number;
+    items_count: number;
+  } | null;
 }
 
 interface Staff {
@@ -239,9 +246,48 @@ export default function PosScreen() {
       ["waiter", "manager", "cashier"].includes(s.staff_role),
   );
 
-  const freeTables = tables.filter(
-    (t) => !t.current_order || t._id === tableId,
+  /**
+   * টেবিল লুকিয়ে ফেলা হয় না।
+   * দখল করা টেবিলও তালিকায় থাকে, শুধু বাছা যায় না — নাহলে সব টেবিলে
+   * খাওয়া চললে ড্রপডাউন একদম খালি দেখাত আর ম্যানেজার বুঝতেই পারত না কেন।
+   */
+  const selectableTables = tables.map((t) => ({
+    ...t,
+    busy: !!t.current_order && t._id !== tableId,
+  }));
+
+  /** এখন যে টেবিলগুলোতে বিল চলছে — সেগুলোতে সরাসরি পদ যোগ করা যায় */
+  const runningTables = tables.filter((t) => t.current_order);
+
+  /* ---------------- দোকান যা অফার করে শুধু সেটাই ---------------- */
+  const orderTypes = (["dine_in", "delivery", "pickup"] as OrderType[]).filter(
+    (t) => settings.order_types.includes(t),
   );
+
+  const paymentMethods = (
+    [
+      { value: "cod", label: "Cash" },
+      { value: "bkash", label: "bKash" },
+      { value: "nagad", label: "Nagad" },
+      { value: "card", label: "Card" },
+    ] as const
+  ).filter((m) => settings.payment_methods.includes(m.value));
+
+  // বন্ধ করে দেওয়া অপশনে আটকে থাকলে চালু একটাতে সরিয়ে আনি
+  useEffect(() => {
+    if (orderTypes.length && !orderTypes.includes(orderType)) {
+      setOrderType(orderTypes[0]);
+    }
+  }, [orderType, orderTypes]);
+
+  useEffect(() => {
+    if (
+      paymentMethods.length &&
+      !paymentMethods.some((m) => m.value === paymentMethod)
+    ) {
+      setPaymentMethod(paymentMethods[0].value);
+    }
+  }, [paymentMethod, paymentMethods]);
 
   /* ---------------- কার্টের কাজ ---------------- */
   const addFood = (food: Food, variation?: Variation) => {
@@ -575,7 +621,7 @@ export default function PosScreen() {
         {!openOrder && (
           <div className="border-default-b space-y-3 px-4 py-3">
             <div className="flex gap-2">
-              {(["dine_in", "delivery", "pickup"] as OrderType[]).map((t) => (
+              {orderTypes.map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -590,33 +636,73 @@ export default function PosScreen() {
             </div>
 
             {orderType === "dine_in" && (
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={tableId}
-                  onChange={(e) => setTableId(e.target.value)}
-                  className="input-field h-9 w-full px-2.5 text-[13px]"
-                >
-                  <option value="">Pick a table</option>
-                  {freeTables.map((t) => (
-                    <option
-                      key={t._id}
-                      value={t._id}
-                      className="bg-elevated text-primary"
-                    >
-                      {t.name} ({t.capacity})
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={tableId}
+                    onChange={(e) => setTableId(e.target.value)}
+                    className="input-field h-9 w-full px-2.5 text-[13px]"
+                  >
+                    <option value="">
+                      {tables.length ? "Pick a table" : "No tables yet"}
                     </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={guests || ""}
-                  onChange={(e) => setGuests(Number(e.target.value))}
-                  placeholder="Guests"
-                  className="input-field h-9 w-full px-2.5 text-[13px]"
-                />
-              </div>
+                    {selectableTables.map((t) => (
+                      <option
+                        key={t._id}
+                        value={t._id}
+                        disabled={t.busy}
+                        className="bg-elevated text-primary"
+                      >
+                        {t.name} ({t.capacity})
+                        {t.busy ? ` — busy: ${t.current_order?.order_number}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={guests || ""}
+                    onChange={(e) => setGuests(Number(e.target.value))}
+                    placeholder="Guests"
+                    className="input-field h-9 w-full px-2.5 text-[13px]"
+                  />
+                </div>
+
+                {/* টেবিল একটাও তৈরি হয়নি */}
+                {!tables.length && (
+                  <p className="text-secondary text-[12px]">
+                    No tables set up yet.{" "}
+                    <Link
+                      href="/dashboard/tables"
+                      className="text-highlight underline"
+                    >
+                      Add your tables
+                    </Link>{" "}
+                    so orders can be tied to them.
+                  </p>
+                )}
+
+                {/* চলতি বিল — নতুন অর্ডার না বানিয়ে ওখানেই পদ যোগ করা যায় */}
+                {runningTables.length > 0 && (
+                  <div>
+                    <p className="text-secondary mb-1.5 text-[12px]">
+                      Already eating — add to their bill:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {runningTables.map((t) => (
+                        <Link
+                          key={t._id}
+                          href={`/dashboard/pos?order=${t.current_order!._id}`}
+                          className="btn btn-outline px-2.5 py-1 text-[12px]"
+                        >
+                          {t.name} · {formatMoney(t.current_order!.total)}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <select
@@ -796,10 +882,15 @@ export default function PosScreen() {
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="input-field mt-3 h-9 w-full px-2.5 text-[13px]"
             >
-              <option value="cod">Cash</option>
-              <option value="bkash">bKash</option>
-              <option value="nagad">Nagad</option>
-              <option value="card">Card</option>
+              {paymentMethods.map((m) => (
+                <option
+                  key={m.value}
+                  value={m.value}
+                  className="bg-elevated text-primary"
+                >
+                  {m.label}
+                </option>
+              ))}
             </select>
           )}
 

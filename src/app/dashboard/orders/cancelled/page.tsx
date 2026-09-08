@@ -4,8 +4,8 @@ import OrdersManager from "@/src/app/components/DashBoard/Orders/OrdersManager";
 export default function CancelledOrdersPage() {
   return (
     <OrdersManager
-      title="Cancelled orders"
-      subtitle="Orders that were cancelled before delivery."
+      title="Cancelled"
+      subtitle="Orders that were cancelled, with the reason recorded."
       statuses={["cancelled"]}
     />
   );

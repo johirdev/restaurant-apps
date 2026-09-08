@@ -1,0 +1,617 @@
+/* ==========================================================================
+   FOOD CARD — মেনুর প্রতিটা খাবারের 3D কার্ড
+   --------------------------------------------------------------------------
+   কার্ডটা মাউসের দিকে হেলে পড়ে, ভেতরের ছবি-দাম-বাটন আলাদা গভীরতায় ভাসে
+   (translateZ), আর মাউসের নিচে একটা নরম আলো ঘোরে।
+
+   গুরুত্বপূর্ণ: কার্ডে `overflow: hidden` দেওয়া যাবে না — দিলে ব্রাউজার
+   preserve-3d ফ্ল্যাট করে দেয় আর সব গভীরতা হারিয়ে যায়। তাই ক্লিপিংটা
+   ভেতরের `.food3d__media` করে।
+
+   রঙ সব globals.css এর টোকেন থেকে।
+   ========================================================================== */
+
+/* গ্রিডে perspective থাকলে ভেতরের translateZ গুলো সত্যিকারের গভীরতা পায়।
+   প্রতিটা ঘরেও perspective দেওয়া হয়, কারণ কার্ডগুলো ঢোকার অ্যানিমেশনের
+   জন্য একটা মোড়ক div এর ভেতরে বসে — নইলে ওই মোড়কেই 3D ফ্ল্যাট হয়ে যেত */
+.food3d-grid,
+.food3d-grid > * {
+  perspective: 1300px;
+  perspective-origin: 50% 40%;
+}
+
+.food3d {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-flat);
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition:
+    transform 0.42s var(--ease-out-soft),
+    box-shadow 0.42s var(--ease-out-soft),
+    border-color 0.3s ease;
+}
+
+/* মাউসের নিচের নরম আভা — কার্ডের পেছনে বসে */
+.food3d::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(
+    260px 260px at var(--mx) var(--my),
+    color-mix(in srgb, var(--color-brand) 12%, transparent) 0%,
+    transparent 68%
+  );
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+/* হোভারে কার্ডের বাইরে ছড়ানো ব্র্যান্ড আভা */
+.food3d::after {
+  content: "";
+  position: absolute;
+  inset: 8px 8px -6px;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  filter: blur(22px);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--color-brand) 55%, transparent),
+    color-mix(in srgb, var(--color-saffron) 55%, transparent)
+  );
+  transition: opacity 0.42s ease;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .food3d:hover {
+    transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry))
+      translateY(-10px) scale(1.02);
+    border-color: color-mix(in srgb, var(--color-brand) 30%, transparent);
+    box-shadow: var(--shadow-lifted);
+  }
+  .food3d:hover::before {
+    opacity: 1;
+  }
+  .food3d:hover::after {
+    opacity: 0.35;
+  }
+}
+
+/* ---------- ছবি ---------- */
+.food3d__media {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  cursor: pointer;
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+  background: var(--color-surface-soft);
+  transform: translateZ(1px);
+}
+
+.food3d__img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition: transform 0.7s var(--ease-out-soft);
+}
+.food3d:hover .food3d__img {
+  transform: scale(1.09);
+}
+
+.food3d__empty {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  font-size: 12px;
+  color: var(--color-ink-faint);
+}
+
+/* ছবির উপর দিয়ে একবার আলো বয়ে যায় */
+.food3d__shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 62%
+  );
+  transform: translateX(-120%);
+}
+.food3d:hover .food3d__shine {
+  transition: transform 0.85s var(--ease-out-soft);
+  transform: translateX(120%);
+}
+
+/* ছবির নিচের দিকে হালকা ছায়া — লেখাগুলো আলাদা হয়ে বসে */
+.food3d__media::after {
+  content: "";
+  position: absolute;
+  inset: 40% 0 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--color-ink) 26%, transparent)
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.food3d:hover .food3d__media::after {
+  opacity: 1;
+}
+
+/* ---------- ব্যাজ ---------- */
+.food3d__badges {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.food3d__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-invert);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.food3d__badge--off {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand) 0%,
+    var(--color-brand-darker) 100%
+  );
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
+.food3d__badge--spicy {
+  background: linear-gradient(
+    135deg,
+    var(--color-chili) 0%,
+    var(--color-chili-dark) 100%
+  );
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-chili) 40%, transparent);
+}
+
+.food3d__soldout {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-ink) 55%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.food3d__soldout span {
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+/* কুইক ভিউ পিল — হোভারে নিচ থেকে উঠে আসে */
+.food3d__quick {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-raised);
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  transition:
+    opacity 0.32s var(--ease-out-soft),
+    transform 0.32s var(--ease-out-soft);
+  pointer-events: none;
+}
+.food3d:hover .food3d__quick {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- বিবরণ ---------- */
+.food3d__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 14px 16px;
+  transform: translateZ(24px);
+}
+
+.food3d__cat {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+.food3d__title {
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-ink);
+  transition: color 0.2s ease;
+}
+.food3d__title:hover {
+  color: var(--color-brand);
+}
+
+.food3d__desc {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--color-ink-faint);
+}
+
+.food3d__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.food3d__was {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-ink-faint);
+  text-decoration: line-through;
+}
+.food3d__price {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-ink);
+}
+.food3d__unit {
+  margin-left: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-ink-faint);
+}
+
+/* যোগ করার বাটন — কার্ডের সবচেয়ে সামনে ভাসে */
+.food3d__add {
+  display: grid;
+  height: 42px;
+  width: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-ink-invert);
+  background: linear-gradient(
+    145deg,
+    var(--color-brand) 0%,
+    var(--color-brand-darker) 100%
+  );
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--color-brand) 42%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transform: translateZ(38px);
+  transition:
+    transform 0.28s var(--ease-spring),
+    box-shadow 0.28s ease,
+    filter 0.2s ease;
+}
+.food3d__add:hover:not(:disabled) {
+  transform: translateZ(46px) scale(1.1) rotate(90deg);
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--color-brand) 55%, transparent);
+}
+.food3d__add:active:not(:disabled) {
+  transform: translateZ(30px) scale(0.94);
+}
+.food3d__add:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   QUICK VIEW MODAL
+   ========================================================================== */
+.qv-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: color-mix(in srgb, var(--color-ink) 62%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: qv-fade 0.24s var(--ease-out-soft) both;
+  perspective: 1600px;
+}
+
+@keyframes qv-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.qv-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+  max-width: 880px;
+  max-height: 92vh;
+  overflow: hidden auto;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lifted);
+  animation: qv-in 0.42s var(--ease-spring) both;
+}
+
+@keyframes qv-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) rotateX(9deg) scale(0.95);
+  }
+}
+
+@media (min-width: 768px) {
+  .qv-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.qv-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 4;
+  display: grid;
+  height: 36px;
+  width: 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-ink-soft);
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-spring), color 0.2s ease;
+}
+.qv-close:hover {
+  color: var(--color-ink);
+  transform: rotate(90deg);
+}
+
+/* বাঁ পাশের ছবি */
+.qv-media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  padding: 26px;
+  background:
+    radial-gradient(
+      60% 60% at 50% 40%,
+      var(--color-brand-tint) 0%,
+      transparent 70%
+    ),
+    var(--color-surface-soft);
+}
+@media (min-width: 768px) {
+  .qv-media {
+    aspect-ratio: auto;
+  }
+}
+.qv-media img {
+  max-height: 430px;
+  width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 26px 34px rgba(28, 28, 40, 0.22));
+  animation: qv-float 6s ease-in-out infinite;
+}
+
+@keyframes qv-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1.2deg);
+  }
+}
+
+.qv-media__ring {
+  position: absolute;
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--color-brand) 30%, transparent);
+  animation: qv-spin 26s linear infinite;
+  pointer-events: none;
+}
+@keyframes qv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ডান পাশের বিবরণ */
+.qv-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 22px;
+}
+@media (min-width: 640px) {
+  .qv-body {
+    padding: 30px;
+  }
+}
+
+.qv-title {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-ink);
+}
+
+.qv-price {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.qv-price__now {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(
+    135deg,
+    var(--color-brand) 0%,
+    var(--color-saffron-dark) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.qv-price__was {
+  font-size: 15px;
+  color: var(--color-ink-faint);
+  text-decoration: line-through;
+}
+
+.qv-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qv-size {
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border);
+  padding: 8px 15px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease-spring),
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.qv-size:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+.qv-size.is-active {
+  border-color: transparent;
+  background: linear-gradient(
+    145deg,
+    var(--color-brand) 0%,
+    var(--color-brand-darker) 100%
+  );
+  color: var(--color-ink-invert);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--color-brand) 35%, transparent);
+}
+.qv-size span {
+  margin-left: 6px;
+  opacity: 0.75;
+  font-weight: 600;
+}
+
+.qv-qty {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-flat);
+}
+.qv-qty button {
+  display: grid;
+  height: 40px;
+  width: 40px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.qv-qty button:hover {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+.qv-qty span {
+  width: 34px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- মোশন কমানো থাকলে ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .food3d,
+  .food3d__img,
+  .food3d__add,
+  .qv-media img,
+  .qv-media__ring {
+    animation: none !important;
+    transition: none !important;
+  }
+  .food3d:hover {
+    transform: none;
+  }
+  .food3d:hover .food3d__img {
+    transform: none;
+  }
+}

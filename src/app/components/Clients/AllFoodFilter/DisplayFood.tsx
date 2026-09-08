@@ -2,17 +2,40 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
+/**
+ * DisplayFood — /foods পেজের পুরো খোল
+ * --------------------------------------------------------------------------
+ * সব ফিল্টার URL এ থাকে (searchTerm, category_id, minPrice, sortBy …), তাই
+ * লিংক শেয়ার করলে বা রিফ্রেশ করলে ঠিক একই তালিকা ফিরে আসে।
+ *
+ * উপরে গাঢ় 3D হিরো (আভা + ঘূর্ণায়মান রিং + কাঁচের সার্চ বার), তার নিচে
+ * ক্যাটাগরির চিপ, তারপর বাঁয়ে ফিল্টার প্যানেল আর ডানে কার্ডের গ্রিড।
+ * স্টাইল foods.css এ, কার্ডের স্টাইল FoodItems/foodCard.css এ।
+ */
+
 import { useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
+import {
+  ChefHat,
+  ChevronDown,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
 import Pagination from "@/src/app/Layout/Admin/Pagination/Pagination";
 import AllFoodFilter, {
+  SORT_OPTIONS,
   SortByOption,
   SortOrderOption,
   StatusOption,
 } from "./AllFoodFilter";
 import FoodCard, { FoodItem } from "../FoodItems/FoodCard";
+
+import "./foods.css";
 
 interface Category {
   _id: string;
@@ -142,53 +165,113 @@ const DisplayFood = () => {
     sortBy !== "createdAt" || sortOrder !== "desc",
   ].filter(Boolean).length;
 
+  const activeSortLabel =
+    SORT_OPTIONS.find((o) => o.sortBy === sortBy && o.sortOrder === sortOrder)
+      ?.label || "Newest First";
+
+  const activeCategory = categories.find((c) => c._id === categoryId);
+
   return (
-    <section className="max-width mx-auto px-4 sm:px-6 py-10 sm:py-12">
-      {/* ---------------- PAGE HEADER ---------------- */}
-      <div className="flex items-start justify-between gap-4 mb-8">
-        <div>
-          <span className="inline-block bg-red-600 text-white text-[11px] font-semibold px-3 py-1 rounded-sm mb-3 -skew-x-6">
+    <section className="menu-page">
+      {/* ================= HERO ================= */}
+      <header className="menu-hero">
+        <span className="menu-hero__aurora" aria-hidden="true" />
+        <span className="menu-hero__mesh" aria-hidden="true" />
+        <span className="menu-hero__ring menu-hero__ring--a" aria-hidden="true" />
+        <span className="menu-hero__ring menu-hero__ring--b" aria-hidden="true" />
+
+        <div className="menu-hero__inner">
+          <span className="menu-hero__eyebrow">
+            <Sparkles aria-hidden="true" />
             Tasty &amp; Crunchy
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Favorite Menu
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Inspired by recipes and creations of world&apos;s best chefs
+
+          <h1 className="menu-hero__title">
+            {activeCategory ? activeCategory.name : "Our full menu"}
+          </h1>
+
+          <p className="menu-hero__sub">
+            বিশ্বের সেরা শেফদের রেসিপি থেকে অনুপ্রাণিত — ক্যাটাগরি, দাম বা
+            নাম দিয়ে খুঁজুন, দুই ট্যাপেই অর্ডার হয়ে যাবে।
           </p>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setFilterOpen(true)}
-          className="md:hidden inline-flex items-center gap-2 border border-gray-300 rounded-full px-4 py-2.5 text-[12px] font-semibold text-gray-700 flex-shrink-0 hover:bg-gray-50 transition-colors"
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-          >
-            <line x1="4" y1="7" x2="20" y2="7" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="17" x2="20" y2="17" />
-            <circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none" />
-            <circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none" />
-            <circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none" />
-          </svg>
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="w-4.5 h-4.5 min-w-[18px] rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center">
-              {activeFilterCount}
+          {/* সার্চ */}
+          <div className="menu-search">
+            <Search aria-hidden="true" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search for pizza, burger, biryani…"
+              aria-label="Search menu"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput("")}
+                className="menu-search__clear"
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* ছোট পরিসংখ্যান */}
+          <div className="menu-hero__stats">
+            <span className="menu-hero__stat">
+              <UtensilsCrossed aria-hidden="true" />
+              <strong>{total}</strong> dishes
             </span>
-          )}
-        </button>
-      </div>
+            <span className="menu-hero__stat">
+              <ChefHat aria-hidden="true" />
+              <strong>{categories.length}</strong> categories
+            </span>
+            <span className="menu-hero__stat">
+              <Sparkles aria-hidden="true" />
+              Freshly cooked, every order
+            </span>
+          </div>
+        </div>
+      </header>
 
-      <div className="flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
+      {/* ================= ক্যাটাগরি চিপ ================= */}
+      {categories.length > 0 && (
+        <div className="menu-cats no-scrollbar">
+          <button
+            type="button"
+            onClick={() => updateParams({ category_id: "all", page: 1 })}
+            className={`menu-chip${categoryId === "all" ? " is-active" : ""}`}
+          >
+            <span className="menu-chip__dot">
+              <UtensilsCrossed aria-hidden="true" />
+            </span>
+            All
+          </button>
+
+          {categories.map((cat) => (
+            <button
+              key={cat._id}
+              type="button"
+              onClick={() => updateParams({ category_id: cat._id, page: 1 })}
+              className={`menu-chip${categoryId === cat._id ? " is-active" : ""}`}
+            >
+              {cat.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cat.image} alt="" />
+              ) : (
+                <span className="menu-chip__dot">
+                  <ChefHat aria-hidden="true" />
+                </span>
+              )}
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ================= লেআউট ================= */}
+      <div className="menu-layout">
         <AllFoodFilter
           open={filterOpen}
           onOpenChange={setFilterOpen}
@@ -217,45 +300,121 @@ const DisplayFood = () => {
           showStatusFilter={false}
         />
 
-        <div className="flex-1 min-w-0 w-full">
-          {/* ---------------- LOADING SKELETON ---------------- */}
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-[26px] shadow-[0_4px_20px_rgba(0,0,0,0.06)] px-5 pt-6 pb-5 flex flex-col items-center animate-pulse"
+        <div className="menu-main">
+          {/* ---------- টুলবার ---------- */}
+          <div className="menu-toolbar">
+            <p className="menu-toolbar__count">
+              {loading ? (
+                "Loading dishes…"
+              ) : (
+                <>
+                  <strong>{total}</strong> item{total === 1 ? "" : "s"}
+                  {searchTerm ? (
+                    <>
+                      {" "}
+                      for <strong>“{searchTerm}”</strong>
+                    </>
+                  ) : null}
+                </>
+              )}
+            </p>
+
+            <div className="menu-toolbar__right">
+              <div className="menu-select">
+                <select
+                  value={activeSortLabel}
+                  onChange={(e) => {
+                    const opt = SORT_OPTIONS.find(
+                      (o) => o.label === e.target.value,
+                    );
+                    if (opt)
+                      updateParams({
+                        sortBy: opt.sortBy,
+                        sortOrder: opt.sortOrder,
+                        page: 1,
+                      });
+                  }}
+                  aria-label="Sort dishes"
                 >
-                  <div className="h-4 mb-1 w-8 bg-gray-100 rounded" />
-                  <div className="w-full aspect-square bg-gray-100 rounded-xl" />
-                  <div className="h-3 w-3/4 bg-gray-100 rounded mt-4" />
-                  <div className="h-3 w-1/3 bg-gray-100 rounded mt-2" />
-                  <div className="w-full h-9 bg-gray-100 rounded-full mt-4" />
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown aria-hidden="true" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setFilterOpen(true)}
+                className="menu-filter-btn md:hidden"
+              >
+                <SlidersHorizontal aria-hidden="true" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="menu-filter-btn__count">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ---------- স্কেলিটন ---------- */}
+          {loading ? (
+            <div className="menu-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="menu-skel">
+                  <div className="menu-skel__img skeleton" />
+                  <div className="menu-skel__body">
+                    <div className="menu-skel__line skeleton w-1/3" />
+                    <div className="menu-skel__line skeleton w-4/5" />
+                    <div className="menu-skel__line skeleton w-1/2" />
+                    <div className="mt-2 h-9 w-full rounded-pill skeleton" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : foods.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
-              <p className="text-gray-400 text-sm">No items found.</p>
+            /* ---------- খালি অবস্থা ---------- */
+            <div className="menu-empty">
+              <span className="menu-empty__icon">
+                <UtensilsCrossed aria-hidden="true" />
+              </span>
+              <h3>Nothing on this plate yet</h3>
+              <p>
+                এই ফিল্টারে কোনো খাবার পাওয়া যায়নি। সার্চটা একটু ছোট করুন বা
+                ফিল্টার মুছে আবার দেখুন।
+              </p>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchInput("");
+                    router.push(pathname);
+                  }}
+                  className="site-btn site-btn-primary h-11 px-6 text-[12.5px] uppercase tracking-wide"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           ) : (
-            <>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                {foods.map((food, index) => (
-                  <div
-                    key={food._id}
-                    className="food-card-enter"
-                    style={{ animationDelay: `${(index % 8) * 70}ms` }}
-                  >
-                    <FoodCard food={food} />
-                  </div>
-                ))}
-              </div>
-            </>
+            /* ---------- গ্রিড ---------- */
+            <div className="menu-grid food3d-grid">
+              {foods.map((food, index) => (
+                <div
+                  key={food._id}
+                  style={{ animationDelay: `${(index % 8) * 70}ms` }}
+                >
+                  <FoodCard food={food} />
+                </div>
+              ))}
+            </div>
           )}
 
-          {/* ---------------- PAGINATION ---------------- */}
+          {/* ---------- পেজিনেশন ---------- */}
           {!loading && total > 0 && (
             <div className="mt-8">
               <Pagination

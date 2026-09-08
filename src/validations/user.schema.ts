@@ -15,16 +15,47 @@ export const phoneSchema = z
   )
   .transform(normalizeBdPhone);
 
+export const PASSWORD_MIN = 6;
+export const PASSWORD_MAX = 64;
+
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN, `Password must be at least ${PASSWORD_MIN} characters long`)
+  .max(PASSWORD_MAX, "Password is too long");
+
+const otpCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "The code is 6 digits");
+
+/** অ্যাকাউন্ট খোলার আগে নম্বরে কোড পাঠানো */
 export const sendOtpSchema = z.object({
   phone: phoneSchema,
 });
 
-export const verifyOtpSchema = z.object({
+/** অ্যাকাউন্ট তৈরি — কোড মিললে পাসওয়ার্ডটা সেট হয়ে যায় */
+export const registerSchema = z.object({
   phone: phoneSchema,
-  code: z
+  code: otpCodeSchema,
+  password: passwordSchema,
+  name: z
     .string()
     .trim()
-    .regex(/^\d{6}$/, "The code is 6 digits"),
+    .min(3, "Name must be at least 3 characters")
+    .max(60, "Name is too long")
+    .optional(),
+});
+
+/** লগইন — এখানে পাসওয়ার্ডের দৈর্ঘ্য যাচাই করি না, শুধু ফাঁকা কিনা দেখি */
+export const loginSchema = z.object({
+  phone: phoneSchema,
+  password: z.string().min(1, "Enter your password"),
+});
+
+/** পাসওয়ার্ড বদল — পুরোনো অ্যাকাউন্টে পাসওয়ার্ড না থাকলে current লাগে না */
+export const changePasswordSchema = z.object({
+  current_password: z.string().optional(),
+  new_password: passwordSchema,
 });
 
 /** প্রোফাইল আপডেট — সব ফিল্ডই ঐচ্ছিক, যেটা পাঠানো হয় সেটাই বদলায় */

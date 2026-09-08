@@ -8,6 +8,7 @@ import {
   can,
   COUNTER,
   FLOOR_ROLES,
+  ORDERS_VIEW,
   KITCHEN_ROLES,
   MANAGEMENT,
   OWNERS,
@@ -66,39 +67,49 @@ const navItems: NavItem[] = [
     label: "Tables",
     href: "/dashboard/tables",
     icon: Icons.Table,
-    roles: FLOOR_ROLES,
+    roles: COUNTER,
   },
 
-  // ---------------- Order Management ----------------
+  // ---------------- অর্ডারের ধাপগুলো, যে ক্রমে কাজ হয় ----------------
   {
-    label: "Order Management",
+    label: "Orders",
     icon: Icons.Orders,
-    roles: FLOOR_ROLES,
+    roles: ORDERS_VIEW,
     children: [
       {
-        label: "Live orders",
-        href: "/dashboard/orders/online",
+        label: "1. New orders",
+        href: "/dashboard/orders/new",
         icon: Icons.OnlineOrders,
       },
       {
-        label: "Counter orders",
-        href: "/dashboard/orders/pos",
-        icon: Icons.POS,
+        label: "2. Cooking",
+        href: "/dashboard/orders/cooking",
+        icon: Icons.Chef,
       },
       {
-        label: "Confirmed orders",
-        href: "/dashboard/orders/confirmed",
+        label: "3. Ready to serve",
+        href: "/dashboard/orders/ready",
         icon: Icons.ConfirmOrders,
       },
       {
-        label: "Delivery orders",
-        href: "/dashboard/orders/delivery",
-        icon: Icons.DeliveryOrders,
+        label: "4. Billing",
+        href: "/dashboard/orders/billing",
+        icon: Icons.Payment,
       },
       {
-        label: "Cancelled orders",
+        label: "Completed",
+        href: "/dashboard/orders/completed",
+        icon: Icons.Revenue,
+      },
+      {
+        label: "Cancelled",
         href: "/dashboard/orders/cancelled",
         icon: Icons.CancelOrders,
+      },
+      {
+        label: "All orders",
+        href: "/dashboard/orders/all",
+        icon: Icons.Invoice,
       },
     ],
   },
@@ -123,6 +134,32 @@ const navItems: NavItem[] = [
         label: "All food",
         href: "/dashboard/menu/all-items",
         icon: Icons.Boxes,
+      },
+    ],
+  },
+
+  // ---------------- Website ----------------
+  {
+    label: "Website",
+    icon: Icons.Store,
+    roles: MANAGEMENT,
+    children: [
+      {
+        label: "Hero banners",
+        href: "/dashboard/banners",
+        icon: Icons.Banner,
+      },
+      {
+        label: "Video blog",
+        href: "/dashboard/videos",
+        icon: Icons.Video,
+      },
+      {
+        // অন্যের লেখা মুছে ফেলা বড় ক্ষমতা — তাই শুধু মালিকেরা
+        label: "Customer reviews",
+        href: "/dashboard/reviews",
+        icon: Icons.Review,
+        roles: OWNERS,
       },
     ],
   },
@@ -212,7 +249,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { adminData } = useContext(AuthContext);
   const role = adminData?.role;
 
-  const [openGroups, setOpenGroups] = useState<string[]>(["Order Management"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["Orders"]);
 
   /**
    * রোল অনুযায়ী মেনু ছেঁকে নেওয়া। যে গ্রুপের সব শিশু-লিংক বাদ পড়ে যায়,

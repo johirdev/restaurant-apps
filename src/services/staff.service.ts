@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bcrypt from "bcrypt";
-import { jwtHelpers } from "../lib/jwtHelpers";
+import { signToken } from "../lib/tokens";
 import { ApiError } from "../lib/apiError";
 import {
   IStaff,
@@ -83,24 +83,23 @@ export const loginStaffService = async (
   const isMatch = await bcrypt.compare(staff_password, user.staff_password);
   if (!isMatch) throw new ApiError(401, "Wrong password");
 
-  const JWT_SECRET = process.env.JWT_SECRET!;
-  const ACCESS_EXPIRE = process.env.JWT_EXPIRES_IN_STAFF || "1d";
-  const REFRESH_EXPIRE = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
-
-  const access_token = jwtHelpers.createToken(
+  // স্টাফের টোকেন আলাদা চাবিতে, `aud: "staff"` সহ। রান্নাঘরের ট্যাব বা POS
+  // টার্মিনাল থেকে এটা বেরিয়ে গেলেও অ্যাডমিনের দরজা বন্ধই থাকে।
+  const access_token = signToken(
+    "staff",
     {
-      id: user._id,
+      id: String(user._id),
       email: user.staff_email,
       role: user.staff_role,
       name: user.staff_name,
     },
-    JWT_SECRET,
-    ACCESS_EXPIRE,
+    process.env.JWT_EXPIRES_IN_STAFF || "1d",
   );
-  const refresh_token = jwtHelpers.createToken(
-    { id: user._id },
-    JWT_SECRET,
-    REFRESH_EXPIRE,
+
+  const refresh_token = signToken(
+    "staff",
+    { id: String(user._id), role: user.staff_role },
+    process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   );
 
   return { access_token, refresh_token };

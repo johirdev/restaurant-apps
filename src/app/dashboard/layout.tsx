@@ -17,7 +17,7 @@ import {
   can,
   landingFor,
   COUNTER,
-  FLOOR_ROLES,
+  ORDERS_VIEW,
   KITCHEN_ROLES,
   MANAGEMENT,
   OWNERS,
@@ -57,8 +57,8 @@ export default function AdminClient({
 const ROUTE_ROLES: { prefix: string; roles: DashboardRole[] }[] = [
   { prefix: "/dashboard/kitchen", roles: KITCHEN_ROLES },
   { prefix: "/dashboard/pos", roles: COUNTER },
-  { prefix: "/dashboard/tables", roles: FLOOR_ROLES },
-  { prefix: "/dashboard/orders", roles: FLOOR_ROLES },
+  { prefix: "/dashboard/tables", roles: COUNTER },
+  { prefix: "/dashboard/orders", roles: ORDERS_VIEW },
   { prefix: "/dashboard/reports/kitchen", roles: KITCHEN_ROLES },
   { prefix: "/dashboard/reports", roles: MANAGEMENT },
   { prefix: "/dashboard/menu", roles: MANAGEMENT },
@@ -67,6 +67,7 @@ const ROUTE_ROLES: { prefix: string; roles: DashboardRole[] }[] = [
   { prefix: "/dashboard/admins/staff", roles: MANAGEMENT },
   { prefix: "/dashboard/admins", roles: OWNERS },
   { prefix: "/dashboard/banners", roles: MANAGEMENT },
+  { prefix: "/dashboard/reviews", roles: OWNERS },
 ];
 
 /** সবচেয়ে নির্দিষ্ট প্রিফিক্সটাই জেতে — /dashboard/admins/staff বনাম /dashboard/admins */

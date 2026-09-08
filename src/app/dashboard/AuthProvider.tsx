@@ -10,6 +10,7 @@ import {
 } from "react";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+import { ADMIN_COOKIE, STAFF_COOKIE } from "@/src/lib/tokens";
 
 // ================= TYPES =================
 interface AdminData {
@@ -49,13 +50,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = () => {
       try {
-        const cookieToken = Cookies.get("access_token");
+        // দুই রকম টোকেন, দুই কুকি — অ্যাডমিনেরটা আগে দেখি, তারপর স্টাফের
+        const cookieToken =
+          Cookies.get(ADMIN_COOKIE) || Cookies.get(STAFF_COOKIE);
 
         if (cookieToken) {
           const decoded = jwtDecode<AdminData>(cookieToken);
           // optional: check token expiry
           if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
-            Cookies.remove("access_token");
+            Cookies.remove(ADMIN_COOKIE);
+            Cookies.remove(STAFF_COOKIE);
             setToken(null);
             setAdminData(null);
           } else {
@@ -65,7 +69,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Auth init failed:", error);
-        Cookies.remove("access_token");
+        Cookies.remove(ADMIN_COOKIE);
+        Cookies.remove(STAFF_COOKIE);
       } finally {
         setLoading(false);
       }
@@ -83,7 +88,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
        return;
      }
 
-    Cookies.set("access_token", newToken, {
+    // টোকেনের `aud` বলে দেয় সে কোন দলের — সেই অনুযায়ী কুকিতে বসে,
+    // তাই একই ব্রাউজারে মালিক আর ওয়েটার একে অপরকে লগআউট করে দেয় না
+    const decodedNew = jwtDecode<AdminData>(newToken);
+    const cookieName =
+      decodedNew?.aud === "staff" ? STAFF_COOKIE : ADMIN_COOKIE;
+
+    Cookies.set(cookieName, newToken, {
       expires: 1,
       path: "/",
       sameSite: "lax",
@@ -99,7 +110,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   // ================= LOGOUT =================
   const logOut = () => {
-    Cookies.remove("access_token", { path: "/" });
+    Cookies.remove(ADMIN_COOKIE, { path: "/" });
+    Cookies.remove(STAFF_COOKIE, { path: "/" });
     setToken(null);
     setAdminData(null);
   };

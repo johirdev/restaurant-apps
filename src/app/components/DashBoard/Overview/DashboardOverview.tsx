@@ -88,14 +88,14 @@ export default function DashboardOverview() {
       value: counts.pending ?? 0,
       icon: Clock,
       tone: "var(--accent-orange)",
-      href: "/dashboard/orders/online",
+      href: "/dashboard/orders/new",
     },
     {
       label: "In kitchen",
       value: (counts.confirmed ?? 0) + (counts.preparing ?? 0),
       icon: ChefHat,
       tone: "var(--accent-blue)",
-      href: "/dashboard/orders/confirmed",
+      href: "/dashboard/orders/cooking",
     },
     {
       // রান্না শেষ, ম্যানেজারের হাতে — এখান থেকেই টেবিলে বা রাইডারের কাছে যায়
@@ -103,21 +103,21 @@ export default function DashboardOverview() {
       value: counts.ready ?? 0,
       icon: CheckCircle2,
       tone: "var(--accent-green)",
-      href: "/dashboard/orders/confirmed",
+      href: "/dashboard/orders/ready",
     },
     {
       label: "On the way",
       value: (counts.served ?? 0) + (counts.out_for_delivery ?? 0),
       icon: Bike,
       tone: "var(--accent-primary)",
-      href: "/dashboard/orders/delivery",
+      href: "/dashboard/orders/billing",
     },
     {
       label: "Delivered",
       value: counts.delivered ?? 0,
       icon: CheckCircle2,
       tone: "var(--accent-green)",
-      href: "/dashboard/orders/confirmed",
+      href: "/dashboard/orders/completed",
     },
     {
       label: "Cancelled",
@@ -270,7 +270,7 @@ export default function DashboardOverview() {
         <header className="border-default-b flex items-center justify-between px-4 py-3.5">
           <h2 className="text-primary text-[15px] font-bold">Recent orders</h2>
           <Link
-            href="/dashboard/orders/online"
+            href="/dashboard/orders/all"
             className="text-accent flex items-center gap-1 text-[12.5px] font-semibold hover:underline"
           >
             View all <ArrowRight size={13} />
@@ -305,7 +305,7 @@ export default function DashboardOverview() {
                   <tr key={order._id}>
                     <td>
                       <Link
-                        href={`/dashboard/orders/online?q=${order.order_number}`}
+                        href={`/dashboard/orders/all?q=${order.order_number}`}
                         className="text-primary font-bold hover:underline"
                       >
                         {order.order_number}

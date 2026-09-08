@@ -146,6 +146,8 @@ export const Icons = {
   Star: (p: IconProps) => <Star className={p.className} />,
   Feedback: (p: IconProps) => <MessageSquareText className={p.className} />,
   Portfolio: (p: IconProps) => <ImageIcon className={p.className} />,
+  /** হোম পেজের হিরো ব্যানার */
+  Banner: (p: IconProps) => <ImageIcon className={p.className} />,
   Blog: (p: IconProps) => <FiFileText className={p.className} />,
   Pricing: (p: IconProps) => <FiTag className={p.className} />,
 

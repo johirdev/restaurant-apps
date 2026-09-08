@@ -31,6 +31,8 @@ const ALLOWED_FOLDERS = new Set([
   "foods",
   "categories",
   "banners",
+  "videos",
+  "reviews",
 ]);
 
 /**
@@ -76,12 +78,16 @@ export async function POST(req: NextRequest) {
       return fail("Image must be under 5MB", 400);
     }
 
-    // কাস্টমার শুধু নিজের প্রোফাইল ছবিই তুলতে পারে
+    // কাস্টমার শুধু দুই জায়গায় ছবি তুলতে পারে — নিজের প্রোফাইল আর নিজের
+    // রিভিউ। বাকি সব ফোল্ডার কর্মীদের।
+    const CUSTOMER_FOLDERS = new Set(["users", "reviews"]);
     const folder = auth.isStaff
       ? ALLOWED_FOLDERS.has(requested)
         ? requested
         : "staff"
-      : "users";
+      : CUSTOMER_FOLDERS.has(requested)
+        ? requested
+        : "users";
 
     if (!hasCloudinaryConfig()) {
       // ৫০০ নয় — এটা সার্ভারের ভুল নয়, কনফিগারেশন এখনো হয়নি

@@ -17,6 +17,12 @@ import { Document } from "mongoose";
  */
 export type TaxMode = "exclusive" | "inclusive";
 
+/** দোকান কোন কোন ভাবে অর্ডার নেয় — চেকআউটে শুধু এগুলোই দেখা যায় */
+export type OfferedOrderType = "delivery" | "pickup" | "dine_in";
+
+/** কোন কোন উপায়ে টাকা নেওয়া হয় */
+export type OfferedPaymentMethod = "cod" | "bkash" | "nagad" | "card";
+
 export interface IRestaurantSettings {
   /** সবসময় "restaurant" — একটাই ডকুমেন্ট নিশ্চিত করার জন্য */
   key: string;
@@ -43,6 +49,11 @@ export interface IRestaurantSettings {
   service_charge_percent: number;
   /** সার্ভিস চার্জ শুধু ডাইন-ইনে নেওয়া হবে কিনা */
   service_charge_dine_in_only: boolean;
+
+  /* ---- দোকান কী কী অফার করে ---- */
+  /** চেকআউট আর POS দুই জায়গাতেই কেবল এই ধরনগুলো দেখা যায় */
+  order_types: OfferedOrderType[];
+  payment_methods: OfferedPaymentMethod[];
 
   /* ---- ডেলিভারি ---- */
   delivery_fee: number;
@@ -90,6 +101,9 @@ export const DEFAULT_SETTINGS: IRestaurantSettings = {
   service_charge_percent: 0,
   service_charge_dine_in_only: true,
 
+  order_types: ["delivery", "pickup", "dine_in"],
+  payment_methods: ["cod", "bkash", "nagad", "card"],
+
   delivery_fee: 60,
   free_delivery_above: 1000,
   min_order_amount: 150,
@@ -114,6 +128,8 @@ export const PUBLIC_SETTINGS_FIELDS = [
   "vat_percent",
   "service_charge_percent",
   "service_charge_dine_in_only",
+  "order_types",
+  "payment_methods",
   "delivery_fee",
   "free_delivery_above",
   "min_order_amount",

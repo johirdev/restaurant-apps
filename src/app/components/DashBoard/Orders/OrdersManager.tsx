@@ -32,10 +32,12 @@ import {
   buildKitchenTicketHtml,
   printHtml,
 } from "../Invoice/invoiceHtml";
+import InvoiceModal from "../Invoice/InvoiceModal";
 import {
   ORDER_STATUS_FLOW,
   type OrderStatus,
 } from "@/src/interfaces/order.interfaces";
+import { allowedStatusesFor, can } from "@/src/config/permissions";
 
 /* ==========================================================================
    ORDERS MANAGER — ড্যাশবোর্ডের সব অর্ডার পেজ এই একটা কম্পোনেন্টই চালায়।
@@ -95,6 +97,8 @@ interface OrdersManagerProps {
   statuses?: OrderStatus[];
   /** ডেলিভারি/পিকআপ ইত্যাদি দিয়ে আলাদা করতে চাইলে */
   orderType?: "delivery" | "pickup" | "dine_in";
+  /** শুধু বকেয়া (বা পরিশোধিত) বিল দেখাতে — বিলিং ধাপে ব্যবহার হয় */
+  paymentStatus?: "unpaid" | "paid" | "refunded";
 }
 
 /** URL এর ?q= — ড্যাশবোর্ড হোমের অর্ডার লিংক এভাবেই সার্চ নিয়ে আসে */
@@ -119,11 +123,19 @@ export default function OrdersManager({
   subtitle,
   statuses,
   orderType,
+  paymentStatus,
 }: OrdersManagerProps) {
   // অর্ডার মোছা শুধু superadmin পারে — API ও ঠিক এই রোলটাই যাচাই করে
   const { adminData } = useContext(AuthContext);
-  const canDelete = adminData?.role === "superadmin";
+  const canDelete = can(adminData?.role, "delete_order");
   const settings = useSettingsStore((s) => s.settings);
+
+  /* ---------------- এই কর্মী কী কী করতে পারে ---------------- */
+  const role = adminData?.role;
+  /** যেসব ধাপে এই রোল অর্ডার নিতে পারে — সার্ভারও ঠিক এই তালিকাই মানে */
+  const myStatuses = useMemo(() => allowedStatusesFor(role), [role]);
+  const canTakePayment = can(role, "take_payment");
+  const canPrintInvoice = can(role, "print_invoice");
 
   /** বিল ছাপা — সাথে সাথে সার্ভারে গুনেও রাখি, কতবার ছাপা হলো */
   const printInvoice = (order: AdminOrder) => {
@@ -149,6 +161,8 @@ export default function OrdersManager({
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
 
+  /** কোন অর্ডারের বিল খোলা আছে */
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -160,13 +174,24 @@ export default function OrdersManager({
 
   /* ---------- সার্চ ডিবাউন্স ---------- */
   useEffect(() => {
+    /**
+     * লেখা আর প্রয়োগ করা শব্দ এক হলে কিছুই করার নেই।
+     *
+     * এই গার্ডটা না থাকলে মাউন্টের ৩৫০ মিলিসেকেন্ড পরে `setLoading(true)`
+     * বসে যেত, অথচ `searchTerm`/`page` এর মান বদলাত না — ফলে ফেচ ইফেক্টের
+     * কোনো ডিপেন্ডেন্সিও বদলাত না, সেটা আর চলত না, আর `setLoading(false)`
+     * কখনো হতো না। প্রথম ফেচ ৩৫০ মিলিসেকেন্ডের ভেতরে শেষ হলেই পাতাটা
+     * চিরকাল "লোড হচ্ছে" দেখাত।
+     */
+    if (searchInput === searchTerm) return;
+
     const t = setTimeout(() => {
       setLoading(true);
       setSearchTerm(searchInput);
       setPage(1);
     }, 350);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, searchTerm]);
 
   /* ---------- ডেটা আনা ---------- */
   // ফেচ ইফেক্টের ভেতরেই — state শুধু await এর পরে বসে, আর ফিল্টার দ্রুত
@@ -183,6 +208,7 @@ export default function OrdersManager({
         };
         if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
         if (orderType) params.order_type = orderType;
+        if (paymentStatus) params.payment_status = paymentStatus;
 
         // একাধিক স্ট্যাটাস কমা দিয়ে পাঠানো যায় — তাই গোনা, টাকার যোগফল আর
         // পেজিনেশন সবই সার্ভারে ঠিকঠাক হিসাব হয়ে আসে।
@@ -211,7 +237,7 @@ export default function OrdersManager({
     return () => {
       cancelled = true;
     };
-  }, [page, limit, searchTerm, statusFilter, allowedStatuses, orderType, reloadKey]);
+  }, [page, limit, searchTerm, statusFilter, allowedStatuses, orderType, paymentStatus, reloadKey]);
 
   /** নতুন করে তালিকা আনতে বলি — স্ট্যাটাস বদল আর রিফ্রেশ বোতাম এটাই ডাকে */
   const reload = () => {
@@ -301,6 +327,11 @@ export default function OrdersManager({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* বিল দেখা / আবার ছাপা — যেকোনো অর্ডারের, যেকোনো সময় */}
+      {invoiceId && (
+        <InvoiceModal orderId={invoiceId} onClose={() => setInvoiceId(null)} />
+      )}
+
       {/* ---------- হেডার ---------- */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -408,7 +439,10 @@ export default function OrdersManager({
               <tbody>
                 {orders.map((order) => {
                   const expanded = expandedId === order._id;
-                  const nextStatuses = ORDER_STATUS_FLOW[order.status] ?? [];
+                  // এই রোল আসলে যেসব ধাপে নিতে পারে, শুধু সেগুলোর বোতাম
+                  const nextStatuses = (ORDER_STATUS_FLOW[order.status] ?? []).filter(
+                    (s) => myStatuses.includes(s),
+                  );
                   const busy = updatingId === order._id;
 
                   return (
@@ -465,7 +499,11 @@ export default function OrdersManager({
                               আলাদা কোনো স্ক্রিনে যেতে হয় না */}
                           <button
                             type="button"
-                            disabled={busy || order.payment_status === "refunded"}
+                            disabled={
+                              busy ||
+                              !canTakePayment ||
+                              order.payment_status === "refunded"
+                            }
                             title={
                               order.payment_status === "refunded"
                                 ? "Refunded"
@@ -479,7 +517,9 @@ export default function OrdersManager({
                                 order.payment_status === "paid" ? "unpaid" : "paid",
                               )
                             }
-                            className={`chip ml-1.5 cursor-pointer ${
+                            className={`chip ml-1.5 ${
+                              canTakePayment ? "cursor-pointer" : "cursor-default"
+                            } ${
                               order.payment_status === "paid" ? "chip-delivered" : "chip-muted"
                             }`}
                           >
@@ -500,8 +540,23 @@ export default function OrdersManager({
 
                         <td className="text-right">
                           <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {/* বিল দেখা — ছাপা মিস হয়ে গেলে যেকোনো সময় এখান থেকে */}
+                            {canPrintInvoice && (
+                            <button
+                              type="button"
+                              onClick={() => setInvoiceId(order._id)}
+                              title="View / print the bill"
+                              aria-label={`View bill for ${order.order_number}`}
+                              className="btn btn-outline h-7 px-2.5 text-[11px]"
+                            >
+                              <Printer size={11} /> Bill
+                            </button>
+                            )}
+
                             {nextStatuses.length === 0 ? (
-                              <span className="text-muted text-[11.5px]">Final</span>
+                              <span className="text-muted text-[11.5px]">
+                                {myStatuses.length ? "Final" : ""}
+                              </span>
                             ) : (
                               nextStatuses.map((next) => (
                                 <button

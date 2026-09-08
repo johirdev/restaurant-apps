@@ -432,3 +432,321 @@ h1, h2, h3, h4, .font-display {
 .clamp-1 { -webkit-line-clamp: 1; }
 .clamp-2 { -webkit-line-clamp: 2; }
 .clamp-3 { -webkit-line-clamp: 3; }
+
+/* ==========================================================================
+   HERO BANNER — হোম পেজের উপরের ব্যানার (ড্যাশবোর্ড থেকে ডাইনামিক)
+   --------------------------------------------------------------------------
+   বাঁয়ে লেখা, ডানে ছবি — ছবির বাঁ কিনারাটা বড় একটা বাঁকে কাটা, আর তার
+   ঠিক বাইরে একটা সরু অ্যাকসেন্ট রঙের রেখা।
+
+   রঙ তিনটে ভ্যারিয়েবল দিয়ে চলে, তাই প্রতিটা ব্যানার নিজের রঙ পাঠাতে
+   পারে; কিছু না পাঠালে রেস্টুরেন্টের থিমের রঙই ব্যবহার হয়:
+
+     --hero-bg      পেছনের রঙ
+     --hero-accent  বোতাম, রেখা, ছোট ছোট সাজ
+     --hero-ink     লেখার রঙ
+
+   মোবাইলে ছবিটা পুরো ব্যানারের ব্যাকগ্রাউন্ড হয়ে যায় (উপরে একটা পর্দা,
+   যাতে লেখা পড়া যায়), ডেস্কটপে ডান পাশের বাঁকা ব্লকে ফিরে আসে।
+   ========================================================================== */
+.hero-banner {
+  --hero-bg: var(--color-ink);
+  --hero-accent: var(--color-brand);
+  --hero-ink: var(--color-ink-invert);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--hero-bg);
+  color: var(--hero-ink);
+}
+
+/* ---------- ছবি ---------- */
+.hero-banner__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.hero-banner__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* মোবাইলে ছবির উপরে পর্দা — না দিলে সাদা লেখা হারিয়ে যায় */
+.hero-banner__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--hero-bg) 88%, transparent) 0%,
+    color-mix(in srgb, var(--hero-bg) 66%, transparent) 45%,
+    color-mix(in srgb, var(--hero-bg) 92%, transparent) 100%
+  );
+}
+
+/* ছবির বাইরের সরু বাঁকা রেখা — শুধু বড় স্ক্রিনে */
+.hero-banner__arc,
+.hero-banner__ring,
+.hero-banner__dot {
+  display: none;
+}
+
+/* ---------- ডেস্কটপ: বাঁয়ে লেখা | ডানে বাঁকা ছবি ---------- */
+@media (min-width: 1024px) {
+  .hero-banner__media {
+    left: 45%;
+    border-top-left-radius: 38% 50%;
+    border-bottom-left-radius: 38% 50%;
+  }
+
+  .hero-banner__veil {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--hero-bg) 65%, transparent) 0%,
+      transparent 38%
+    );
+  }
+
+  .hero-banner__arc {
+    display: block;
+    position: absolute;
+    z-index: 1;
+    top: -8%;
+    bottom: -8%;
+    left: calc(45% - 26px);
+    right: -90px;
+    border: 1px solid color-mix(in srgb, var(--hero-accent) 55%, transparent);
+    border-top-left-radius: 38% 50%;
+    border-bottom-left-radius: 38% 50%;
+    pointer-events: none;
+  }
+
+  /* নিচ-বাঁ কোণের সাজ — মোটা বলয় আর একটা ছোট বিন্দু */
+  .hero-banner__ring {
+    display: block;
+    position: absolute;
+    z-index: 0;
+    left: -130px;
+    bottom: -130px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    border: 30px solid color-mix(in srgb, var(--hero-accent) 20%, transparent);
+    pointer-events: none;
+  }
+  .hero-banner__dot {
+    display: block;
+    position: absolute;
+    z-index: 0;
+    left: 104px;
+    bottom: 86px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--hero-accent) 85%, transparent);
+    pointer-events: none;
+  }
+}
+
+/* ---------- লেখা ---------- */
+.hero-banner__content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-banner__cta {
+  background: var(--hero-accent);
+  color: var(--hero-ink);
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.12em;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--hero-accent) 35%, transparent);
+  transition:
+    transform 0.18s var(--ease-out-soft),
+    filter 0.18s var(--ease-out-soft);
+}
+.hero-banner__cta:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+.hero-banner__cta:active {
+  transform: translateY(0);
+}
+
+/* ---------- স্লাইডার ---------- */
+.hero-swiper .swiper-pagination {
+  bottom: 18px !important;
+}
+.hero-swiper .swiper-pagination-bullet {
+  width: 22px;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink-invert);
+  opacity: 0.35;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+.hero-swiper .swiper-pagination-bullet-active {
+  width: 38px;
+  opacity: 1;
+  /* প্রথম ব্যানারের অ্যাকসেন্ট রঙটাই স্লাইডারের গায়ে বসানো থাকে */
+  background: var(--hero-accent, var(--color-brand));
+}
+
+/* ==========================================================================
+   VIDEO BLOG — হোম পেজের ভিডিও সেকশন (ড্যাশবোর্ড থেকে ডাইনামিক)
+   --------------------------------------------------------------------------
+   কার্ডগুলো একটানা বাঁ দিকে ভেসে যায় (infinite marquee)। Swiper কে
+   `delay: 0` + লম্বা `speed` দিলে সেটা ধাপে ধাপে না গিয়ে সমান গতিতে চলে —
+   তার জন্য নিচের `linear` টাইমিংটাই আসল কাজটা করে।
+   ========================================================================== */
+.video-marquee .swiper-wrapper {
+  transition-timing-function: linear !important;
+}
+
+/* মাউস নিলে থেমে যায় — কার্ড পড়া বা ক্লিক করা সহজ হয় */
+.video-marquee .swiper-slide {
+  width: 300px;
+  height: auto;
+}
+@media (min-width: 640px) {
+  .video-marquee .swiper-slide { width: 340px; }
+}
+
+/* দুই পাশে হালকা মিলিয়ে যাওয়া — কার্ড হঠাৎ কেটে যাওয়ার বদলে মিশে যায় */
+.video-marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    90deg, transparent 0, #000 6%, #000 94%, transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg, transparent 0, #000 6%, #000 94%, transparent 100%
+  );
+}
+
+/* ---------- কার্ড ---------- */
+.video-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-ink);
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+  transition:
+    transform 0.28s var(--ease-out-soft),
+    box-shadow 0.28s var(--ease-out-soft);
+}
+.video-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lifted);
+}
+
+.video-card__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--ease-out-soft);
+}
+.video-card:hover .video-card__thumb {
+  transform: scale(1.06);
+}
+
+.video-card__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.12) 0%,
+    rgba(0, 0, 0, 0.05) 42%,
+    rgba(0, 0, 0, 0.82) 100%
+  );
+}
+
+/* মাঝের প্লে বোতাম — চারপাশে হালকা স্পন্দন */
+.video-card__play {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-ink-invert);
+  box-shadow: var(--shadow-brand);
+  transition: transform 0.28s var(--ease-spring);
+}
+.video-card:hover .video-card__play {
+  transform: scale(1.12);
+}
+.video-card__play::before {
+  content: "";
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-brand);
+  animation: video-pulse 2.4s var(--ease-out-soft) infinite;
+}
+@keyframes video-pulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  70%  { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* প্ল্যাটফর্মের ব্যাজ */
+.video-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.video-chip-youtube  { background: #ff0000; }
+.video-chip-facebook { background: #1877f2; }
+.video-chip-tiktok   { background: #010101; }
+
+/* ---------- ভিডিও চালানোর পর্দা (lightbox) ---------- */
+.video-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 8, 14, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: pop-in 0.24s var(--ease-out-soft) both;
+}
+.video-lightbox__frame {
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-lifted);
+}
+/* TikTok খাড়া ভিডিও — চওড়ার বদলে লম্বা বাক্স */
+.video-lightbox__frame.is-vertical {
+  max-width: min(420px, 100%);
+  aspect-ratio: 9 / 16;
+  max-height: 88vh;
+}
+.video-lightbox__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

@@ -12,8 +12,15 @@ import {
 import { BadRequest } from "../lib/apiError";
 import { requireUser, optionalUser } from "../middlewares/requireUser";
 import { verifyTokenAndRole } from "../middlewares/adminRoleAccess.middlewares";
+import { requireRole } from "../middlewares/requireAuth";
 
 type IdCtx = { params: Promise<{ id: string }> };
+
+/**
+ * রিভিউ পাহারা দেয় মালিকেরা — অন্যের লেখা মুছে ফেলা বড় ক্ষমতা, তাই
+ * ম্যানেজার বা ওয়েটারের হাতে সেটা দেওয়া হয়নি।
+ */
+const MODERATORS = ["superadmin", "admin"];
 
 const createReviewSchema = z.object({
   food_id: z.string().trim().min(1, "Food id is required"),
@@ -50,6 +57,28 @@ const getFoodReviews = catchAsync(async (req: NextRequest) => {
   );
 });
 
+/* ==========================================================================
+   ADMIN — সব খাবারের রিভিউ একসাথে (মডারেশনের জন্য)
+   GET /api/v1/reviews/all?searchTerm=&food_id=&rating=&page=&limit=
+   ========================================================================== */
+const getAllReviews = catchAsync(async (req: NextRequest) => {
+  // টোকেন নেই → 401, ভুল রোল → 403 — হিসাবটা requireRole ই রাখে
+  requireRole(req, MODERATORS);
+
+  const { filters, pagination } = splitQuery(req, [
+    "searchTerm",
+    "food_id",
+    "rating",
+    "status",
+  ]);
+
+  const result = await ReviewService.getAllReviews(
+    filters as never,
+    pagination as never,
+  );
+  return ok("Reviews fetched successfully", result.data, result.meta);
+});
+
 /** POST /api/v1/reviews — লগইন করা কাস্টমার নিজের ডেলিভার হওয়া খাবারে রিভিউ দেয় */
 const createReview = catchAsync(async (req: NextRequest) => {
   const auth = requireUser(req);
@@ -68,7 +97,7 @@ const getMyReviews = catchAsync(async (req: NextRequest) => {
 /** DELETE /api/v1/reviews/:id — নিজের রিভিউ, অথবা অ্যাডমিন যেকোনোটা */
 const deleteReview = catchAsync<IdCtx>(async (req, { params }) => {
   const { id } = await params;
-  const staff = verifyTokenAndRole(req, ["superadmin", "admin"]);
+  const staff = verifyTokenAndRole(req, MODERATORS);
   const user = staff.success ? null : requireUser(req);
 
   const review = await ReviewService.deleteReview(
@@ -86,6 +115,7 @@ const whoAmI = catchAsync(async (req: NextRequest) => {
 
 export const ReviewController = {
   getFoodReviews,
+  getAllReviews,
   createReview,
   getMyReviews,
   deleteReview,

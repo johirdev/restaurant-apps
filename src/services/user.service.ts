@@ -3,6 +3,7 @@ import { SortOrder } from "mongoose";
 import UserModel from "../models/user.model";
 import OrderModel from "../models/order.model";
 import AuthBlockModel from "../models/authBlock.model";
+import OtpModel from "../models/otp.model";
 import { IGenaricRespons } from "../lib/common";
 import { IPaginationOpton } from "../lib/pagination";
 import { HelperPagination } from "../lib/paginationHelper";
@@ -103,13 +104,32 @@ const getMyDishes = async (id: string, phone: string) => {
 /* ==========================================================================
    অ্যাডমিন — সব কাস্টমারের তালিকা
    ========================================================================== */
+
+/**
+ * যাচাই-না-হওয়া অ্যাকাউন্ট।
+ * অ্যাকাউন্ট এখন তৈরিই হয় OTP মেলার পর (`phone_verified: true` সহ), তাই এই
+ * শর্তে যা পড়ে সেগুলো পুরোনো/অসম্পূর্ণ রেকর্ড — পাসওয়ার্ডও নেই, লগইনও হয় না।
+ * `$ne: true` বলে ফিল্ড না থাকা পুরোনো ডকুমেন্টগুলোও ধরা পড়ে।
+ */
+const UNVERIFIED_WHERE = { phone_verified: { $ne: true } } as const;
 const getAllUsers = async (
   filtering: Record<string, any>,
   paginationOption: IPaginationOpton,
 ): Promise<IGenaricRespons<IUserDocument[]>> => {
-  const { searchTerm, favorite_dish, ...filtersData } = filtering;
+  const { searchTerm, favorite_dish, phone_verified, ...filtersData } = filtering;
 
   const andConditions: Record<string, any>[] = [];
+
+  // যাচাই হয়েছে কিনা — কোয়েরিতে আসে "true"/"false" স্ট্রিং হয়ে, ওটা সরাসরি
+  // বসালে মঙ্গো কিছুই মেলাবে না। যাচাই-না-হওয়ার শর্তে `$ne: true` রাখি, তাই
+  // পুরোনো যেসব ডকুমেন্টে ফিল্ডটাই নেই সেগুলোও তালিকায় আসে
+  if (phone_verified !== undefined && phone_verified !== "") {
+    andConditions.push(
+      String(phone_verified) === "true"
+        ? { phone_verified: true }
+        : UNVERIFIED_WHERE,
+    );
+  }
 
   const term = typeof searchTerm === "string" ? searchTerm.trim() : "";
   if (term) {
@@ -216,6 +236,32 @@ const deleteUser = async (id: string) => {
   return user;
 };
 
+/* ==========================================================================
+   যাচাই-না-হওয়া অ্যাকাউন্ট পরিষ্কার — ড্যাশবোর্ডের এক ক্লিক
+   --------------------------------------------------------------------------
+   বাটনে সংখ্যাটা দেখানোর জন্য গোনা, আর ঝেড়ে ফেলার জন্য মোছা — দুটোই ঠিক
+   একই শর্ত ব্যবহার করে, তাই "৫টা মুছবে" বলে ৬টা মুছে যাওয়ার সুযোগ নেই।
+   ========================================================================== */
+const countUnverifiedUsers = async () => {
+  const unverified = await UserModel.countDocuments(UNVERIFIED_WHERE);
+  return { unverified };
+};
+
+/** যাদের নম্বর কখনো যাচাই হয়নি তাদের সবাইকে একসাথে মুছে দেয় */
+const purgeUnverifiedUsers = async () => {
+  // মুছে ফেলার আগে নম্বরগুলো তুলে রাখি — ওদের পড়ে থাকা OTP রেকর্ডগুলোও
+  // একসাথে সরিয়ে দিলে ইউজার টেবিলের সাথে সাথে OTP টেবিলটাও পরিষ্কার থাকে
+  const doomed = await UserModel.find(UNVERIFIED_WHERE).select("phone").lean();
+  const phones = doomed.map((u: any) => u.phone).filter(Boolean);
+
+  if (!phones.length) return { deleted: 0 };
+
+  const res = await UserModel.deleteMany(UNVERIFIED_WHERE);
+  await OtpModel.deleteMany({ phone: { $in: phones } });
+
+  return { deleted: res.deletedCount ?? 0 };
+};
+
 /** ফিল্টার ড্রপডাউনে যেসব প্রিয় খাবার দেখানো হবে */
 const getFavoriteDishOptions = async () => {
   const rows = await UserModel.aggregate([
@@ -236,5 +282,7 @@ export const UserService = {
   getUserById,
   adminUpdateUser,
   deleteUser,
+  countUnverifiedUsers,
+  purgeUnverifiedUsers,
   getFavoriteDishOptions,
 };

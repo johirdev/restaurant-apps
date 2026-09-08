@@ -71,17 +71,9 @@ export const createOrderSchema = z
       path: ["customer", "address"],
     },
   )
-  // ডাইন-ইন হলে টেবিল লাগবে — আইডি অথবা হাতে লেখা নম্বর, যেকোনো একটা
-  .refine(
-    (v) =>
-      v.order_type !== "dine_in" ||
-      !!v.table_id?.trim() ||
-      !!v.table_number?.trim(),
-    {
-      message: "Please pick a table for a dine-in order",
-      path: ["table_id"],
-    },
-  );
+  // ডাইন-ইনে টেবিল আর বাধ্যতামূলক নয় — সব টেবিল ভরা থাকলে কাস্টমার
+  // সারিতে দাঁড়ায়, ম্যানেজার পরে খালি টেবিলে বসিয়ে দেন
+  ;
 
 export const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUSES as [string, ...string[]]),
@@ -125,3 +117,8 @@ export const setDiscountSchema = z.object({
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
+
+/** সারি থেকে টেবিলে বসানো */
+export const seatOrderSchema = z.object({
+  table_id: z.string().trim().min(1, "Pick a table"),
+});

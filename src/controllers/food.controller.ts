@@ -108,6 +108,34 @@ const getFoodById = async (id: string) => {
   }
 };
 
+/**
+ * POST /api/v1/foods/:id/view — কেউ ডিটেইল পেজে ঢুকলে ভিউ একধাপ বাড়ে।
+ * উত্তরে নতুন সংখ্যাটাই ফেরে, তাই পেজটা রিলোড ছাড়াই আপডেট দেখাতে পারে।
+ */
+const incrementView = async (id: string) => {
+  try {
+    if (!isValidObjectId(id))
+      return NextResponse.json(
+        { success: false, message: "Invalid food id" },
+        { status: 400 },
+      );
+    await connectDB();
+    const food = await FoodService.incrementView(id);
+    if (!food)
+      return NextResponse.json(
+        { success: false, message: "Food not found" },
+        { status: 404 },
+      );
+    return NextResponse.json({
+      success: true,
+      message: "View counted",
+      data: { view: food.view },
+    });
+  } catch (err) {
+    return handleError(err, "Failed to count view");
+  }
+};
+
 // POST /api/v1/foods — creates the Food row WITH its variations embedded (one table)
 const createFood = async (req: NextRequest) => {
   try {
@@ -268,6 +296,7 @@ const deleteVariation = async (foodId: string, variationId: string) => {
 export const FoodController = {
   getAllFoods,
   getFoodById,
+  incrementView,
   createFood,
   updateFood,
   deleteFood,

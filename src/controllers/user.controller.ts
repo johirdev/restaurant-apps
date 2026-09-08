@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { UserService } from "../services/user.service";
-import { sendOtp, verifyOtp, clearBlocks, AUTH_RULES } from "../services/auth.service";
+import {
+  sendRegisterOtp,
+  registerWithOtp,
+  loginWithPassword,
+  changePassword,
+  clearBlocks,
+  AUTH_RULES,
+} from "../services/auth.service";
 import { ok, sendResponse } from "../lib/sendResponse";
 import {
   catchAsync,
@@ -17,7 +24,9 @@ import {
 } from "../middlewares/requireUser";
 import {
   sendOtpSchema,
-  verifyOtpSchema,
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
   updateProfileSchema,
   adminUpdateUserSchema,
 } from "../validations/user.schema";
@@ -29,36 +38,29 @@ import {
 type IdCtx = { params: Promise<{ id: string }> };
 
 /* ==========================================================================
-   PUBLIC — ধাপ ১: নম্বরে OTP পাঠাও
+   PUBLIC — সাইনআপ ধাপ ১: নম্বরে OTP পাঠাও
    POST /api/v1/users/otp/send   { "phone": "01712345678" }
    ========================================================================== */
 const requestOtp = catchAsync(async (req: NextRequest) => {
   const { phone } = await parseBody(req, sendOtpSchema);
-  const result = await sendOtp(phone, getClientIp(req));
+  const result = await sendRegisterOtp(phone, getClientIp(req));
 
-  return ok(
-    result.is_new_user
-      ? "We sent a code to your number. Enter it to create your account."
-      : "We sent a code to your number.",
-    result,
-  );
+  return ok("We sent a code to your number. Enter it to finish signing up.", result);
 });
 
 /* ==========================================================================
-   PUBLIC — ধাপ ২: OTP মিলিয়ে দেখো, তারপর লগইন
-   POST /api/v1/users/otp/verify   { "phone": "...", "code": "123456" }
+   PUBLIC — সাইনআপ ধাপ ২: কোড + পাসওয়ার্ড = অ্যাকাউন্ট
+   POST /api/v1/users/register  { "phone", "code", "password", "name"? }
    ========================================================================== */
-const confirmOtp = catchAsync(async (req: NextRequest) => {
-  const { phone, code } = await parseBody(req, verifyOtpSchema);
-  const result = await verifyOtp(phone, code, getClientIp(req));
+const register = catchAsync(async (req: NextRequest) => {
+  const payload = await parseBody(req, registerSchema);
+  const result = await registerWithOtp(payload, getClientIp(req));
 
   // টোকেন httpOnly কুকিতে যায় — XSS হলেও জাভাস্ক্রিপ্ট এটা পড়তে পারবে না
   return sendResponse({
-    statusCode: 200,
+    statusCode: 201,
     success: true,
-    message: result.is_new_user
-      ? "Welcome! Your account is ready."
-      : "Logged in successfully",
+    message: "Welcome! Your account is ready.",
     data: {
       user: result.user,
       is_new_user: result.is_new_user,
@@ -67,6 +69,41 @@ const confirmOtp = catchAsync(async (req: NextRequest) => {
     },
     headers: { "Set-Cookie": userCookie(result.token) },
   });
+});
+
+/* ==========================================================================
+   PUBLIC — লগইন: নম্বর + পাসওয়ার্ড
+   POST /api/v1/users/login   { "phone": "...", "password": "..." }
+   ========================================================================== */
+const login = catchAsync(async (req: NextRequest) => {
+  const { phone, password } = await parseBody(req, loginSchema);
+  const result = await loginWithPassword(phone, password, getClientIp(req));
+
+  return sendResponse({
+    statusCode: 200,
+    success: true,
+    message: "Logged in successfully",
+    data: {
+      user: result.user,
+      profile_complete: result.profile_complete,
+      token: result.token,
+    },
+    headers: { "Set-Cookie": userCookie(result.token) },
+  });
+});
+
+/* ==========================================================================
+   কাস্টমার — পাসওয়ার্ড বদল
+   PATCH /api/v1/users/me/password  { "current_password", "new_password" }
+   ========================================================================== */
+const updateMyPassword = catchAsync(async (req: NextRequest) => {
+  const auth = requireUser(req);
+  const { current_password, new_password } = await parseBody(
+    req,
+    changePasswordSchema,
+  );
+  const result = await changePassword(auth.id, current_password, new_password);
+  return ok("Password updated successfully", result);
 });
 
 /** POST /api/v1/users/logout */
@@ -175,6 +212,28 @@ const unblockUser = catchAsync<IdCtx>(async (req, { params }) => {
   return ok("Login block removed for this number", result);
 });
 
+/* --------------------------------------------------------------------------
+   যাচাই-না-হওয়া অ্যাকাউন্ট
+   GET    /api/v1/users/unverified  → কয়টা আছে (বাটনে সংখ্যাটা দেখানোর জন্য)
+   DELETE /api/v1/users/unverified  → সবগুলো একসাথে মুছে দেয়
+   -------------------------------------------------------------------------- */
+const getUnverifiedCount = catchAsync(async (req: NextRequest) => {
+  requireRole(req, ANY_STAFF);
+  const result = await UserService.countUnverifiedUsers();
+  return ok("Unverified customers counted", result);
+});
+
+const deleteUnverifiedUsers = catchAsync(async (req: NextRequest) => {
+  requireRole(req, ["superadmin"]);
+  const result = await UserService.purgeUnverifiedUsers();
+  return ok(
+    result.deleted
+      ? `${result.deleted} unverified customer${result.deleted === 1 ? "" : "s"} deleted`
+      : "No unverified customers to delete",
+    result,
+  );
+});
+
 const deleteUser = catchAsync<IdCtx>(async (req, { params }) => {
   requireRole(req, ["superadmin"]);
   const { id } = await params;
@@ -184,7 +243,9 @@ const deleteUser = catchAsync<IdCtx>(async (req, { params }) => {
 
 export const UserController = {
   requestOtp,
-  confirmOtp,
+  register,
+  login,
+  updateMyPassword,
   logout,
   getAuthRules,
   getMe,
@@ -196,5 +257,7 @@ export const UserController = {
   getUserById,
   adminUpdateUser,
   unblockUser,
+  getUnverifiedCount,
+  deleteUnverifiedUsers,
   deleteUser,
 };

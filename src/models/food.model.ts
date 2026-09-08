@@ -63,9 +63,10 @@ const foodSchema = new Schema<IFoodDocument>(
     category_id: { type: Schema.Types.ObjectId, ref: "Category" },
     category_name: { type: String, trim: true, default: "" },
     description: { type: String, default: "" },
-    view: { type: Number, default: 1, min: 0 },
-    total_review: { type: Number, default: 1, min: 0 },
-    review_rating: { type: Number, default: 3.2, min: 0, max: 5 },
+    // নতুন খাবার শূন্য থেকে শুরু করে — ভিউ বাড়ে ভিজিটে, রেটিং বসে রিভিউ থেকে
+    view: { type: Number, default: 0, min: 0 },
+    total_review: { type: Number, default: 0, min: 0 },
+    review_rating: { type: Number, default: 0, min: 0, max: 5 },
     branch_id: { type: String, trim: true, default: "" },
     branch_name: { type: String, trim: true, default: "" },
 

@@ -11,16 +11,22 @@ import {
   Phone,
   RefreshCw,
   ShieldCheck,
+  User,
 } from "lucide-react";
 import { apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
+import { PASSWORD_MIN, PASSWORD_MAX } from "@/src/validations/user.schema";
+import PasswordField from "./PasswordField";
 import { useUser, type SiteUser } from "./UserProvider";
 
 /* ==========================================================================
-   ফোন + OTP লগইন
+   অ্যাকাউন্ট খোলা — নম্বর + পাসওয়ার্ড, তারপর একবার OTP
    --------------------------------------------------------------------------
-   পাসওয়ার্ড নেই। নম্বর দাও → ৬ ডিজিটের কোড আসে → কোড মিললে ঢুকে গেলে।
-   নম্বরটা নতুন হলে সার্ভার সেখানেই অ্যাকাউন্ট বানিয়ে দেয়, তাই "লগইন" আর
-   "রেজিস্ট্রেশন" আসলে একই ফ্লো — শুধু লেখাগুলো আলাদা।
+   ধাপ ১: নাম (ঐচ্ছিক), নম্বর আর পাসওয়ার্ড নিয়ে নম্বরে কোড পাঠানো হয়।
+   ধাপ ২: কোড মিললে সার্ভার অ্যাকাউন্টটা বানিয়ে পাসওয়ার্ডটা বসিয়ে দেয়।
+
+   পাসওয়ার্ডটা ধাপ ১ এই নেওয়া হয় ইচ্ছে করেই — SMS হাতে আসার পর কাস্টমার
+   শুধু ৬টা ডিজিট বসায়, নতুন করে ফর্ম ভরতে হয় না। যাচাই হয়ে গেলে পরের
+   বার থেকে শুধু নম্বর + পাসওয়ার্ডেই লগইন, OTP আর কখনো লাগে না।
    ========================================================================== */
 
 type SendResult = {
@@ -33,7 +39,7 @@ type SendResult = {
   dev_otp?: string;
 };
 
-type VerifyResult = {
+type RegisterResult = {
   user: SiteUser;
   is_new_user: boolean;
   profile_complete: boolean;
@@ -42,51 +48,37 @@ type VerifyResult = {
 
 const CODE_LENGTH = 6;
 
-const COPY = {
-  login: {
-    eyebrow: "Welcome back",
-    title: "Log in",
-    subtitle: "Enter your mobile number — we will text you a 6-digit code.",
-    submit: "Send code",
-    footerText: "New here?",
-    footerLink: "Create an account",
-    footerHref: "/registration",
-  },
-  register: {
-    eyebrow: "Let us get you started",
-    title: "Create your account",
-    subtitle:
-      "Just your mobile number. No password to remember — we verify you with a code.",
-    submit: "Send code",
-    footerText: "Already have an account?",
-    footerLink: "Log in",
-    footerHref: "/login",
-  },
-} as const;
-
 /** 01712345678 → 017 1234 5678 (শুধু দেখানোর জন্য) */
 const prettyPhone = (phone: string) =>
   phone.replace(/^(\d{3})(\d{4})(\d{4})$/, "$1 $2 $3");
 
-export default function OtpAuthForm({
-  mode = "login",
-}: {
-  mode?: "login" | "register";
-}) {
-  const copy = COPY[mode];
+type FieldErrors = {
+  name?: string;
+  phone?: string;
+  password?: string;
+  confirm?: string;
+};
+
+export default function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser, isLoggedIn, loading } = useUser();
 
-  // লগইনের পরে যেখানে ফেরত যাবে — ?next=/checkout এভাবে আসে
+  // সাইনআপের পরে যেখানে ফেরত যাবে — ?next=/checkout এভাবে আসে
   const nextUrl = searchParams.get("next") || "/account";
 
-  const [step, setStep] = useState<"phone" | "code">("phone");
+  const [step, setStep] = useState<"details" | "code">("details");
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+
   const [sent, setSent] = useState<SendResult | null>(null);
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
+
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [expiresIn, setExpiresIn] = useState(0);
 
@@ -119,15 +111,37 @@ export default function OtpAuthForm({
     return `${m}:${String(s).padStart(2, "0")}`;
   }, [expiresIn]);
 
-  /* ---------------- ধাপ ১ — কোড পাঠাও ---------------- */
+  const detailsReady =
+    phoneValid && password.length >= PASSWORD_MIN && confirm === password;
+
+  /* ---------------- ধাপ ১ — যাচাই করে কোড পাঠাও ----------------
+     সার্ভারও ঠিক এই নিয়মগুলোই আবার দেখে; এখানে দেখাটা শুধু SMS
+     পাঠানোর আগেই ভুলটা ধরিয়ে দেওয়ার জন্য */
   const sendCode = useCallback(
     async (isResend = false) => {
-      if (!phoneValid) {
-        setError("Enter a valid Bangladeshi mobile number (e.g. 01712345678)");
-        return;
+      const found: FieldErrors = {};
+
+      const trimmedName = name.trim();
+      if (trimmedName && trimmedName.length < 3) {
+        found.name = "Name must be at least 3 characters";
       }
+      if (!phoneValid) {
+        found.phone = "Enter a valid Bangladeshi mobile number (e.g. 01712345678)";
+      }
+      if (password.length < PASSWORD_MIN) {
+        found.password = `Password must be at least ${PASSWORD_MIN} characters long`;
+      } else if (password.length > PASSWORD_MAX) {
+        found.password = "Password is too long";
+      }
+      if (confirm !== password) {
+        found.confirm = "Both passwords must match";
+      }
+
+      setErrors(found);
+      setFormError("");
+      if (Object.keys(found).length) return;
+
       setBusy(true);
-      setError("");
       try {
         const res = await apiPost<SendResult>("/api/v1/users/otp/send", {
           phone: phone.trim(),
@@ -143,28 +157,37 @@ export default function OtpAuthForm({
         setTimeout(() => boxRefs.current[0]?.focus(), 60);
       } catch (err) {
         const msg = getApiErrorMessage(err);
-        setError(msg);
+        // নম্বরে আগেই অ্যাকাউন্ট থাকলে সার্ভার এখানেই থামায় — ফোনের ঘরেই
+        // মেসেজটা দেখাই, তাহলে লগইন লিংকটা চোখের সামনেই থাকে
+        setErrors(
+          msg.toLowerCase().includes("already has an account")
+            ? { phone: msg }
+            : {},
+        );
+        setFormError(msg);
         toast.error(msg);
       } finally {
         setBusy(false);
       }
     },
-    [phone, phoneValid],
+    [name, phone, phoneValid, password, confirm],
   );
 
-  /* ---------------- ধাপ ২ — কোড মেলাও ---------------- */
+  /* ---------------- ধাপ ২ — কোড মেলাও, অ্যাকাউন্ট তৈরি ---------------- */
   const verify = useCallback(
     async (value: string) => {
       if (value.length !== CODE_LENGTH) {
-        setError(`The code is ${CODE_LENGTH} digits`);
+        setFormError(`The code is ${CODE_LENGTH} digits`);
         return;
       }
       setBusy(true);
-      setError("");
+      setFormError("");
       try {
-        const res = await apiPost<VerifyResult>("/api/v1/users/otp/verify", {
+        const res = await apiPost<RegisterResult>("/api/v1/users/register", {
           phone: sent?.phone ?? phone.trim(),
           code: value,
+          password,
+          ...(name.trim() ? { name: name.trim() } : {}),
         });
         const data = res.data;
         setUser(data.user);
@@ -175,7 +198,7 @@ export default function OtpAuthForm({
         router.refresh();
       } catch (err) {
         const msg = getApiErrorMessage(err);
-        setError(msg);
+        setFormError(msg);
         toast.error(msg);
         setCode(Array(CODE_LENGTH).fill(""));
         boxRefs.current[0]?.focus();
@@ -183,7 +206,7 @@ export default function OtpAuthForm({
         setBusy(false);
       }
     },
-    [sent, phone, setUser, router, nextUrl],
+    [sent, phone, password, name, setUser, router, nextUrl],
   );
 
   /* ---------------- OTP বক্সগুলোর আচরণ ---------------- */
@@ -230,10 +253,10 @@ export default function OtpAuthForm({
     }
   };
 
-  const backToPhone = () => {
-    setStep("phone");
+  const backToDetails = () => {
+    setStep("details");
     setSent(null);
-    setError("");
+    setFormError("");
     setCode(Array(CODE_LENGTH).fill(""));
   };
 
@@ -241,13 +264,13 @@ export default function OtpAuthForm({
     <div className="site-card mx-auto w-full max-w-[440px] overflow-hidden">
       {/* ---------- হেডার ---------- */}
       <div className="border-b border-border bg-brand-tint px-6 py-7 text-center sm:px-8">
-        <span className="site-eyebrow">{copy.eyebrow}</span>
+        <span className="site-eyebrow">Let us get you started</span>
         <h1 className="mt-1 font-display text-[26px] font-bold text-ink sm:text-[30px]">
-          {step === "phone" ? copy.title : "Enter the code"}
+          {step === "details" ? "Create your account" : "Verify your number"}
         </h1>
         <p className="mx-auto mt-2 max-w-[330px] text-[13.5px] leading-relaxed text-ink-soft">
-          {step === "phone" ? (
-            copy.subtitle
+          {step === "details" ? (
+            "Pick a password now — after this one-time check you will log in with just your number and password."
           ) : (
             <>
               We sent a {CODE_LENGTH}-digit code to{" "}
@@ -260,8 +283,8 @@ export default function OtpAuthForm({
       </div>
 
       <div className="px-6 py-7 sm:px-8">
-        {/* ================= ধাপ ১ — ফোন নম্বর ================= */}
-        {step === "phone" && (
+        {/* ================= ধাপ ১ — নম্বর ও পাসওয়ার্ড ================= */}
+        {step === "details" && (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -270,7 +293,48 @@ export default function OtpAuthForm({
             className="space-y-5"
           >
             <div className="space-y-1.5">
-              <label htmlFor="phone" className="text-[13px] font-bold text-ink">
+              <label
+                htmlFor="register-name"
+                className="flex items-baseline justify-between gap-2 text-[13px] font-bold text-ink"
+              >
+                Your name
+                <span className="text-[11.5px] font-medium text-ink-faint">
+                  Optional
+                </span>
+              </label>
+              <div className="relative">
+                <User
+                  size={17}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint"
+                />
+                <input
+                  id="register-name"
+                  type="text"
+                  autoComplete="name"
+                  maxLength={60}
+                  placeholder="e.g. Rahim Uddin"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setErrors((p) => ({ ...p, name: "" }));
+                  }}
+                  className={`site-input h-12 pl-10 pr-4 text-[15px] ${
+                    errors.name ? "is-invalid" : ""
+                  }`}
+                />
+              </div>
+              {errors.name && (
+                <p className="text-[12.5px] font-semibold text-chili">
+                  {errors.name}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="register-phone"
+                className="text-[13px] font-bold text-ink"
+              >
                 Mobile number
               </label>
               <div className="relative">
@@ -279,7 +343,7 @@ export default function OtpAuthForm({
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint"
                 />
                 <input
-                  id="phone"
+                  id="register-phone"
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel"
@@ -288,27 +352,59 @@ export default function OtpAuthForm({
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value);
-                    setError("");
+                    setErrors((p) => ({ ...p, phone: "" }));
+                    setFormError("");
                   }}
                   className={`site-input h-12 pl-10 pr-4 text-[15px] font-semibold tracking-wide ${
-                    error ? "is-invalid" : ""
+                    errors.phone ? "is-invalid" : ""
                   }`}
                 />
               </div>
-              {error ? (
+              {errors.phone ? (
                 <p className="text-[12.5px] font-semibold text-chili">
-                  {error}
+                  {errors.phone}
                 </p>
               ) : (
                 <p className="text-[12px] text-ink-faint">
-                  Bangladeshi numbers only. Standard SMS rates may apply.
+                  Bangladeshi numbers only. We will text a code to this number.
                 </p>
               )}
             </div>
 
+            <PasswordField
+              label="Password"
+              value={password}
+              onChange={(v) => {
+                setPassword(v);
+                setErrors((p) => ({ ...p, password: "", confirm: "" }));
+              }}
+              autoComplete="new-password"
+              disabled={busy}
+              error={errors.password}
+              hint={`At least ${PASSWORD_MIN} characters`}
+            />
+
+            <PasswordField
+              label="Confirm password"
+              value={confirm}
+              onChange={(v) => {
+                setConfirm(v);
+                setErrors((p) => ({ ...p, confirm: "" }));
+              }}
+              autoComplete="new-password"
+              disabled={busy}
+              error={errors.confirm}
+            />
+
+            {formError && !errors.phone && (
+              <p className="text-[12.5px] font-semibold text-chili">
+                {formError}
+              </p>
+            )}
+
             <button
               type="submit"
-              disabled={busy || !phoneValid}
+              disabled={busy || !detailsReady}
               className="site-btn site-btn-primary h-12 w-full text-[15px]"
             >
               {busy ? (
@@ -316,7 +412,9 @@ export default function OtpAuthForm({
                   <Loader2 size={17} className="animate-spin" /> Sending…
                 </>
               ) : (
-                copy.submit
+                <>
+                  <ShieldCheck size={17} /> Send verification code
+                </>
               )}
             </button>
 
@@ -359,16 +457,16 @@ export default function OtpAuthForm({
                   onKeyDown={(e) => onBoxKeyDown(i, e)}
                   onFocus={(e) => e.target.select()}
                   className={`site-input w-11 text-center text-[20px] font-extrabold sm:w-12 ${
-                    error ? "is-invalid" : ""
+                    formError ? "is-invalid" : ""
                   }`}
                   style={{ height: "52px" }}
                 />
               ))}
             </div>
 
-            {error && (
+            {formError && (
               <p className="text-center text-[12.5px] font-semibold text-chili">
-                {error}
+                {formError}
               </p>
             )}
 
@@ -380,11 +478,12 @@ export default function OtpAuthForm({
             >
               {busy ? (
                 <>
-                  <Loader2 size={17} className="animate-spin" /> Checking…
+                  <Loader2 size={17} className="animate-spin" /> Creating your
+                  account…
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={17} /> Verify &amp; continue
+                  <ShieldCheck size={17} /> Verify &amp; create account
                 </>
               )}
             </button>
@@ -392,10 +491,10 @@ export default function OtpAuthForm({
             <div className="flex items-center justify-between text-[12.5px]">
               <button
                 type="button"
-                onClick={backToPhone}
+                onClick={backToDetails}
                 className="inline-flex items-center gap-1.5 font-semibold text-ink-soft transition-colors hover:text-brand"
               >
-                <ArrowLeft size={14} /> Change number
+                <ArrowLeft size={14} /> Change details
               </button>
 
               <button
@@ -420,12 +519,9 @@ export default function OtpAuthForm({
 
       {/* ---------- ফুটার ---------- */}
       <div className="border-t border-border bg-canvas px-6 py-4 text-center text-[13px] text-ink-soft">
-        {copy.footerText}{" "}
-        <Link
-          href={copy.footerHref}
-          className="font-bold text-brand hover:underline"
-        >
-          {copy.footerLink}
+        Already have an account?{" "}
+        <Link href="/login" className="font-bold text-brand hover:underline">
+          Log in
         </Link>
       </div>
     </div>

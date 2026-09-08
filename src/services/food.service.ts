@@ -141,6 +141,19 @@ const getFoodById = async (id: string) => {
   return FoodModel.findById(id);
 };
 
+/**
+ * ডিটেইল পেজে একবার ঢুকলে ভিউ একবার বাড়ে।
+ * একই ভিজিটে বারবার যেন না গোনে সেই পাহারাটা ক্লায়েন্টে (sessionStorage);
+ * এখানে শুধু গোনাটা বসে, তাই যেখান থেকেই ডাকা হোক হিসাব এক থাকে।
+ */
+const incrementView = async (id: string) => {
+  return FoodModel.findByIdAndUpdate(
+    id,
+    { $inc: { view: 1 } },
+    { new: true, projection: { view: 1 } },
+  );
+};
+
 /** Creates a Food document with all its variations embedded — single insert, single table. */
 const createFood = async (payload: IFood) => {
   const preparedVariations = payload.variations.map(prepareVariation);
@@ -222,6 +235,7 @@ const deleteVariation = async (foodId: string, variationId: string) => {
 export const FoodService = {
   getAllFoods,
   getFoodById,
+  incrementView,
   createFood,
   updateFood,
   deleteFood,

@@ -33,6 +33,15 @@ export const updateSettingsSchema = z.object({
   service_charge_percent: percent.optional(),
   service_charge_dine_in_only: z.coerce.boolean().optional(),
 
+  order_types: z
+    .array(z.enum(["delivery", "pickup", "dine_in"]))
+    .min(1, "Keep at least one way of taking orders")
+    .optional(),
+  payment_methods: z
+    .array(z.enum(["cod", "bkash", "nagad", "card"]))
+    .min(1, "Keep at least one payment method")
+    .optional(),
+
   delivery_fee: amount.optional(),
   free_delivery_above: amount.optional(),
   min_order_amount: amount.optional(),

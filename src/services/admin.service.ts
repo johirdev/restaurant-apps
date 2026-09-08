@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bcrypt from "bcrypt";
-import { jwtHelpers } from "../lib/jwtHelpers";
+import { signToken } from "../lib/tokens";
 import { ApiError } from "../lib/apiError";
 import {
   IAdmin,
@@ -132,24 +132,23 @@ export const loginAdminService = async (
     },
   );
 
-  const JWT_SECRET = process.env.JWT_SECRET!;
-  const ACCESS_EXPIRE = process.env.JWT_EXPIRES_IN_ADMIN || "1d";
-  const REFRESH_EXPIRE = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
-
-  const access_token = jwtHelpers.createToken(
+  // অ্যাডমিনের টোকেন আলাদা চাবিতে সই হয় আর `aud: "admin"` বহন করে —
+  // স্টাফের টোকেন দিয়ে অ্যাডমিনের রুটে ঢোকা যায় না
+  const access_token = signToken(
+    "admin",
     {
-      id: user._id,
+      id: String(user._id),
       email: user.admin_email,
       role: user.admin_role,
       name: user.admin_name,
     },
-    JWT_SECRET,
-    ACCESS_EXPIRE,
+    process.env.JWT_EXPIRES_IN_ADMIN || "1d",
   );
-  const refresh_token = jwtHelpers.createToken(
-    { id: user._id },
-    JWT_SECRET,
-    REFRESH_EXPIRE,
+
+  const refresh_token = signToken(
+    "admin",
+    { id: String(user._id), role: user.admin_role },
+    process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   );
 
   return { access_token, refresh_token };

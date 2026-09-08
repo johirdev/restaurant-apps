@@ -4,6 +4,7 @@ import ReviewModel from "../models/review.model";
 import OrderModel from "../models/order.model";
 import FoodModel from "../models/food.model";
 import UserModel from "../models/user.model";
+import cloudinary from "../config/cloudinary";
 import { BadRequest, Forbidden, NotFound } from "../lib/apiError";
 import { HelperPagination } from "../lib/paginationHelper";
 import { IPaginationOpton } from "../lib/pagination";
@@ -122,6 +123,54 @@ const getFoodReviews = async (foodId: string, paginationOption: IPaginationOpton
   };
 };
 
+/* ==========================================================================
+   ড্যাশবোর্ডের মডারেশন তালিকা — সব খাবারের রিভিউ একসাথে
+   ========================================================================== */
+const getAllReviews = async (
+  filters: {
+    searchTerm?: string;
+    food_id?: string;
+    rating?: string | number;
+    status?: string;
+  },
+  paginationOption: IPaginationOpton,
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    HelperPagination.calculationPagination(paginationOption);
+
+  const and: Record<string, any>[] = [];
+
+  if (filters.searchTerm) {
+    // সার্চ বাক্সের লেখা সরাসরি RegExp এ বসালে "(" এর মতো অক্ষরে কোয়েরিটাই
+    // ভেঙে যেত — তাই বিশেষ অক্ষরগুলো আগে নিরীহ করে নিই
+    const safe = filters.searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rx = new RegExp(safe, "i");
+    and.push({
+      $or: [{ user_name: rx }, { message: rx }, { order_number: rx }],
+    });
+  }
+  if (filters.food_id && mongoose.Types.ObjectId.isValid(filters.food_id)) {
+    and.push({ food_id: new mongoose.Types.ObjectId(filters.food_id) });
+  }
+  if (filters.rating) and.push({ rating: Number(filters.rating) });
+  if (filters.status) and.push({ status: filters.status });
+
+  const where = and.length ? { $and: and } : {};
+
+  const [data, total] = await Promise.all([
+    ReviewModel.find(where)
+      // কোন খাবারের রিভিউ সেটা তালিকাতেই দরকার — নইলে প্রতি সারিতে আলাদা কল
+      .populate({ path: "food_id", select: "name image" })
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    ReviewModel.countDocuments(where),
+  ]);
+
+  return { meta: { page, limit, total }, data };
+};
+
 /** নিজের দেওয়া সব রিভিউ */
 const getMyReviews = async (userId: string) =>
   ReviewModel.find({ user_id: userId }).sort({ createdAt: -1 }).limit(100);
@@ -135,6 +184,21 @@ const deleteReview = async (id: string, userId?: string) => {
   }
 
   await review.deleteOne();
+
+  // ছবিগুলো Cloudinary তে পড়ে থাকলে শুধু জায়গা খায় — মুছে দিই।
+  // এটা ব্যর্থ হলেও রিভিউ মোছা আটকায় না, তাই চুপচাপ চেষ্টা।
+  await Promise.all(
+    (review.images || [])
+      .filter((img) => img.public_id)
+      .map((img) =>
+        cloudinary.uploader
+          .destroy(img.public_id)
+          .catch(() =>
+            console.warn("Could not remove review image", img.public_id),
+          ),
+      ),
+  );
+
   await recomputeFoodRating(String(review.food_id));
   return review;
 };
@@ -142,6 +206,7 @@ const deleteReview = async (id: string, userId?: string) => {
 export const ReviewService = {
   createReview,
   getFoodReviews,
+  getAllReviews,
   getMyReviews,
   deleteReview,
 };

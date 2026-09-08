@@ -5,6 +5,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
+import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { AuthContext } from "@/src/app/dashboard/AuthProvider";
 import DeleteModal from "@/src/app/Layout/DeleteModal/DeleteModal";
@@ -15,7 +16,7 @@ import { BD_DIVISIONS, BD_DIVISION_NAMES } from "@/src/config/bd-locations";
    কাস্টমার ম্যানেজমেন্ট — GET /api/v1/users
    --------------------------------------------------------------------------
    সার্ভারের UserFilterableFields এর সাথে ফিল্টারগুলো হুবহু মেলানো:
-   searchTerm, division, district, status, favorite_dish
+   searchTerm, division, district, status, favorite_dish, phone_verified
    ========================================================================== */
 
 interface Customer {
@@ -48,6 +49,8 @@ interface Filters {
   district: string;
   status: "" | "active" | "blocked";
   favorite_dish: string;
+  /** সার্ভারে স্ট্রিং হয়েই যায় — "" মানে ফিল্টার নেই */
+  phone_verified: "" | "true" | "false";
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -56,6 +59,7 @@ const EMPTY_FILTERS: Filters = {
   district: "",
   status: "",
   favorite_dish: "",
+  phone_verified: "",
 };
 
 const PAGE_SIZE = 12;
@@ -89,6 +93,10 @@ export default function CustomersManager() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // যাচাই-না-হওয়া অ্যাকাউন্ট কয়টা পড়ে আছে — বাটনেই সংখ্যাটা দেখাই
+  const [unverified, setUnverified] = useState(0);
+  const [purging, setPurging] = useState(false);
 
   const authHeader = { Authorization: `Bearer ${token}` };
 
@@ -129,6 +137,23 @@ export default function CustomersManager() {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  /* ---------------- যাচাই-না-হওয়া অ্যাকাউন্টের সংখ্যা ---------------- */
+  const refreshUnverified = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`/api/v1/users/unverified`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUnverified(res.data.data?.unverified ?? 0);
+    } catch {
+      setUnverified(0);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    refreshUnverified();
+  }, [refreshUnverified]);
 
   /* ---------------- ফিল্টার ড্রপডাউনের প্রিয় খাবার ---------------- */
   useEffect(() => {
@@ -208,6 +233,44 @@ export default function CustomersManager() {
     if (deleteId) setCustomers((prev) => prev.filter((c) => c._id !== deleteId));
     setModalOpen(false);
     setDeleteId(null);
+    refreshUnverified();
+  };
+
+  /* ---------------- এক ক্লিকে সব যাচাই-না-হওয়া অ্যাকাউন্ট মুছে ফেলা ----------------
+     এগুলোর কারো পাসওয়ার্ড নেই, কেউ লগইনও করতে পারে না — OTP ধাপে থেমে
+     যাওয়া পুরোনো রেকর্ড। তাই টেবিল পরিষ্কার রাখতে একসাথে মুছে ফেলাই যায়। */
+  const purgeUnverified = async () => {
+    if (!unverified) return;
+
+    const confirmed = await Swal.fire({
+      title: "Delete unverified customers?",
+      html: `<b>${unverified}</b> account${
+        unverified === 1 ? "" : "s"
+      } never completed phone verification.<br/>This cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: `Delete ${unverified}`,
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#d33",
+    });
+    if (!confirmed.isConfirmed) return;
+
+    setPurging(true);
+    try {
+      const res = await axios.delete(`/api/v1/users/unverified`, {
+        headers: authHeader,
+      });
+      toast.success(res.data.message);
+      setUnverified(0);
+      setPage(1);
+      await Promise.all([fetchCustomers(), refreshUnverified()]);
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Could not delete unverified customers",
+      );
+    } finally {
+      setPurging(false);
+    }
   };
 
   const totalPage = meta?.totalPage ?? 1;
@@ -237,20 +300,36 @@ export default function CustomersManager() {
           </p>
         </div>
 
-        {activeFilterCount > 0 && (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="btn btn-outline px-4 py-2 text-[13px]"
-          >
-            Clear filters ({activeFilterCount})
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* যাচাই-না-হওয়া রেকর্ড পড়ে থাকলেই কেবল বাটনটা দেখাই */}
+          {canDelete && unverified > 0 && (
+            <button
+              type="button"
+              onClick={purgeUnverified}
+              disabled={purging}
+              className="btn btn-danger px-4 py-2 text-[13px]"
+            >
+              {purging
+                ? "Deleting…"
+                : `Delete unverified (${unverified})`}
+            </button>
+          )}
+
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="btn btn-outline px-4 py-2 text-[13px]"
+            >
+              Clear filters ({activeFilterCount})
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ================= ফিল্টার ================= */}
       <div className="bg-card border-default mb-5 rounded-xl p-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           <div className="xl:col-span-2">
             <label className="text-secondary mb-1.5 block text-[12px] font-medium">
               Search
@@ -315,6 +394,27 @@ export default function CustomersManager() {
               </option>
               <option value="blocked" className="bg-elevated text-primary">
                 Blocked
+              </option>
+            </select>
+          </div>
+
+          {/* যাচাই — "Not verified" বেছে নিলে ঠিক যাদের এক ক্লিকে মোছা যায়
+              তাদের তালিকাটাই সামনে আসে */}
+          <div>
+            <label className="text-secondary mb-1.5 block text-[12px] font-medium">
+              Verification
+            </label>
+            <select
+              value={filters.phone_verified}
+              onChange={(e) => setFilter("phone_verified", e.target.value)}
+              className="input-field h-10 w-full px-3 text-[14px]"
+            >
+              <option value="">All</option>
+              <option value="true" className="bg-elevated text-primary">
+                Verified
+              </option>
+              <option value="false" className="bg-elevated text-primary">
+                Not verified
               </option>
             </select>
           </div>
@@ -466,15 +566,22 @@ export default function CustomersManager() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <span
-                          className={`chip px-2.5 py-1 text-[11.5px] ${
-                            c.status === "active"
-                              ? "chip-delivered"
-                              : "chip-cancelled"
-                          }`}
-                        >
-                          {c.status === "active" ? "Active" : "Blocked"}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={`chip px-2.5 py-1 text-[11.5px] ${
+                              c.status === "active"
+                                ? "chip-delivered"
+                                : "chip-cancelled"
+                            }`}
+                          >
+                            {c.status === "active" ? "Active" : "Blocked"}
+                          </span>
+                          {!c.phone_verified && (
+                            <span className="chip chip-cancelled px-2.5 py-1 text-[11.5px]">
+                              Not verified
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3">
@@ -546,15 +653,22 @@ export default function CustomersManager() {
                             {c.phone}
                           </p>
                         </div>
-                        <span
-                          className={`chip px-2.5 py-1 text-[11.5px] ${
-                            c.status === "active"
-                              ? "chip-delivered"
-                              : "chip-cancelled"
-                          }`}
-                        >
-                          {c.status === "active" ? "Active" : "Blocked"}
-                        </span>
+                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                          <span
+                            className={`chip px-2.5 py-1 text-[11.5px] ${
+                              c.status === "active"
+                                ? "chip-delivered"
+                                : "chip-cancelled"
+                            }`}
+                          >
+                            {c.status === "active" ? "Active" : "Blocked"}
+                          </span>
+                          {!c.phone_verified && (
+                            <span className="chip chip-cancelled px-2.5 py-1 text-[11.5px]">
+                              Not verified
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <p className="text-muted mt-1 text-[12px]">

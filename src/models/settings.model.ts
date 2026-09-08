@@ -52,6 +52,25 @@ const settingsSchema = new Schema<IRestaurantSettingsDocument>(
       default: DEFAULT_SETTINGS.service_charge_dine_in_only,
     },
 
+    order_types: {
+      type: [String],
+      enum: ["delivery", "pickup", "dine_in"],
+      default: () => [...DEFAULT_SETTINGS.order_types],
+      validate: {
+        validator: (arr: string[]) => arr.length > 0,
+        message: "Keep at least one way of taking orders",
+      },
+    },
+    payment_methods: {
+      type: [String],
+      enum: ["cod", "bkash", "nagad", "card"],
+      default: () => [...DEFAULT_SETTINGS.payment_methods],
+      validate: {
+        validator: (arr: string[]) => arr.length > 0,
+        message: "Keep at least one payment method",
+      },
+    },
+
     delivery_fee: { type: Number, min: 0, default: DEFAULT_SETTINGS.delivery_fee },
     free_delivery_above: {
       type: Number,

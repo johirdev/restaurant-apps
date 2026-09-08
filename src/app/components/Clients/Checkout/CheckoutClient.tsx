@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -33,7 +33,8 @@ import {
 } from "@/src/store/cart.store";
 import { formatMoney } from "@/src/config/business";
 import { useSettings } from "@/src/store/settings.store";
-import { apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
+import { apiGet, apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
+import { useUser } from "@/src/app/components/Clients/Auth/UserProvider";
 
 /* ==========================================================================
    ফর্ম স্কিমা — সার্ভারের createOrderSchema এর নিয়মগুলোই এখানে মিরর করা,
@@ -42,6 +43,7 @@ import { apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
 const checkoutSchema = z
   .object({
     order_type: z.enum(["delivery", "pickup", "dine_in"]),
+    table_id: z.string().trim().optional(),
     table_number: z.string().trim().max(20).optional(),
     name: z.string().trim().min(3, "Please enter your full name").max(60),
     phone: z
@@ -58,10 +60,17 @@ const checkoutSchema = z
     (v) => v.order_type !== "delivery" || (v.address?.trim().length ?? 0) >= 10,
     { message: "Please give a delivery address (at least 10 characters)", path: ["address"] },
   )
-  .refine((v) => v.order_type !== "dine_in" || !!v.table_number?.trim(), {
-    message: "Table number is required for dine-in",
-    path: ["table_number"],
-  });
+  // ডাইন-ইনে টেবিল লাগবেই — তালিকা থেকে বাছা হোক বা হাতে লেখা হোক
+  .refine(
+    (v) =>
+      v.order_type !== "dine_in" ||
+      !!v.table_id?.trim() ||
+      !!v.table_number?.trim(),
+    {
+      message: "Please choose your table",
+      path: ["table_id"],
+    },
+  );
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
@@ -123,12 +132,105 @@ export default function CheckoutClient() {
       area: "",
       note: "",
       table_number: "",
+      table_id: "",
     },
     mode: "onTouched",
   });
 
   const orderType = watch("order_type");
   const paymentMethod = watch("payment_method");
+
+  /* ==========================================================================
+     দোকান যা যা অফার করে, শুধু সেগুলোই দেখাই
+     ========================================================================== */
+  const orderTypes = ORDER_TYPES.filter((t) =>
+    settings.order_types.includes(t.value),
+  );
+  const paymentMethods = PAYMENT_METHODS.filter((m) =>
+    settings.payment_methods.includes(m.value),
+  );
+
+  // বাছা অপশনটা বন্ধ করে দেওয়া হলে প্রথম চালু অপশনে সরিয়ে আনি,
+  // নাহলে ফর্ম এমন একটা মান নিয়ে বসে থাকত যেটা সার্ভার নেবে না
+  useEffect(() => {
+    if (orderTypes.length && !settings.order_types.includes(orderType)) {
+      setValue("order_type", orderTypes[0].value, { shouldValidate: true });
+      setOrderType(orderTypes[0].value);
+    }
+  }, [orderType, orderTypes, settings.order_types, setValue, setOrderType]);
+
+  useEffect(() => {
+    if (paymentMethods.length && !settings.payment_methods.includes(paymentMethod)) {
+      setValue("payment_method", paymentMethods[0].value, {
+        shouldValidate: true,
+      });
+    }
+  }, [paymentMethod, paymentMethods, settings.payment_methods, setValue]);
+
+  /* ==========================================================================
+     লগ-ইন করা কাস্টমারের সেভ করা তথ্য বসিয়ে দিই
+     --------------------------------------------------------------------------
+     প্রোফাইল পেজে লেখাই আছে "একবার দিলে চেকআউট নিজেই ভরে যাবে" — এটা
+     সেই প্রতিশ্রুতিটা রাখে। ব্যবহারকারী নিজে কিছু লিখে ফেললে সেটা আর
+     বদলানো হয় না, তাই টাইপ করার মাঝপথে লেখা মুছে যায় না।
+     ========================================================================== */
+  const { user } = useUser();
+  const [prefilled, setPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (!user || prefilled) return;
+
+    const fill = (field: keyof CheckoutForm, value?: string) => {
+      if (value && !watch(field)) setValue(field, value);
+    };
+
+    fill("name", user.name);
+    fill("phone", user.phone);
+    fill("email", user.email);
+    fill("address", user.address);
+    fill("area", user.district);
+    setPrefilled(true);
+  }, [user, prefilled, setValue, watch]);
+
+  /* ==========================================================================
+     আসল টেবিলের তালিকা — ডাইন-ইন বাছলে তবেই আনি
+     ========================================================================== */
+  const [tables, setTables] = useState<
+    { _id: string; name: string; capacity: number; zone: string; is_free: boolean }[]
+  >([]);
+
+  /** সব টেবিল ভরা থাকলে সারির অবস্থা — কতজন আগে, কত অপেক্ষা */
+  const [waitlist, setWaitlist] = useState<{
+    waiting: number;
+    next_position: number;
+    next_wait_minutes: number;
+    average_dining_minutes: number;
+    measured_from_orders: number;
+    can_seat_now: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (orderType !== "dine_in") return;
+    let cancelled = false;
+
+    Promise.all([
+      apiGet<typeof tables>("/api/v1/tables/available"),
+      apiGet<NonNullable<typeof waitlist>>("/api/v1/tables/waitlist"),
+    ])
+      .then(([tableRes, waitRes]) => {
+        if (cancelled) return;
+        setTables(tableRes.data ?? []);
+        setWaitlist(waitRes.data ?? null);
+      })
+      .catch(() => {
+        // আনতে না পারলে হাতে লেখা ঘরটাই দেখানো হবে
+        if (!cancelled) setTables([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderType]);
 
   const belowMinimum =
     orderType === "delivery" && subtotal < settings.min_order_amount;
@@ -162,6 +264,9 @@ export default function CheckoutClient() {
             note: values.note || undefined,
           },
           order_type: values.order_type,
+          // তালিকা থেকে বাছা হলে আইডি যায় (তখন টেবিলটা সত্যিই দখল হয়),
+          // টেবিল তৈরি না থাকলে হাতে লেখা নম্বরটাই যায়
+          table_id: values.table_id || undefined,
           table_number: values.table_number || undefined,
           payment_method: values.payment_method,
         },
@@ -238,7 +343,7 @@ export default function CheckoutClient() {
             {/* ---------- ধাপ ১ — অর্ডারের ধরন ---------- */}
             <FormPanel step={1} title="How would you like it?" delay={0}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {ORDER_TYPES.map((type) => {
+                {orderTypes.map((type) => {
                   const Icon = type.icon;
                   const active = orderType === type.value;
                   return (
@@ -267,22 +372,92 @@ export default function CheckoutClient() {
                 })}
               </div>
 
-              {orderType === "dine_in" && (
-                <Field
-                  className="mt-4"
-                  label="Table number"
-                  icon={UtensilsCrossed}
-                  error={errors.table_number?.message}
-                >
-                  <input
-                    {...register("table_number")}
-                    placeholder="e.g. T-12"
-                    className={`input-3d h-12 w-full rounded-sm pl-11 pr-4 text-[14px] text-ink outline-none ${
-                      errors.table_number ? "is-invalid" : ""
-                    }`}
-                  />
-                </Field>
+              {/* ---------- সব টেবিল ভরা — সারিতে দাঁড়ানোর কথা ---------- */}
+              {orderType === "dine_in" && waitlist && !waitlist.can_seat_now && (
+                <div className="mt-4 rounded-md border border-saffron-dark/40 bg-saffron-soft px-4 py-3.5">
+                  <p className="text-[13.5px] font-bold text-ink">
+                    All tables are full right now
+                  </p>
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-ink">
+                    <span>
+                      <span className="font-extrabold">{waitlist.waiting}</span>{" "}
+                      {waitlist.waiting === 1 ? "party" : "parties"} ahead of you
+                    </span>
+                    <span>
+                      Your number:{" "}
+                      <span className="font-extrabold">
+                        #{waitlist.next_position}
+                      </span>
+                    </span>
+                    <span>
+                      About{" "}
+                      <span className="font-extrabold">
+                        {waitlist.next_wait_minutes} min
+                      </span>{" "}
+                      wait
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
+                    Place your order now and we will seat you as soon as a table
+                    frees up — the kitchen only starts once you are seated.
+                    {waitlist.measured_from_orders > 0 && (
+                      <>
+                        {" "}
+                        (Based on an average of{" "}
+                        {waitlist.average_dining_minutes} min per table today.)
+                      </>
+                    )}
+                  </p>
+                </div>
               )}
+
+              {orderType === "dine_in" &&
+                (tables.length > 0 ? (
+                  <Field
+                    className="mt-4"
+                    label="Which table are you at?"
+                    icon={UtensilsCrossed}
+                    error={errors.table_id?.message}
+                  >
+                    <select
+                      {...register("table_id")}
+                      className={`input-3d h-12 w-full rounded-sm pl-11 pr-4 text-[14px] text-ink outline-none ${
+                        errors.table_id ? "is-invalid" : ""
+                      }`}
+                    >
+                      <option value="">Choose your table</option>
+                      {tables.map((t) => (
+                        <option
+                          key={t._id}
+                          value={t._id}
+                          disabled={!t.is_free}
+                        >
+                          {t.name}
+                          {t.zone ? ` — ${t.zone}` : ""} · {t.capacity} seats
+                          {t.is_free ? "" : " (in use)"}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                ) : (
+                  /* টেবিল এখনো তৈরি হয়নি — তখন হাতে লেখাই একমাত্র উপায় */
+                  <Field
+                    className="mt-4"
+                    label="Table number"
+                    icon={UtensilsCrossed}
+                    error={errors.table_number?.message}
+                  >
+                    <input
+                      {...register("table_number")}
+                      placeholder="e.g. T-12"
+                      className={`input-3d h-12 w-full rounded-sm pl-11 pr-4 text-[14px] text-ink outline-none ${
+                        errors.table_number ? "is-invalid" : ""
+                      }`}
+                    />
+                  </Field>
+                ))}
             </FormPanel>
 
             {/* ---------- ধাপ ২ — যোগাযোগ ---------- */}
@@ -375,7 +550,7 @@ export default function CheckoutClient() {
             {/* ---------- ধাপ ৩ — পেমেন্ট ---------- */}
             <FormPanel step={3} title="How will you pay?" delay={160}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {PAYMENT_METHODS.map((method) => {
+                {paymentMethods.map((method) => {
                   const Icon = method.icon;
                   const active = paymentMethod === method.value;
                   return (

@@ -318,7 +318,7 @@ export default function KitchenDisplay() {
               </p>
               {isManager && (
                 <Link
-                  href="/dashboard/orders/online"
+                  href="/dashboard/orders/new"
                   className="btn btn-primary mt-5 inline-flex px-5 py-2.5 text-[13px]"
                 >
                   Confirm {waiting === 1 ? "it" : "them"} now

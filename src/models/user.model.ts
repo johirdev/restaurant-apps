@@ -18,6 +18,9 @@ const userSchema = new Schema<IUserDocument>(
       trim: true,
       index: true,
     },
+    // অ্যাকাউন্ট খোলার সময় bcrypt হ্যাশ হয়ে জমা হয়। select:false — তাই কোনো
+    // লিস্ট বা প্রোফাইল রেসপন্সে ভুল করেও হ্যাশটা চলে যায় না
+    password: { type: String, default: "", select: false },
     name: { type: String, default: "", trim: true, maxlength: 60 },
     email: { type: String, default: "", trim: true, lowercase: true },
     image: { type: userImageSchema, default: () => ({ url: "", public_id: "" }) },
@@ -38,6 +41,11 @@ const userSchema = new Schema<IUserDocument>(
 
     status: { type: String, enum: ["active", "blocked"], default: "active" },
     phone_verified: { type: Boolean, default: false },
+    password_changed_at: { type: Date, default: null },
+
+    // ভুল পাসওয়ার্ডের হিসাব — সীমা ছাড়ালে নম্বর/ডিভাইস ব্লক হয়
+    login_attempts: { type: Number, default: 0 },
+    login_attempts_at: { type: Date, default: null },
 
     last_login_at: { type: Date, default: null },
     last_login_ip: { type: String, default: "" },

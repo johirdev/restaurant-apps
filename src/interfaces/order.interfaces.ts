@@ -181,7 +181,22 @@ export const ORDER_STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
 
 export const ORDER_STATUSES = Object.keys(ORDER_STATUS_FLOW) as OrderStatus[];
 
-/** এই স্ট্যাটাসগুলোতে অর্ডার এখনো "চলছে" — টেবিল দখলে, রান্নাঘরে কাজ আছে */
+/**
+ * টেবিল কখন সত্যিই দখলে।
+ *
+ * `pending` ইচ্ছে করেই বাদ — ম্যানেজার কনফার্ম করার আগ পর্যন্ত অর্ডারটা
+ * কেবল একটা অনুরোধ, কেউ টেবিলে বসেনি। আগে pending ও ধরা হতো, ফলে
+ * যে কেউ অর্ডার বসিয়ে দিলেই টেবিলটা সবার জন্য বন্ধ হয়ে যেত।
+ */
+export const TABLE_HELD_STATUSES: OrderStatus[] = [
+  "confirmed",
+  "preparing",
+  "ready",
+  "served",
+  "out_for_delivery",
+];
+
+/** এই স্ট্যাটাসগুলোতে অর্ডার এখনো "চলছে" — বিল খোলা, বদলানো যায় */
 export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   "pending",
   "confirmed",

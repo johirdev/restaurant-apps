@@ -19,6 +19,7 @@ import {
   ORDER_STATUS_FLOW,
   OrderSearchableFields,
   ACTIVE_ORDER_STATUSES,
+  TABLE_HELD_STATUSES,
   KITCHEN_STATUSES,
   REVENUE_STATUSES,
 } from "../interfaces/order.interfaces";
@@ -129,6 +130,18 @@ const createOrder = async (
   } = {},
 ) => {
   const settings = await SettingsService.get();
+
+  // দোকান যেটা অফার করে না সেটা কেউ যেন সরাসরি API তে পাঠিয়ে বসাতে না পারে —
+  // চেকআউটে অপশনটা লুকানো থাকাই যথেষ্ট নয়
+  if (!settings.order_types.includes(payload.order_type)) {
+    throw BadRequest(
+      `We are not taking ${payload.order_type.replace(/_/g, "-")} orders right now`,
+    );
+  }
+  if (!settings.payment_methods.includes(payload.payment_method)) {
+    throw BadRequest("That payment method is not accepted here");
+  }
+
   const items = await buildItems(payload.items);
   const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
 
@@ -138,21 +151,23 @@ const createOrder = async (
     );
   }
 
-  /* ---- টেবিল ---- */
+  /* ==========================================================================
+     টেবিল — এখানে শুধু *পছন্দ* হিসেবে জমা হয়, দখল হয় না
+     --------------------------------------------------------------------------
+     আগে অর্ডার তৈরি হওয়ার সাথে সাথেই টেবিল দখল হয়ে যেত, অথচ অর্ডারটা
+     তখনো `pending` — ম্যানেজার দেখেনওনি। ফলে একজন অচেনা কেউ অর্ডার
+     বসিয়ে দিলেই টেবিলটা সবার জন্য বন্ধ হয়ে যেত।
+
+     এখন টেবিল দখল হয় কেবল ম্যানেজার কনফার্ম করার সময় (updateStatus →
+     confirmed)। তার আগ পর্যন্ত অর্ডারটা অপেক্ষমাণ সারিতে থাকে।
+
+     টেবিল ব্যস্ত থাকলেও অর্ডার আটকাই না — কাস্টমার সারিতে দাঁড়াতে পারে,
+     ম্যানেজার পরে খালি টেবিলে বসিয়ে দেবে।
+     ========================================================================== */
   let table = null;
   if (payload.table_id) {
     table = await TableModel.findById(payload.table_id);
     if (!table) throw NotFound("That table was not found");
-
-    const busy = await OrderModel.findOne({
-      table_id: table._id,
-      status: { $in: ACTIVE_ORDER_STATUSES },
-    });
-    if (busy) {
-      throw Conflict(
-        `${table.name} already has a running order (${busy.order_number}). Add the items to that bill instead.`,
-      );
-    }
   }
 
   // ওয়েটার আলাদা করে না দিলে টেবিলের দায়িত্বে থাকা ওয়েটারই ধরে নিই
@@ -202,7 +217,7 @@ const createOrder = async (
         ],
       });
 
-      if (table) await TableService.occupy(String(table._id), order);
+      // দখল করা হয় না — কনফার্মের সময় হবে
       return order;
     } catch (err: any) {
       const isDuplicateOrderNumber =
@@ -593,6 +608,29 @@ const updateStatus = async (
   }
 
   const now = new Date();
+
+  /* ==========================================================================
+     কনফার্মেই টেবিল দখল হয় — তার আগে নয়
+     --------------------------------------------------------------------------
+     অর্ডার তৈরির সময় টেবিলটা শুধু "পছন্দ" হিসেবে বসানো ছিল। এতক্ষণে অন্য
+     কেউ ঐ টেবিলে বসে পড়তে পারে, তাই এখানে আরেকবার দেখে নেওয়া হয়।
+     ========================================================================== */
+  if (next === "confirmed" && order.table_id) {
+    const busy = await OrderModel.findOne({
+      table_id: order.table_id,
+      status: { $in: TABLE_HELD_STATUSES },
+      _id: { $ne: order._id },
+    });
+
+    if (busy) {
+      throw Conflict(
+        `${order.table_name || "That table"} is taken by ${busy.order_number}. Seat this party at another table first.`,
+      );
+    }
+
+    await TableService.occupy(String(order.table_id), order);
+  }
+
   order.status = next;
 
   /* ---- ধাপে ধাপে সময়ের ছাপ — রিপোর্ট এগুলো ধরেই হিসাব করে ---- */
@@ -678,7 +716,7 @@ const assign = async (
 
       const busy = await OrderModel.findOne({
         table_id: table._id,
-        status: { $in: ACTIVE_ORDER_STATUSES },
+        status: { $in: TABLE_HELD_STATUSES },
         _id: { $ne: order._id },
       });
       if (busy) {
@@ -703,6 +741,42 @@ const assign = async (
 
   await order.save();
   return order;
+};
+
+/**
+ * সারি থেকে একজনকে টেবিলে বসানো — টেবিল বসানো আর কনফার্ম একসাথে।
+ * ম্যানেজারের কাছে ব্যস্ত সময়ে এটাই সবচেয়ে বেশি ব্যবহৃত বোতাম, তাই
+ * দুই ধাপ এক করে দেওয়া হয়েছে।
+ */
+const seatOrder = async (id: string, tableId: string, by?: IOrderStaffRef) => {
+  const order = await OrderModel.findById(id);
+  if (!order) throw NotFound("Order not found");
+
+  if (order.status !== "pending") {
+    throw BadRequest(
+      `This order is already ${order.status.split("_").join(" ")} — it is not waiting for a table`,
+    );
+  }
+
+  const table = await TableService.assertTableFree(tableId, String(order._id));
+
+  order.table_id = table._id;
+  order.table_name = table.name;
+  order.table_number = table.name;
+
+  // টেবিলের দায়িত্বে থাকা ওয়েটার আগে বসানো না থাকলে এখন বসে যাক
+  if (!order.waiter?.id && table.waiter_id) {
+    order.waiter = await staffRef(table.waiter_id);
+  }
+
+  await order.save();
+
+  // কনফার্ম করলেই টেবিল দখল হয় আর রান্নাঘরে টিকিট চলে যায়
+  return updateStatus(String(order._id), "confirmed", {
+    by: by?.name || "manager",
+    note: `Seated at ${table.name}`,
+    staff: by,
+  });
 };
 
 /** ইনভয়েস ছাপা হলে গোনা হয় — কতবার ছাপা হয়েছে সেটা হিসাবের কাজে লাগে */
@@ -782,6 +856,7 @@ const getStats = async () => {
 };
 
 export const OrderService = {
+  seatOrder,
   createOrder,
   addItems,
   updateItem,

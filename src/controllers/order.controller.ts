@@ -8,7 +8,8 @@ import {
   assertObjectId,
   getQuery,
 } from "../lib/apiHandler";
-import { BadRequest } from "../lib/apiError";
+import { ApiError, BadRequest } from "../lib/apiError";
+import { canSetStatus } from "../config/permissions";
 import { getClientIp } from "../lib/getClientIp";
 import {
   requireRole,
@@ -30,6 +31,7 @@ import {
   setItemReadySchema,
   assignOrderSchema,
   setDiscountSchema,
+  seatOrderSchema,
 } from "../validations/order.schema";
 import {
   OrderFilterableFields,
@@ -145,6 +147,18 @@ const updateStatus = catchAsync<IdCtx>(async (req, { params }) => {
   const { id } = await params;
   const body = await parseBody(req, updateOrderStatusSchema);
 
+  /**
+   * ধাপ ধরে ধরে অনুমতি — রান্নাঘর শুধু রান্নার ধাপ, ফ্লোর শুধু পরিবেশনের।
+   * এটা ছাড়া শেফও অর্ডার কনফার্ম বা বাতিল করে ফেলতে পারত, ওয়েটারও
+   * "রান্না হয়ে গেছে" বলে দিতে পারত।
+   */
+  if (!canSetStatus(user.role, body.status as OrderStatus)) {
+    throw new ApiError(
+      403,
+      `A ${user.role} cannot move an order to "${body.status.replace(/_/g, " ")}"`,
+    );
+  }
+
   const order = await OrderService.updateStatus(
     assertObjectId(id, "order id"),
     body.status as OrderStatus,
@@ -234,6 +248,24 @@ const setDiscount = catchAsync<IdCtx>(async (req, { params }) => {
   return ok("Discount applied", order);
 });
 
+/**
+ * POST /api/v1/orders/:id/seat — সারি থেকে টেবিলে বসানো
+ * টেবিল বসানো + কনফার্ম একসাথে, তাই ব্যস্ত সময়ে এক ক্লিকেই কাজ শেষ
+ */
+const seatOrder = catchAsync<IdCtx>(async (req, { params }) => {
+  const user = requireRole(req, CASHIER_UP);
+  const { id } = await params;
+  const { table_id } = await parseBody(req, seatOrderSchema);
+
+  const order = await OrderService.seatOrder(
+    assertObjectId(id, "order id"),
+    assertObjectId(table_id, "table id"),
+    asStaffRef(user),
+  );
+
+  return ok(`Seated at ${order.table_name}`, order);
+});
+
 /** ওয়েটার / শেফ / টেবিল বসানো */
 const assign = catchAsync<IdCtx>(async (req, { params }) => {
   requireRole(req, CAN_WRITE);
@@ -288,6 +320,7 @@ const getStats = catchAsync(async (req: NextRequest) => {
 });
 
 export const OrderController = {
+  seatOrder,
   createOrder,
   createPosOrder,
   getAllOrders,

@@ -64,6 +64,37 @@ export default function SettingsManager() {
     setDirty(true);
   };
 
+  /**
+   * অফার করা ধরন / পেমেন্ট চালু-বন্ধ করা।
+   * শেষ একটা কখনো বন্ধ করতে দিই না — সব বন্ধ হলে কেউ অর্ডারই দিতে পারত না।
+   */
+  const toggleInList = <
+    K extends "order_types" | "payment_methods",
+  >(
+    key: K,
+    value: IRestaurantSettings[K][number],
+  ) => {
+    setForm((prev) => {
+      const list = prev[key] as IRestaurantSettings[K][number][];
+      const on = list.includes(value);
+
+      if (on && list.length === 1) {
+        toast.error(
+          key === "order_types"
+            ? "Keep at least one way of taking orders"
+            : "Keep at least one payment method",
+        );
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [key]: on ? list.filter((v) => v !== value) : [...list, value],
+      };
+    });
+    setDirty(true);
+  };
+
   /* ---------------- লোগো ---------------- */
   const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -315,6 +346,59 @@ export default function SettingsManager() {
                 label="Service charge only for dine-in"
                 hint="Turn off to also charge it on delivery and pickup"
               />
+            </div>
+          </Card>
+
+          {/* ---------- কী কী অফার করা হয় ---------- */}
+          <Card
+            title="What you offer"
+            hint="Unticked options disappear from checkout and POS — and the server refuses them too"
+          >
+            <div className="space-y-5">
+              <div>
+                <p className="text-primary mb-2 text-[13px] font-medium">
+                  Ways of taking orders
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { value: "dine_in", label: "Dine in" },
+                      { value: "delivery", label: "Delivery" },
+                      { value: "pickup", label: "Pickup" },
+                    ] as const
+                  ).map((opt) => (
+                    <Pill
+                      key={opt.value}
+                      label={opt.label}
+                      active={form.order_types.includes(opt.value)}
+                      onClick={() => toggleInList("order_types", opt.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-primary mb-2 text-[13px] font-medium">
+                  Payment methods
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { value: "cod", label: "Cash" },
+                      { value: "bkash", label: "bKash" },
+                      { value: "nagad", label: "Nagad" },
+                      { value: "card", label: "Card" },
+                    ] as const
+                  ).map((opt) => (
+                    <Pill
+                      key={opt.value}
+                      label={opt.label}
+                      active={form.payment_methods.includes(opt.value)}
+                      onClick={() => toggleInList("payment_methods", opt.value)}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </Card>
 
@@ -603,5 +687,29 @@ function Line({
         {value.toLocaleString("en-BD")}
       </dd>
     </div>
+  );
+}
+
+/** চালু/বন্ধ করার ছোট বোতাম — কোনটা অফার করা হচ্ছে সেটা এক নজরে বোঝা যায় */
+function Pill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`role-pill px-4 py-1.5 text-[13px] font-medium ${
+        active ? "active-admin" : ""
+      }`}
+    >
+      {active ? "✓ " : ""}
+      {label}
+    </button>
   );
 }

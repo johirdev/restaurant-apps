@@ -19,20 +19,36 @@ export default function FoodsPage() {
   );
 }
 
+/** আসল পেজের সাথে মিলিয়ে রাখা প্লেসহোল্ডার — হিরো + কার্ডের গ্রিড */
 function FoodsSkeleton() {
   return (
-    <div className="max-width px-4 py-12 sm:px-6">
-      <div className="skeleton mb-6 h-10 w-64 rounded-sm" />
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-lg border border-border">
-            <div className="skeleton aspect-[4/3] w-full" />
-            <div className="flex flex-col gap-2 p-3.5">
-              <div className="skeleton h-4 w-3/4 rounded-xs" />
-              <div className="skeleton h-3 w-1/2 rounded-xs" />
-            </div>
+    <div className="menu-page">
+      <div className="menu-hero">
+        <span className="menu-hero__aurora" aria-hidden="true" />
+        <span className="menu-hero__mesh" aria-hidden="true" />
+        <div className="menu-hero__inner">
+          <div className="h-7 w-40 rounded-pill bg-white/10" />
+          <div className="mt-5 h-12 w-3/4 max-w-md rounded-sm bg-white/10" />
+          <div className="mt-4 h-4 w-2/3 max-w-sm rounded-xs bg-white/10" />
+          <div className="mt-7 h-[54px] w-full max-w-[480px] rounded-pill bg-white/10" />
+        </div>
+      </div>
+
+      <div className="menu-layout">
+        <div className="menu-main">
+          <div className="menu-grid">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="menu-skel">
+                <div className="menu-skel__img skeleton" />
+                <div className="menu-skel__body">
+                  <div className="menu-skel__line skeleton w-1/3" />
+                  <div className="menu-skel__line skeleton w-4/5" />
+                  <div className="menu-skel__line skeleton w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

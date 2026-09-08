@@ -10,6 +10,8 @@ export interface IUserImage {
 export interface IUser {
   /** সবসময় 01XXXXXXXXX চেহারায় — লগইনের আসল পরিচয় এটাই */
   phone: string;
+  /** bcrypt হ্যাশ — কোয়েরিতে আসে না (`select: false`), তাই রেসপন্সেও যায় না */
+  password?: string;
   name: string;
   email?: string;
   image?: IUserImage;
@@ -25,6 +27,11 @@ export interface IUser {
 
   status: UserStatus;
   phone_verified: boolean;
+  password_changed_at?: Date | null;
+  /** পরপর কয়বার ভুল পাসওয়ার্ড পড়েছে — ঠিক পাসওয়ার্ড দিলে শূন্য হয়ে যায় */
+  login_attempts: number;
+  /** গোনাটা কখন শুরু হয়েছিল — উইন্ডো পেরোলে আবার শূন্য থেকে গোনা শুরু */
+  login_attempts_at?: Date | null;
   last_login_at?: Date | null;
   last_login_ip?: string;
   /** কোন কোন IP থেকে এই অ্যাকাউন্ট ব্যবহার হয়েছে — সন্দেহজনক কিছু হলে কাজে লাগে */
@@ -56,6 +63,8 @@ export const UserFilterableFields = [
   "division",
   "status",
   "favorite_dish",
+  /** "true" / "false" — ফোন যাচাই হয়েছে কিনা */
+  "phone_verified",
 ];
 
 export const UserPaginationFields = ["page", "limit", "sortBy", "sortOrder"];
@@ -63,7 +72,8 @@ export const UserPaginationFields = ["page", "limit", "sortBy", "sortOrder"];
 /* ------------------------------------------------------------------ *
  * OTP + ব্লক
  * ------------------------------------------------------------------ */
-export type OtpPurpose = "login";
+/** OTP এখন কেবল অ্যাকাউন্ট তৈরির সময় লাগে; "login" পুরোনো রেকর্ডের জন্য রাখা */
+export type OtpPurpose = "register" | "login";
 
 export interface IOtpDocument extends Document {
   phone: string;

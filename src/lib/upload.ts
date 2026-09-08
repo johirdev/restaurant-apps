@@ -28,7 +28,10 @@ export type UploadFolder =
   | "tables"
   | "restaurant"
   | "foods"
-  | "categories";
+  | "categories"
+  | "banners"
+  | "videos"
+  | "reviews";
 
 export const MAX_IMAGE_MB = 2;
 

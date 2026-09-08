@@ -40,6 +40,9 @@ export interface InvoiceOrder {
     service_charge_percent: number;
     tax_mode: "exclusive" | "inclusive";
   };
+  /** কতবার ছাপা হয়েছে — বিল দেখার সময় কাজে লাগে */
+  invoice_print_count?: number;
+  invoice_printed_at?: string | null;
 }
 
 /** HTML এ বসানোর আগে বিপজ্জনক অক্ষর সরাই — কাস্টমারের নাম থেকেও ট্যাগ আসতে পারে */

@@ -47,6 +47,27 @@ interface Table {
   current_order?: CurrentOrder | null;
 }
 
+interface WaitingParty {
+  _id: string;
+  order_number: string;
+  name: string;
+  phone: string;
+  guests: number;
+  table_name: string;
+  position: number;
+  waiting_minutes: number;
+  estimated_wait_minutes: number;
+}
+
+interface Waitlist {
+  waiting: number;
+  free_tables: number;
+  total_tables: number;
+  average_dining_minutes: number;
+  measured_from_orders: number;
+  queue: WaitingParty[];
+}
+
 interface Staff {
   _id: string;
   staff_name: string;
@@ -87,6 +108,7 @@ export default function TablesManager() {
   const canManage = can(adminData?.role, MANAGEMENT);
 
   const [tables, setTables] = useState<Table[]>([]);
+  const [waitlist, setWaitlist] = useState<Waitlist | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoneFilter, setZoneFilter] = useState("");
@@ -106,16 +128,40 @@ export default function TablesManager() {
   const load = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await axios.get("/api/v1/tables?view=floor", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTables(res.data.data || []);
+      const [floorRes, waitRes] = await Promise.all([
+        axios.get("/api/v1/tables?view=floor", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("/api/v1/tables/waitlist", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      setTables(floorRes.data.data || []);
+      setWaitlist(waitRes.data.data || null);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Could not load tables");
     } finally {
       setLoading(false);
     }
   }, [token]);
+
+  /** সারি থেকে একজনকে টেবিলে বসিয়ে অর্ডারটা কনফার্ম করে দেয় */
+  const seat = async (party: WaitingParty, tableId: string) => {
+    setBusyId(party._id);
+    try {
+      const res = await axios.post(
+        `/api/v1/orders/${party._id}/seat`,
+        { table_id: tableId },
+        { headers: authHeader },
+      );
+      toast.success(res.data.message);
+      load();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Could not seat them");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -152,6 +198,9 @@ export default function TablesManager() {
     });
     return base;
   }, [tables]);
+
+  /** এখন যেসব টেবিলে কেউ বসে নেই — সারি থেকে বসানোর জন্য */
+  const freeTables = tables.filter((t) => !t.current_order && t.status !== "cleaning");
 
   const waiters = staff.filter(
     (s) => s.status === "active" && ["waiter", "manager"].includes(s.staff_role),
@@ -296,6 +345,72 @@ export default function TablesManager() {
           </button>
         )}
       </div>
+
+      {/* ================= অপেক্ষমাণ সারি ================= */}
+      {!!waitlist?.queue?.length && (
+        <div
+          className="border-default mb-5 rounded-xl p-4"
+          style={{ background: "var(--accent-orange-soft)" }}
+        >
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-primary text-[15px] font-medium">
+              Waiting for a table ({waitlist.waiting})
+            </h2>
+            <p className="text-secondary text-[12px]">
+              {waitlist.free_tables} free now · average{" "}
+              {waitlist.average_dining_minutes} min per table
+              {waitlist.measured_from_orders > 0
+                ? ` (measured from ${waitlist.measured_from_orders} orders)`
+                : " (estimate — not enough history yet)"}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {waitlist.queue.map((party) => (
+              <div
+                key={party._id}
+                className="bg-card border-default flex flex-wrap items-center gap-3 rounded-lg px-3.5 py-2.5"
+              >
+                <span className="text-highlight text-[15px] font-semibold">
+                  #{party.position}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-primary truncate text-[13.5px] font-medium">
+                    {party.name}
+                    {party.guests ? ` · ${party.guests} guests` : ""}
+                  </p>
+                  <p className="text-secondary text-[12px]">
+                    {party.order_number} · waiting {party.waiting_minutes} min
+                    {party.table_name ? ` · wants ${party.table_name}` : ""}
+                  </p>
+                </div>
+
+                {/* এক ক্লিকে টেবিল বসানো + কনফার্ম */}
+                <select
+                  value=""
+                  disabled={busyId === party._id}
+                  onChange={(e) => e.target.value && seat(party, e.target.value)}
+                  className="input-field h-9 px-2.5 text-[13px]"
+                >
+                  <option value="">
+                    {freeTables.length ? "Seat at…" : "No free table"}
+                  </option>
+                  {freeTables.map((t) => (
+                    <option
+                      key={t._id}
+                      value={t._id}
+                      className="bg-elevated text-primary"
+                    >
+                      {t.name} ({t.capacity} seats)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ================= জোন ফিল্টার ================= */}
       {zones.length > 0 && (

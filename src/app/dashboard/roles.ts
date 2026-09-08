@@ -65,6 +65,20 @@ export const can = (role: string | undefined, allowed: DashboardRole[]) =>
   !!role && allowed.includes(role as DashboardRole);
 
 /**
+ * শেফ অর্ডারের তালিকা দেখতে পারে, কিন্তু কোনো বোতাম নেই — তার কাজ
+ * রান্নাঘরের স্ক্রিনে। ওয়েটার টেবিল আর POS পায়, রান্নাঘর নয়।
+ */
+export const ORDERS_VIEW: DashboardRole[] = [
+  "superadmin",
+  "admin",
+  "manager",
+  "cashier",
+  "waiter",
+  "chef",
+  "viewOnly",
+];
+
+/**
  * লগইনের পর কে কোথায় গিয়ে নামবে।
  * শেফকে বিক্রির হিসাব দেখিয়ে লাভ নেই — তাকে সোজা রান্নাঘরের স্ক্রিনে পাঠাই।
  */

@@ -1,19 +1,20 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import OtpAuthForm from "@/src/app/components/Clients/Auth/OtpAuthForm";
+import RegisterForm from "@/src/app/components/Clients/Auth/RegisterForm";
 import AuthPageShell from "@/src/app/components/Clients/Auth/AuthPageShell";
 
 export const metadata: Metadata = {
   title: "Create your account",
   description:
-    "Create an account with just your mobile number — no password needed.",
+    "Sign up with your mobile number and a password — we verify the number once with an SMS code.",
 };
 
 export default function RegistrationPage() {
   return (
     <AuthPageShell>
+      {/* useSearchParams (?next=...) ক্লায়েন্টে পড়া হয়, তাই Suspense লাগে */}
       <Suspense fallback={<div className="h-[420px]" />}>
-        <OtpAuthForm mode="register" />
+        <RegisterForm />
       </Suspense>
     </AuthPageShell>
   );
