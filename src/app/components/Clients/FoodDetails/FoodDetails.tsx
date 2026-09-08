@@ -6,9 +6,13 @@
 /**
  * FoodDetails — একটা খাবারের বিস্তারিত পেজ
  * --------------------------------------------------------------------------
- * বাঁ পাশে 3D "প্লেট" — ছবিটা রিং আর ছায়ার চেয়ে সামনে ভাসে, মাউস নাড়লে পুরো
- * স্টেজটা মাউসের দিকে হেলে পড়ে (pointer → --rx/--ry)। ডান পাশে অর্ডার কার্ড
- * ডেস্কটপে sticky, মোবাইলে নিচের ফিক্সড বারে নেমে আসে।
+ * লেআউটটা ফরমাল: বাঁ পাশে ছবির কার্ড (ডেস্কটপে sticky), ডান পাশে সব লেখা
+ * উপর-নিচে সাজানো — শিরোনাম → অর্ডার কার্ড → বিবরণ → এক নজরে → শেফের নোট।
+ * আগে এগুলো ট্যাবের ভিতরে লুকানো ছিল, এখন সব একসাথেই পড়া যায়।
+ *
+ * নিচে রিভিউ সেকশন — এই পেজে রিভিউ শুধু দেখা যায়, লেখা যায় না।
+ * রিভিউ লেখার জায়গা একটাই: /account/dishes ("Dishes I ordered"), কারণ
+ * শুধু ডেলিভার হওয়া অর্ডারের খাবারেই রিভিউ দেওয়া যায়।
  *
  * ডেটা সার্ভার থেকে `initialFood` হিসেবে আসে (SEO এর জন্য)। কোনো কারণে না
  * এলে ক্লায়েন্ট থেকে একবার নিজে ফেচ করে নেয়।
@@ -17,7 +21,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -95,15 +98,6 @@ interface FoodDetailsProps {
 /** একই ট্যাবে বারবার রিফ্রেশ করলে ভিউ যেন না ফোলে — ৩০ মিনিটের ঠান্ডা সময় */
 const VIEW_COOLDOWN_MS = 30 * 60 * 1000;
 
-const TABS = ["description", "nutrition", "chef"] as const;
-type TabKey = (typeof TABS)[number];
-
-const TAB_LABEL: Record<TabKey, string> = {
-  description: "Description",
-  nutrition: "At a glance",
-  chef: "Chef's note",
-};
-
 const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -123,7 +117,6 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("description");
 
   // রিভিউ সেকশন থেকে আসা তাজা গড়/সংখ্যা — উপরের হেডারটাও সাথে সাথে মেলে
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
@@ -249,24 +242,6 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     setQuantity((q) => Math.max(1, Math.min(q + delta, maxQuantity)));
   };
 
-  /* স্টেজটা মাউসের দিকে হেলে পড়ে — বাকি হিসাব CSS এর */
-  const handleStageMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "mouse") return;
-    const stage = event.currentTarget;
-    const rect = stage.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width - 0.5;
-    const py = (event.clientY - rect.top) / rect.height - 0.5;
-
-    stage.style.setProperty("--rx", `${(-py * 10).toFixed(2)}deg`);
-    stage.style.setProperty("--ry", `${(px * 14).toFixed(2)}deg`);
-  };
-
-  const handleStageLeave = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const stage = event.currentTarget;
-    stage.style.setProperty("--rx", "0deg");
-    stage.style.setProperty("--ry", "0deg");
-  };
-
   const handleAddToCart = () => {
     if (!inStock || !food || !activeVariation) return;
 
@@ -294,13 +269,13 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     return (
       <div className="fd">
         <div className="fd-skel">
-          <div className="skeleton aspect-square w-full rounded-[32px]" />
+          <div className="skeleton aspect-square w-full rounded-md" />
           <div className="flex flex-col gap-4 pt-4">
             <div className="skeleton h-4 w-28 rounded-xs" />
-            <div className="skeleton h-11 w-3/4 rounded-sm" />
+            <div className="skeleton h-10 w-3/4 rounded-xs" />
             <div className="skeleton h-5 w-1/2 rounded-xs" />
-            <div className="skeleton mt-4 h-48 w-full rounded-lg" />
-            <div className="skeleton h-12 w-full rounded-pill" />
+            <div className="skeleton mt-4 h-48 w-full rounded-md" />
+            <div className="skeleton h-12 w-full rounded-xs" />
           </div>
         </div>
       </div>
@@ -329,6 +304,8 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
     );
   }
 
+  const activeSizes = food.variations.filter((v) => v.status === "active");
+
   return (
     <>
       <div className="fd">
@@ -344,61 +321,43 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
         </nav>
 
         <div className="fd__top">
-          {/* ================= বাঁ পাশ — 3D প্লেট ================= */}
-          <div
-            className="fd-stage"
-            onPointerMove={handleStageMove}
-            onPointerLeave={handleStageLeave}
-          >
-            <button
-              onClick={() => router.back()}
-              aria-label="Go back"
-              className="fd-stage__back"
-            >
-              <ArrowLeft size={19} />
-            </button>
+          {/* ================= বাঁ পাশ — ছবি ================= */}
+          <div className="fd-gallery">
+            <div className="fd-gallery__frame">
+              <button
+                onClick={() => router.back()}
+                aria-label="Go back"
+                className="fd-gallery__back"
+              >
+                <ArrowLeft size={18} />
+              </button>
 
-            <div className="fd-stage__plate">
-              <span className="fd-stage__glow" aria-hidden="true" />
-              <span
-                className="fd-stage__ring fd-stage__ring--outer"
-                aria-hidden="true"
-              />
-              <span
-                className="fd-stage__ring fd-stage__ring--inner"
-                aria-hidden="true"
-              />
-
-              <div className="fd-stage__img">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={galleryImages[activeImageIdx] ?? "empty"}
-                    initial={{ opacity: 0, scale: 0.92, rotate: -4 }}
-                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                    exit={{ opacity: 0, scale: 1.04 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="relative h-full w-full"
-                  >
-                    {galleryImages[activeImageIdx] ? (
-                      <Image
-                        src={galleryImages[activeImageIdx]}
-                        alt={food.name}
-                        fill
-                        priority
-                        sizes="(min-width: 1024px) 620px, 88vw"
-                        className="object-contain drop-shadow-[0_34px_40px_rgba(28,28,40,0.28)]"
-                      />
-                    ) : (
-                      <span className="grid h-full w-full place-items-center text-sm text-ink-faint">
-                        No image
-                      </span>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={galleryImages[activeImageIdx] ?? "empty"}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative h-full w-full"
+                >
+                  {galleryImages[activeImageIdx] ? (
+                    <Image
+                      src={galleryImages[activeImageIdx]}
+                      alt={food.name}
+                      fill
+                      priority
+                      sizes="(min-width: 1024px) 620px, 100vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="fd-gallery__empty">No image</span>
+                  )}
+                </motion.div>
+              </AnimatePresence>
 
               {/* ব্যাজ */}
-              <div className="fd-stage__badges">
+              <div className="fd-gallery__badges">
                 {discountPercent > 0 && inStock && (
                   <span className="fd-badge fd-badge--off">
                     <TicketPercent size={12} />-{discountPercent}%
@@ -412,7 +371,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
               </div>
 
               {!inStock && (
-                <div className="fd-stage__out">
+                <div className="fd-gallery__out">
                   <span>Out of stock</span>
                 </div>
               )}
@@ -432,7 +391,7 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                       src={img}
                       alt={`${food.name} ${idx + 1}`}
                       fill
-                      sizes="88px"
+                      sizes="78px"
                       className="object-cover"
                     />
                   </button>
@@ -541,13 +500,12 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
               </div>
 
               {/* সাইজ বাছাই */}
-              {food.variations.filter((v) => v.status === "active").length >
-                1 && (
+              {activeSizes.length > 1 && (
                 <>
                   <span className="fd-order__label">Choose a size</span>
                   <div className="fd-sizes">
-                    {food.variations
-                      .filter((v) => v.status === "active")
+                    {activeSizes
+                      .slice()
                       .sort((a, b) => a.sort_order - b.sort_order)
                       .map((v) => {
                         const isActive = v._id === activeVariation._id;
@@ -560,12 +518,9 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
                             <b>{v.name}</b>
                             <i>{formatMoney(v.salePrice)}</i>
                             {isActive && (
-                              <motion.span
-                                layoutId="variation-dot"
-                                className="fd-size__tick"
-                              >
+                              <span className="fd-size__tick">
                                 <Check strokeWidth={3} aria-hidden="true" />
-                              </motion.span>
+                              </span>
                             )}
                           </button>
                         );
@@ -597,100 +552,63 @@ const FoodDetails = ({ id, initialFood }: FoodDetailsProps) => {
               <TrustBadge icon={ShieldCheck} label="Hygienic kitchen" />
               <TrustBadge icon={Bike} label="Fast delivery" />
             </div>
-          </div>
-        </div>
 
-        {/* ---------------- ট্যাব ---------------- */}
-        <div className="fd-tabs">
-          <div className="fd-tabs__bar no-scrollbar">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`fd-tab${activeTab === tab ? " is-active" : ""}`}
-              >
-                {activeTab === tab && (
-                  <motion.span layoutId="tab-pill" className="fd-tab__pill" />
-                )}
-                {TAB_LABEL[tab]}
-              </button>
-            ))}
-          </div>
+            {/* ---------------- বিবরণ ---------------- */}
+            <section className="fd-panel">
+              <h2 className="fd-panel__title">Description</h2>
+              <p className="whitespace-pre-line">
+                {food.description ||
+                  `${food.name} is prepared fresh to order in the ${food.category_name} section of our kitchen, using quality ingredients and traditional techniques for a consistently great taste every time.`}
+              </p>
+            </section>
 
-          <div className="fd-tabs__body">
-            <AnimatePresence mode="wait">
-              {activeTab === "description" && (
-                <motion.div
-                  key="description"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.26 }}
-                >
-                  <p className="whitespace-pre-line">
-                    {food.description ||
-                      `${food.name} is prepared fresh to order in the ${food.category_name} section of our kitchen, using quality ingredients and traditional techniques for a consistently great taste every time.`}
+            {/* ---------------- এক নজরে ---------------- */}
+            <section className="fd-panel">
+              <h2 className="fd-panel__title">At a glance</h2>
+              <dl className="fd-specs">
+                <Spec
+                  label="Serving"
+                  value={activeVariation.quantityLabel || "1 plate"}
+                />
+                <Spec
+                  label="Prep time"
+                  value={
+                    activeVariation.preparationTime
+                      ? `${activeVariation.preparationTime} min`
+                      : "—"
+                  }
+                />
+                <Spec
+                  label="Spice level"
+                  value={activeVariation.spice_level || "Regular"}
+                />
+                <Spec
+                  label="Availability"
+                  value={inStock ? "In stock" : "Out of stock"}
+                />
+              </dl>
+            </section>
+
+            {/* ---------------- শেফের নোট ---------------- */}
+            <section className="fd-panel">
+              <h2 className="fd-panel__title">Chef&apos;s note</h2>
+              <div className="fd-chef">
+                <span className="fd-chef__avatar">
+                  <ChefHat aria-hidden="true" />
+                </span>
+                <div>
+                  <b>{activeVariation.kitchen_chef || "Our head chef"}</b>
+                  <p>
+                    Handles the {food.category_name.toLowerCase()} station in
+                    our kitchen.
                   </p>
-                </motion.div>
-              )}
-
-              {activeTab === "nutrition" && (
-                <motion.div
-                  key="nutrition"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.26 }}
-                  className="fd-nutri"
-                >
-                  <NutritionStat
-                    label="Serving"
-                    value={activeVariation.quantityLabel || "1 plate"}
-                  />
-                  <NutritionStat
-                    label="Prep time"
-                    value={
-                      activeVariation.preparationTime
-                        ? `${activeVariation.preparationTime} min`
-                        : "—"
-                    }
-                  />
-                  <NutritionStat
-                    label="Spice level"
-                    value={activeVariation.spice_level || "Regular"}
-                  />
-                  <NutritionStat
-                    label="Availability"
-                    value={inStock ? "In stock" : "Out of stock"}
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === "chef" && (
-                <motion.div
-                  key="chef"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.26 }}
-                  className="fd-chef"
-                >
-                  <span className="fd-chef__avatar">
-                    <ChefHat aria-hidden="true" />
-                  </span>
-                  <div>
-                    <b>{activeVariation.kitchen_chef || "Our head chef"}</b>
-                    <p>
-                      Handles the {food.category_name.toLowerCase()} station in
-                      our kitchen.
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
 
+        {/* রিভিউ — এই পেজে শুধু পড়ার জন্য */}
         <ReviewSection
           foodId={food._id}
           foodName={food.name}
@@ -734,10 +652,10 @@ const TrustBadge = ({
   </div>
 );
 
-const NutritionStat = ({ label, value }: { label: string; value: string }) => (
-  <div className="fd-nutri__item">
-    <b>{value}</b>
-    <span>{label}</span>
+const Spec = ({ label, value }: { label: string; value: string }) => (
+  <div className="fd-spec">
+    <dt>{label}</dt>
+    <dd>{value}</dd>
   </div>
 );
 
@@ -791,9 +709,9 @@ const AddToCartButton = ({
       {justAdded ? (
         <motion.span
           key="added"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           className="flex items-center gap-2"
         >
           <Check aria-hidden="true" />
@@ -802,9 +720,9 @@ const AddToCartButton = ({
       ) : (
         <motion.span
           key="add"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           className="flex items-center gap-2"
         >
           <ShoppingCart aria-hidden="true" />

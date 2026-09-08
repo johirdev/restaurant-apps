@@ -1,41 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Playfair_Display,
-  Plus_Jakarta_Sans,
-  Dancing_Script,
-  Hind_Siliguri,
-} from "next/font/google";
+import { Plus_Jakarta_Sans, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 
 /* ==========================================================================
    RESTAURANT FONT STACK — পুরো অ্যাপে একবারেই লোড হয়
    (site + dashboard দুটোই root layout এর ভিতরে, তাই সব জায়গায় পাওয়া যাবে)
 
-   globals.css এ এগুলো ম্যাপ করা আছে:
-     --font-display  → Playfair Display  (হেডিং — রেস্টুরেন্ট এলিগ্যান্স)
-     --font-body     → Plus Jakarta Sans (বডি টেক্সট — মডার্ন, পরিষ্কার)
-     --font-script   → Dancing Script    (eyebrow / ট্যাগলাইন)
-     --font-bengali  → Hind Siliguri     (বাংলা টেক্সট ও ৳)
-   ========================================================================== */
+   পুরো অ্যাপে একটাই ফন্ট — Plus Jakarta Sans। হেডিং আর বডির পার্থক্য
+   ফন্ট বদলে নয়, ওজন (weight) আর আকার দিয়ে করা হয়।
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800", "900"],
-  variable: "--font-playfair",
-  display: "swap",
-});
+   globals.css এ এগুলো ম্যাপ করা আছে:
+     --font-body     → Plus Jakarta Sans  (পুরো অ্যাপ)
+     --font-display  → --font-body        (হেডিং — একই ফন্ট, ভারী ওজন)
+     --font-script   → --font-body        (eyebrow / ট্যাগলাইন)
+     --font-bengali  → Hind Siliguri      (বাংলা টেক্সট ও ৳)
+
+   আলাদা ডিসপ্লে ফন্ট আবার চাইলে এখানে সেটা লোড করে globals.css এর
+   --font-display লাইনটা বদলালেই হবে — অন্য কোনো ফাইল ছুঁতে হবে না।
+   ========================================================================== */
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
-  display: "swap",
-});
-
-const dancing = Dancing_Script({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-dancing",
   display: "swap",
 });
 
@@ -46,12 +33,7 @@ const hindSiliguri = Hind_Siliguri({
   display: "swap",
 });
 
-const fontVariables = [
-  playfair.variable,
-  jakarta.variable,
-  dancing.variable,
-  hindSiliguri.variable,
-].join(" ");
+const fontVariables = [jakarta.variable, hindSiliguri.variable].join(" ");
 
 export const metadata: Metadata = {
   title: {

@@ -173,68 +173,6 @@ const DisplayFood = () => {
 
   return (
     <section className="menu-page">
-      {/* ================= HERO ================= */}
-      <header className="menu-hero">
-        <span className="menu-hero__aurora" aria-hidden="true" />
-        <span className="menu-hero__mesh" aria-hidden="true" />
-        <span className="menu-hero__ring menu-hero__ring--a" aria-hidden="true" />
-        <span className="menu-hero__ring menu-hero__ring--b" aria-hidden="true" />
-
-        <div className="menu-hero__inner">
-          <span className="menu-hero__eyebrow">
-            <Sparkles aria-hidden="true" />
-            Tasty &amp; Crunchy
-          </span>
-
-          <h1 className="menu-hero__title">
-            {activeCategory ? activeCategory.name : "Our full menu"}
-          </h1>
-
-          <p className="menu-hero__sub">
-            বিশ্বের সেরা শেফদের রেসিপি থেকে অনুপ্রাণিত — ক্যাটাগরি, দাম বা
-            নাম দিয়ে খুঁজুন, দুই ট্যাপেই অর্ডার হয়ে যাবে।
-          </p>
-
-          {/* সার্চ */}
-          <div className="menu-search">
-            <Search aria-hidden="true" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for pizza, burger, biryani…"
-              aria-label="Search menu"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={() => setSearchInput("")}
-                className="menu-search__clear"
-                aria-label="Clear search"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* ছোট পরিসংখ্যান */}
-          <div className="menu-hero__stats">
-            <span className="menu-hero__stat">
-              <UtensilsCrossed aria-hidden="true" />
-              <strong>{total}</strong> dishes
-            </span>
-            <span className="menu-hero__stat">
-              <ChefHat aria-hidden="true" />
-              <strong>{categories.length}</strong> categories
-            </span>
-            <span className="menu-hero__stat">
-              <Sparkles aria-hidden="true" />
-              Freshly cooked, every order
-            </span>
-          </div>
-        </div>
-      </header>
-
       {/* ================= ক্যাটাগরি চিপ ================= */}
       {categories.length > 0 && (
         <div className="menu-cats no-scrollbar">
@@ -402,14 +340,9 @@ const DisplayFood = () => {
             </div>
           ) : (
             /* ---------- গ্রিড ---------- */
-            <div className="menu-grid food3d-grid">
-              {foods.map((food, index) => (
-                <div
-                  key={food._id}
-                  style={{ animationDelay: `${(index % 8) * 70}ms` }}
-                >
-                  <FoodCard food={food} />
-                </div>
+            <div className="menu-grid">
+              {foods.map((food) => (
+                <FoodCard key={food._id} food={food} />
               ))}
             </div>
           )}

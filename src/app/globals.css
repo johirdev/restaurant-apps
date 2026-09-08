@@ -84,10 +84,19 @@
 
   /* ======================================================================
      5. FONTS — layout.tsx এর next/font ভ্যারিয়েবল থেকে আসে
+     --------------------------------------------------------------------
+     পুরো অ্যাপে একটাই ফন্ট — Plus Jakarta Sans। হেডিং, বডি, দাম, লেবেল
+     সব জায়গায় একই পরিবার, শুধু ওজন (weight) আর আকার আলাদা।
+     তাই --font-display / --font-script আলাদা কিছু নয়, নামগুলো শুধু
+     "ভূমিকা" বোঝায় — পুরোনো কোড ভাঙে না।
+
+     আবার আলাদা ডিসপ্লে ফন্ট ফেরাতে চাইলে: layout.tsx এ সেই next/font
+     টা লোড করুন আর নিচের --font-display লাইনটা বদলান — বাকি অ্যাপে
+     কিছু ছুঁতে হবে না।
      ====================================================================== */
-  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
   --font-body: var(--font-jakarta), -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-script: var(--font-dancing), var(--font-display), cursive;
+  --font-display: var(--font-body);
+  --font-script: var(--font-body);
   --font-bengali: var(--font-hind), var(--font-body);
 
   /* ======================================================================
@@ -259,10 +268,15 @@ h1, h2, h3, h4, .font-display {
 .site-badge-muted   { background: var(--color-surface-soft); color: var(--color-ink-soft); }
 
 /* ---------- Section eyebrow ---------- */
+/* এক-ফন্ট নীতিতে eyebrow আর হাতের লেখা নয় — ছোট, বড় হাতের, ফাঁক দেওয়া লেবেল */
 .site-eyebrow {
-  font-family: var(--font-script);
-  font-size: 22px;
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--color-brand);
 }
 
@@ -356,12 +370,6 @@ h1, h2, h3, h4, .font-display {
 /* ==========================================================================
    ANIMATIONS
    ========================================================================== */
-@keyframes food-card-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
-}
-.food-card-enter { animation: food-card-in 0.5s var(--ease-out-soft) both; }
-
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: none; }
@@ -592,161 +600,4 @@ h1, h2, h3, h4, .font-display {
   opacity: 1;
   /* প্রথম ব্যানারের অ্যাকসেন্ট রঙটাই স্লাইডারের গায়ে বসানো থাকে */
   background: var(--hero-accent, var(--color-brand));
-}
-
-/* ==========================================================================
-   VIDEO BLOG — হোম পেজের ভিডিও সেকশন (ড্যাশবোর্ড থেকে ডাইনামিক)
-   --------------------------------------------------------------------------
-   কার্ডগুলো একটানা বাঁ দিকে ভেসে যায় (infinite marquee)। Swiper কে
-   `delay: 0` + লম্বা `speed` দিলে সেটা ধাপে ধাপে না গিয়ে সমান গতিতে চলে —
-   তার জন্য নিচের `linear` টাইমিংটাই আসল কাজটা করে।
-   ========================================================================== */
-.video-marquee .swiper-wrapper {
-  transition-timing-function: linear !important;
-}
-
-/* মাউস নিলে থেমে যায় — কার্ড পড়া বা ক্লিক করা সহজ হয় */
-.video-marquee .swiper-slide {
-  width: 300px;
-  height: auto;
-}
-@media (min-width: 640px) {
-  .video-marquee .swiper-slide { width: 340px; }
-}
-
-/* দুই পাশে হালকা মিলিয়ে যাওয়া — কার্ড হঠাৎ কেটে যাওয়ার বদলে মিশে যায় */
-.video-marquee-mask {
-  -webkit-mask-image: linear-gradient(
-    90deg, transparent 0, #000 6%, #000 94%, transparent 100%
-  );
-  mask-image: linear-gradient(
-    90deg, transparent 0, #000 6%, #000 94%, transparent 100%
-  );
-}
-
-/* ---------- কার্ড ---------- */
-.video-card {
-  position: relative;
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  background: var(--color-ink);
-  box-shadow: var(--shadow-raised);
-  cursor: pointer;
-  transition:
-    transform 0.28s var(--ease-out-soft),
-    box-shadow 0.28s var(--ease-out-soft);
-}
-.video-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-lifted);
-}
-
-.video-card__thumb {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s var(--ease-out-soft);
-}
-.video-card:hover .video-card__thumb {
-  transform: scale(1.06);
-}
-
-.video-card__shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.12) 0%,
-    rgba(0, 0, 0, 0.05) 42%,
-    rgba(0, 0, 0, 0.82) 100%
-  );
-}
-
-/* মাঝের প্লে বোতাম — চারপাশে হালকা স্পন্দন */
-.video-card__play {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-pill);
-  background: var(--color-brand);
-  color: var(--color-ink-invert);
-  box-shadow: var(--shadow-brand);
-  transition: transform 0.28s var(--ease-spring);
-}
-.video-card:hover .video-card__play {
-  transform: scale(1.12);
-}
-.video-card__play::before {
-  content: "";
-  position: absolute;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-pill);
-  border: 2px solid var(--color-brand);
-  animation: video-pulse 2.4s var(--ease-out-soft) infinite;
-}
-@keyframes video-pulse {
-  0%   { transform: scale(1);   opacity: 0.7; }
-  70%  { transform: scale(1.9); opacity: 0; }
-  100% { transform: scale(1.9); opacity: 0; }
-}
-
-/* প্ল্যাটফর্মের ব্যাজ */
-.video-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-.video-chip-youtube  { background: #ff0000; }
-.video-chip-facebook { background: #1877f2; }
-.video-chip-tiktok   { background: #010101; }
-
-/* ---------- ভিডিও চালানোর পর্দা (lightbox) ---------- */
-.video-lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(8, 8, 14, 0.88);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  animation: pop-in 0.24s var(--ease-out-soft) both;
-}
-.video-lightbox__frame {
-  position: relative;
-  width: 100%;
-  max-width: 980px;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: #000;
-  box-shadow: var(--shadow-lifted);
-}
-/* TikTok খাড়া ভিডিও — চওড়ার বদলে লম্বা বাক্স */
-.video-lightbox__frame.is-vertical {
-  max-width: min(420px, 100%);
-  aspect-ratio: 9 / 16;
-  max-height: 88vh;
-}
-.video-lightbox__frame iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
 }

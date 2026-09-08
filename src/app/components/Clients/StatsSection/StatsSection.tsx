@@ -1,18 +1,19 @@
 "use client";
 
 /**
- * StatsSection — হোম পেজের "আমাদের গল্প সংখ্যায়" সেকশন
+ * StatsSection — home page "Our story in numbers" section
  * --------------------------------------------------------------------------
- * ফিক্সড ব্যাকগ্রাউন্ড ছবির উপরে চারটে কাঁচের (glass) 3D টাইল ভেসে থাকে।
+ * A fixed background image with four floating glass 3D tiles on top.
  *
- *  • সেকশনটা স্ক্রিনে আসলেই সংখ্যাগুলো ০ থেকে গুনতে গুনতে উপরে ওঠে
- *    (IntersectionObserver — একবারই চলে, বারবার নয়)
- *  • মাউস নাড়লে টাইলটা মাউসের দিকে হেলে পড়ে (pointer → --rx / --ry ভ্যারিয়েবল),
- *    মাউস সরালে আবার সোজা হয়ে যায়
- *  • টাচ ডিভাইস আর `prefers-reduced-motion` এ কোনো হেলা-দোলা নেই — সেটা
- *    statusSection.css সামলায়, JS আলাদা করে কিছু জানে না
+ *  • Numbers count up from 0 once the section enters the viewport
+ *    (IntersectionObserver — runs once only, never repeats)
+ *  • On mouse move, each tile tilts toward the pointer (--rx / --ry CSS vars),
+ *    and settles back flat when the pointer leaves
+ *  • Touch devices and `prefers-reduced-motion` get no tilt at all — that's
+ *    handled entirely in statusSection.css, the JS doesn't know about it
  *
- * রঙ সব globals.css এর টোকেন থেকে আসে, তাই থিম বদলালে এই সেকশনও বদলায়।
+ * All colors come from globals.css design tokens, so this section follows
+ * the active theme automatically.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -30,12 +31,12 @@ import "./statusSection.css";
 
 export interface StatItem {
   icon: LucideIcon;
-  /** যত পর্যন্ত গুনবে */
+  /** Counts up to this number */
   value: number;
-  /** সংখ্যার পরে যা বসবে — "+", "%", " yrs" ইত্যাদি */
+  /** Appended after the number — "+", "%", " yrs" etc */
   suffix?: string;
   label: string;
-  /** লেবেলের নিচের এক লাইনের ব্যাখ্যা */
+  /** One-line explanation under the label */
   caption?: string;
 }
 
@@ -52,33 +53,33 @@ const DEFAULT_STATS: StatItem[] = [
     value: 105,
     suffix: "+",
     label: "Fresh Ingredients",
-    caption: "প্রতিদিন ভোরে বাজার থেকে আসে",
+    caption: "Sourced from the market every morning",
   },
   {
     icon: UtensilsCrossed,
     value: 600,
     suffix: "+",
     label: "Guests Daily",
-    caption: "প্রতিদিন এত অতিথি আমাদের টেবিলে",
+    caption: "That many guests at our tables every day",
   },
   {
     icon: Award,
     value: 50,
     suffix: " yrs",
     label: "Of Experience",
-    caption: "তিন প্রজন্মের রান্নাঘর",
+    caption: "Three generations in the kitchen",
   },
   {
     icon: ChefHat,
     value: 100,
     suffix: "%",
     label: "Fresh & Halal",
-    caption: "সার্টিফায়েড হালাল সাপ্লাই চেইন",
+    caption: "Certified halal supply chain",
   },
 ];
 
 /* ------------------------------------------------------------------ */
-/* সেকশনটা একবার স্ক্রিনে এলে true হয়ে যায় — তারপর আর বদলায় না        */
+/* Turns true the first time the section enters view — never resets    */
 /* ------------------------------------------------------------------ */
 function useInView<T extends HTMLElement>(rootMargin = "-12% 0px") {
   const ref = useRef<T | null>(null);
@@ -95,7 +96,7 @@ function useInView<T extends HTMLElement>(rootMargin = "-12% 0px") {
           observer.disconnect();
         }
       },
-      { rootMargin, threshold: 0.15 }
+      { rootMargin, threshold: 0.15 },
     );
 
     observer.observe(node);
@@ -106,7 +107,7 @@ function useInView<T extends HTMLElement>(rootMargin = "-12% 0px") {
 }
 
 /* ------------------------------------------------------------------ */
-/* ০ থেকে target পর্যন্ত গোনা — শেষের দিকে আস্তে হয়ে থামে (easeOutExpo) */
+/* Counts 0 → target, easing out near the end (easeOutExpo)            */
 /* ------------------------------------------------------------------ */
 function useCountUp(target: number, run: boolean, duration = 1900) {
   const [value, setValue] = useState(0);
@@ -114,7 +115,7 @@ function useCountUp(target: number, run: boolean, duration = 1900) {
   useEffect(() => {
     if (!run) return;
 
-    /* মোশন কমানো থাকলে গোনা বাদ — প্রথম ফ্রেমেই সোজা শেষ সংখ্যাটা বসে */
+    /* Reduced-motion users skip the count — the final number appears at once */
     const span = window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ? 0
       : duration;
@@ -139,7 +140,7 @@ function useCountUp(target: number, run: boolean, duration = 1900) {
 }
 
 /* ------------------------------------------------------------------ */
-/* একটা টাইল — নিজের হেলা-দোলা নিজেই সামলায়                           */
+/* One tile — handles its own tilt                                     */
 /* ------------------------------------------------------------------ */
 function StatTile({
   stat,
@@ -153,7 +154,7 @@ function StatTile({
   const Icon = stat.icon;
   const count = useCountUp(stat.value, run);
 
-  /* মাউস কার্ডের কোথায় আছে সেটা −0.5…0.5 এ ম্যাপ করে CSS কে দিই */
+  /* Maps the pointer position within the card to −0.5…0.5 for CSS */
   const handleMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "mouse") return;
 
@@ -183,7 +184,7 @@ function StatTile({
       onPointerMove={handleMove}
       onPointerLeave={handleLeave}
     >
-      {/* মাউস যেখানে, ঠিক সেখানেই আলোটা পড়ে */}
+      {/* Light follows the pointer exactly */}
       <span className="stat-tile__sheen" aria-hidden="true" />
 
       <span className="stat-tile__icon">
@@ -209,12 +210,12 @@ function StatTile({
 }
 
 /* ------------------------------------------------------------------ */
-/* সেকশন                                                               */
+/* Section                                                              */
 /* ------------------------------------------------------------------ */
 export default function StatsSection({
   eyebrow = "Our kitchen in numbers",
   title = "Cooked with fire, served with heart",
-  description = "প্রতিটা প্লেটের পেছনে বছরের পর বছরের অভ্যাস, তাজা বাজার আর একদল মানুষ — সংখ্যাগুলো সেটারই ছোট্ট হিসাব।",
+  description = "Behind every plate is years of practice, fresh markets, and a team that cares — these numbers are the short version of that story.",
   stats = DEFAULT_STATS,
 }: StatsSectionProps) {
   const { ref, seen } = useInView<HTMLElement>();
@@ -225,12 +226,12 @@ export default function StatsSection({
       className="stats-3d section-bg2"
       aria-labelledby="stats-3d-title"
     >
-      {/* ছবির উপরে পর্দা, রঙিন আভা আর হালকা গ্রিড */}
+      {/* Veil, color glow and subtle grid over the image */}
       <span className="stats-3d__veil" aria-hidden="true" />
       <span className="stats-3d__aurora" aria-hidden="true" />
       <span className="stats-3d__mesh" aria-hidden="true" />
 
-      {/* ভেসে থাকা আলো-বিন্দু */}
+      {/* Floating light orbs */}
       <span className="stats-3d__orb stats-3d__orb--a" aria-hidden="true" />
       <span className="stats-3d__orb stats-3d__orb--b" aria-hidden="true" />
 
@@ -252,8 +253,8 @@ export default function StatsSection({
         <p className={`stats-3d__foot${seen ? " is-in" : ""}`}>
           <Timer aria-hidden="true" />
           <span>
-            গড়ে <strong>২২ মিনিটে</strong> খাবার টেবিলে — দেরি হলে ডেজার্টটা
-            আমাদের তরফ থেকে।
+            On average, food reaches the table in <strong>22 minutes</strong> —
+            if we{"'"}re late, dessert is on us.
           </span>
         </p>
       </div>

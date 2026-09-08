@@ -2,43 +2,31 @@
 "use client";
 
 /**
- * ReviewSection — একটা খাবারের আসল রিভিউ
+ * ReviewSection — একটা খাবারের আসল রিভিউ (শুধু পড়ার জন্য)
  * --------------------------------------------------------------------------
  * ডেটা আসে `GET /api/v1/reviews?food_id=…` থেকে, আর প্রতি ১৫ সেকেন্ডে নিজে
  * থেকেই আবার আসে — তাই অন্য কেউ রিভিউ দিলে পেজ রিলোড না করেই কার্ডগুলোতে
  * সেটা ফুটে ওঠে। ট্যাব আড়ালে গেলে পোলিং থেমে থাকে।
  *
+ * ⚠️ এই পেজে রিভিউ *লেখা* যায় না — শুধু দেখা যায়। লেখার জায়গা একটাই:
+ * /account/dishes, কারণ ডেলিভার হওয়া অর্ডারের খাবারেই কেবল রিভিউ দেওয়া যায়,
+ * আর সেই তালিকাটা ওখানেই আছে। ফলে "রিভিউ দিতে পারবেন না" ধরনের এরর
+ * ব্যবহারকারীকে আর দেখতে হয় না।
+ *
  * কে কী পারে:
- *   কাস্টমার — নিজের ডেলিভার হওয়া খাবারে রিভিউ দিতে/বদলাতে/মুছতে পারে
+ *   কাস্টমার — নিজের রিভিউ মুছতে পারে
  *   মালিক    — যেকোনো রিভিউ মুছতে পারে (আসল পাহারা সার্ভারে)
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import { AnimatePresence, motion } from "framer-motion";
 import toast from "react-hot-toast";
-import {
-  Star,
-  X,
-  ImagePlus,
-  Send,
-  AlertCircle,
-  Trash2,
-  ShieldCheck,
-  Loader2,
-  MessageSquarePlus,
-} from "lucide-react";
+import { Star, Trash2, ShieldCheck, Loader2 } from "lucide-react";
 
-import {
-  apiDelete,
-  apiGet,
-  apiPost,
-  getApiErrorMessage,
-} from "@/src/lib/apiClient";
-import { uploadImage, validateImage } from "@/src/lib/upload";
+import { apiDelete, apiGet, getApiErrorMessage } from "@/src/lib/apiClient";
 import { ADMIN_COOKIE, STAFF_COOKIE } from "@/src/lib/tokens";
 import { useUser } from "@/src/app/components/Clients/Auth/UserProvider";
 
@@ -78,7 +66,6 @@ export interface ReviewStats {
 /** একবারে কয়টা কার্ড, আর কত পরপর নতুন খবর নেওয়া হয় */
 const PAGE_SIZE = 6;
 const REFRESH_MS = 15_000;
-const MAX_REVIEW_IMAGES = 3;
 const EMPTY_BREAKDOWN: Record<string, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
 /* ---------------- Helpers ---------------- */
@@ -134,7 +121,7 @@ const ReviewSection = ({
   foodName,
   onStatsChange,
 }: ReviewSectionProps) => {
-  const { user, isLoggedIn } = useUser();
+  const { user } = useUser();
   const isModerator = useIsModerator();
 
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -145,7 +132,6 @@ const ReviewSection = ({
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<Review | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -210,11 +196,6 @@ const ReviewSection = ({
     if (!loading) statsRef.current?.({ average, total });
   }, [average, total, loading]);
 
-  const myReview = useMemo(
-    () => (user ? reviews.find((r) => r.user_id === user._id) : undefined),
-    [reviews, user],
-  );
-
   const canDelete = (review: Review) =>
     isModerator || (!!user && review.user_id === user._id);
 
@@ -239,8 +220,9 @@ const ReviewSection = ({
   const hasMore = reviews.length < total;
 
   return (
-    <div className="mx-auto mt-4 max-width border-t border-[var(--color-surface-soft)] px-4 pt-8 lg:px-10">
-      {/* ================= হেডার ================= */}
+    // প্যাডিংটা .fd__top এর সাথেই মেলানো — মোবাইলে ২২px, ডেস্কটপে ৪৮px
+    <div className="mx-auto mt-4 max-width border-t border-[var(--color-border)] px-[22px] pt-8 lg:px-12">
+      {/* ================= হেডার — এখানে শুধু পড়া যায় ================= */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[16px] md:text-[20px] font-extrabold text-[var(--color-ink)]">
           Customer Reviews{" "}
@@ -248,24 +230,6 @@ const ReviewSection = ({
             ({total})
           </span>
         </h2>
-
-        {isLoggedIn ? (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex flex-shrink-0 items-center gap-2 rounded-full bg-[var(--color-brand)] px-4 py-2.5 text-[12px] md:text-[13px] font-bold text-white shadow-md shadow-[var(--color-brand)]/25 transition hover:bg-[var(--color-chili)] cursor-pointer"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            {myReview ? "Edit your review" : "Write a Review"}
-          </button>
-        ) : (
-          <Link
-            href={`/login?next=/foods/${foodId}`}
-            className="flex flex-shrink-0 items-center gap-2 rounded-full bg-[var(--color-brand)] px-4 py-2.5 text-[12px] md:text-[13px] font-bold text-white shadow-md shadow-[var(--color-brand)]/25 transition hover:bg-[var(--color-chili)]"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            Log in to review
-          </Link>
-        )}
       </div>
 
       {/* ================= গড় + তারার ভাগ ================= */}
@@ -285,7 +249,7 @@ const ReviewSection = ({
         </div>
       ) : reviews.length === 0 ? (
         <p className="mt-6 text-sm text-[var(--color-ink-soft)]">
-          No reviews yet. Be the first to review {foodName}.
+          No reviews yet for {foodName}.
         </p>
       ) : (
         <>
@@ -315,22 +279,6 @@ const ReviewSection = ({
           )}
         </>
       )}
-
-      {/* ================= রিভিউ লেখার ফর্ম ================= */}
-      <AnimatePresence>
-        {showForm && (
-          <ReviewFormModal
-            foodId={foodId}
-            foodName={foodName}
-            existing={myReview}
-            onClose={() => setShowForm(false)}
-            onSaved={() => {
-              setShowForm(false);
-              fetchReviews(true);
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ================= মোছার নিশ্চিতকরণ ================= */}
       <AnimatePresence>
@@ -608,261 +556,3 @@ const ConfirmDelete = ({
     </motion.div>
   </motion.div>
 );
-
-/* ---------------- রিভিউ লেখার ফর্ম ---------------- */
-
-interface ReviewFormModalProps {
-  foodId: string;
-  foodName: string;
-  /** আগেই রিভিউ দেওয়া থাকলে ফর্মটা সেটা দিয়েই খোলে — সার্ভার এটাকে আপডেট করে */
-  existing?: Review;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-const ReviewFormModal = ({
-  foodId,
-  foodName,
-  existing,
-  onClose,
-  onSaved,
-}: ReviewFormModalProps) => {
-  const [rating, setRating] = useState(existing?.rating ?? 0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [message, setMessage] = useState(existing?.message ?? "");
-  const [images, setImages] = useState<ReviewImage[]>(existing?.images ?? []);
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  /* ছবি সাথে সাথেই Cloudinary তে যায় — সাবমিটে শুধু URL গুলো পাঠাই */
-  const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = ""; // একই ছবি আবার বাছলেও যেন onChange চলে
-    if (files.length === 0) return;
-
-    const room = MAX_REVIEW_IMAGES - images.length;
-    if (room <= 0) {
-      setErrorMsg(`At most ${MAX_REVIEW_IMAGES} photos`);
-      return;
-    }
-
-    setUploading(true);
-    setErrorMsg(null);
-    try {
-      for (const file of files.slice(0, room)) {
-        const invalid = validateImage(file);
-        if (invalid) {
-          setErrorMsg(invalid);
-          continue;
-        }
-        const uploaded = await uploadImage(file, "reviews");
-        setImages((prev) => [...prev, uploaded].slice(0, MAX_REVIEW_IMAGES));
-      }
-    } catch (err) {
-      setErrorMsg(getApiErrorMessage(err, "Could not upload the photo"));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeImage = (idx: number) =>
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-
-  const handleSubmit = async () => {
-    if (rating < 1) {
-      setErrorMsg("Please pick a star rating first");
-      return;
-    }
-
-    setSaving(true);
-    setErrorMsg(null);
-    try {
-      const res = await apiPost("/api/v1/reviews", {
-        food_id: foodId,
-        rating,
-        message: message.trim(),
-        images,
-      });
-      toast.success(res.message || "Thanks for your review!");
-      onSaved();
-    } catch (err) {
-      // "শুধু ডেলিভার হওয়া অর্ডারের খাবারে রিভিউ" — সার্ভারের এই বার্তাটাই
-      // ব্যবহারকারীর জানা দরকার, তাই ফর্মের ভেতরেই দেখাই
-      setErrorMsg(getApiErrorMessage(err, "Could not save your review"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const busy = saving || uploading;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center"
-      onClick={busy ? undefined : onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 40 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6"
-      >
-        {/* header */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-[16px] md:text-[18px] font-extrabold text-[var(--color-ink)]">
-              {existing ? "Edit your review" : "Write a Review"}
-            </h3>
-            <p className="mt-0.5 text-[12px] text-[var(--color-ink-soft)]">
-              {foodName}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={busy}
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-[var(--color-ink)] transition disabled:opacity-50 cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-5 space-y-4">
-          {/* rating */}
-          <div>
-            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
-              Rating
-            </label>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: 5 }).map((_, i) => {
-                const value = i + 1;
-                const filled = value <= (hoverRating || rating);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onMouseEnter={() => setHoverRating(value)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => setRating(value)}
-                    aria-label={`${value} star`}
-                    className="cursor-pointer p-0.5"
-                  >
-                    <Star
-                      className={`h-7 w-7 transition ${
-                        filled
-                          ? "fill-[var(--color-saffron)] text-[var(--color-saffron)]"
-                          : "text-[var(--color-border)]"
-                      }`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* message */}
-          <div>
-            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
-              Message
-            </label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value.slice(0, 1000))}
-              rows={4}
-              placeholder="খাবারটি কেমন লেগেছে লিখুন..."
-              className="w-full resize-none rounded-md border border-[var(--color-surface-soft)] bg-[var(--color-canvas)] px-3 py-2.5 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-brand)]"
-            />
-            <p className="mt-1 text-right text-[11px] text-[var(--color-ink-faint)]">
-              {message.length}/1000
-            </p>
-          </div>
-
-          {/* photos */}
-          <div>
-            <label className="mb-1 block text-[12px] font-bold uppercase tracking-wide text-[var(--color-ink-soft)]">
-              Photos ({images.length}/{MAX_REVIEW_IMAGES})
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {images.map((img, idx) => (
-                <div
-                  key={img.public_id || idx}
-                  className="relative h-20 w-20 overflow-hidden rounded-md ring-1 ring-[var(--color-surface-soft)]"
-                >
-                  <Image
-                    src={img.url}
-                    alt={`photo-${idx + 1}`}
-                    fill
-                    sizes="80px"
-                    className="object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(idx)}
-                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white cursor-pointer"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-
-              {images.length < MAX_REVIEW_IMAGES && (
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-[var(--color-border)] bg-[var(--color-canvas)] text-[var(--color-ink-faint)] transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]">
-                  {uploading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ImagePlus className="h-5 w-5" />
-                  )}
-                  <span className="text-[10px] font-medium">
-                    {uploading ? "Uploading" : "Add"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    disabled={uploading}
-                    className="hidden"
-                    onChange={handleImagesChange}
-                  />
-                </label>
-              )}
-            </div>
-          </div>
-
-          {/* error */}
-          <AnimatePresence>
-            {errorMsg && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-start gap-2 rounded-md bg-[var(--color-brand-soft)] px-3 py-2.5 text-[13px] font-medium text-[var(--color-brand)] ring-1 ring-[var(--color-brand-soft)]"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <span>{errorMsg}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* submit */}
-          <button
-            onClick={handleSubmit}
-            disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-brand)] py-3 text-sm font-bold text-white shadow-lg shadow-[var(--color-brand)]/25 transition hover:bg-[var(--color-chili)] disabled:opacity-60 cursor-pointer"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            {saving ? "Sending…" : existing ? "Update Review" : "Submit Review"}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};

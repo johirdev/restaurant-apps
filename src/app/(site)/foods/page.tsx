@@ -19,19 +19,18 @@ export default function FoodsPage() {
   );
 }
 
-/** আসল পেজের সাথে মিলিয়ে রাখা প্লেসহোল্ডার — হিরো + কার্ডের গ্রিড */
+/**
+ * আসল পেজের সাথে মিলিয়ে রাখা প্লেসহোল্ডার — ক্যাটাগরি চিপ + কার্ডের গ্রিড।
+ * DisplayFood এ কোনো হিরো নেই, তাই এখানেও রাখা হয়নি — নাহলে লোডিংয়ের সময়
+ * এক ঝলক বড় হিরো দেখা যেত, তারপর সেটা উধাও হয়ে লেআউট লাফ দিত।
+ */
 function FoodsSkeleton() {
   return (
     <div className="menu-page">
-      <div className="menu-hero">
-        <span className="menu-hero__aurora" aria-hidden="true" />
-        <span className="menu-hero__mesh" aria-hidden="true" />
-        <div className="menu-hero__inner">
-          <div className="h-7 w-40 rounded-pill bg-white/10" />
-          <div className="mt-5 h-12 w-3/4 max-w-md rounded-sm bg-white/10" />
-          <div className="mt-4 h-4 w-2/3 max-w-sm rounded-xs bg-white/10" />
-          <div className="mt-7 h-[54px] w-full max-w-[480px] rounded-pill bg-white/10" />
-        </div>
+      <div className="menu-cats no-scrollbar">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="skeleton h-[42px] w-[116px] rounded-pill" />
+        ))}
       </div>
 
       <div className="menu-layout">

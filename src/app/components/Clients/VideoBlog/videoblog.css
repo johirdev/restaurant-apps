@@ -1,0 +1,353 @@
+/* ==========================================================================
+   VideoBlog section
+   ========================================================================== */
+
+.video-blog {
+  padding-block: 56px 64px;
+  overflow: hidden;
+}
+ .video-blog .swiper-slide {
+    width: 600px !important;
+
+}
+@media (max-height: 767px) {
+  .video-blog .swiper-slide {
+    width: 250px !important;
+
+}
+}
+.video-blog__head {
+  margin-inline: auto;
+  max-width: 640px;
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.video-blog__title {
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-top: 6px;
+  color: var(--color-heading, #14121a);
+}
+
+.video-blog__lede {
+  margin-top: 10px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--color-body, #6b7280);
+}
+
+.video-blog__wall {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- mask so the reels fade at the edges instead of cutting hard ---- */
+.video-reel {
+  width: 100%;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 40px,
+    black calc(100% - 40px),
+    transparent 100%
+  );
+}
+
+.video-reel .swiper-wrapper {
+  transition-timing-function: linear !important;
+}
+
+/* ==========================================================================
+   Card
+   ========================================================================== */
+
+.video-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #0c0c10;
+  isolation: isolate;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.video-card:hover,
+.video-card:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+  outline: none;
+}
+
+.video-card--tall {
+  aspect-ratio: 16 / 11;
+}
+
+.video-card--short {
+  aspect-ratio: 16 / 9;
+}
+
+.video-card__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transition: transform 0.5s ease;
+}
+
+.video-card:hover .video-card__thumb {
+  transform: scale(1.06);
+}
+
+.video-card__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1b1b22, #0c0c10);
+  z-index: 0;
+}
+
+/* bottom gradient so the caption always reads on any thumbnail */
+.video-card__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.35) 38%,
+    rgba(0, 0, 0, 0) 62%
+  );
+  pointer-events: none;
+}
+
+/* film-strip sprocket holes, top and bottom edge */
+.video-card__sprocket {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 10px;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.55) 2.5px, transparent 2.6px);
+  background-size: 18px 100%;
+  background-repeat: repeat-x;
+  background-position: 9px center;
+  pointer-events: none;
+}
+
+.video-card__sprocket--top {
+  top: 0;
+}
+
+.video-card__sprocket--bottom {
+  bottom: 0;
+}
+
+/* ---- top row: provider chip + duration ---- */
+.video-card__top-row {
+  position: absolute;
+  top: 12px;
+  left: 10px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.video-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.video-chip--youtube {
+  background: rgba(224, 30, 30, 0.85);
+}
+
+.video-chip--facebook {
+  background: rgba(24, 90, 219, 0.85);
+}
+
+.video-chip--tiktok {
+  background: rgba(20, 20, 24, 0.85);
+}
+
+.video-chip--duration {
+  background: rgba(0, 0, 0, 0.6);
+  font-weight: 600;
+}
+
+/* ---- center play ring ---- */
+.video-card__play-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.video-card__play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  color: #fff;
+  background: #D70F64;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transform: scale(0.9);
+  opacity: 0.9;
+  transition: transform 0.25s ease, opacity 0.25s ease, background 0.25s ease;
+}
+
+.video-card:hover .video-card__play,
+.video-card:focus-visible .video-card__play {
+  transform: scale(1.08);
+  opacity: 1;
+  background: #d70f62d5;
+}
+
+/* ---- caption ---- */
+.video-card__caption {
+  position: relative;
+  z-index: 3;
+  padding: 12px 12px 14px;
+}
+
+.clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Lightbox
+   ========================================================================== */
+
+.video-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: rgba(6, 6, 9, 0.92);
+  backdrop-filter: blur(6px);
+  animation: video-lightbox-in 0.2s ease;
+}
+
+@keyframes video-lightbox-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.video-lightbox__close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.video-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+}
+
+.video-lightbox__frame {
+  position: relative;
+  width: min(920px, 92vw);
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.video-lightbox__frame.is-vertical {
+  width: min(360px, 86vw);
+  aspect-ratio: 9 / 16;
+}
+
+.video-lightbox__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.video-lightbox__caption {
+  max-width: 720px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Section eyebrow (shared label style)
+   ========================================================================== */
+
+.site-eyebrow {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand, #e11d48);
+}

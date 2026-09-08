@@ -8,7 +8,7 @@ import UserProvider from "../components/Clients/Auth/UserProvider";
 
 const siteUrl = "https://yourdomain.com";
 
-/* ফন্ট root layout.tsx এ একবারই লোড হয় (Playfair + Plus Jakarta + Hind Siliguri),
+/* ফন্ট root layout.tsx এ একবারই লোড হয় (Plus Jakarta Sans + Hind Siliguri),
    তাই এখানে আলাদা করে কিছু লোড করার দরকার নেই। */
 
 export const metadata: Metadata = {

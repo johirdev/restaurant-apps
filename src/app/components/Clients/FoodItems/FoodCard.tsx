@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * FoodCard — মেনুর একটা খাবারের কার্ড + কুইক-ভিউ মোডাল
+ * FoodCard — one menu item card + its quick-view modal
  * --------------------------------------------------------------------------
- * কার্ডটা মাউসের দিকে হেলে পড়ে (pointer → --rx/--ry), ভেতরের লেখা আর
- * "+" বাটনটা translateZ দিয়ে সামনে ভেসে থাকে, আর মাউসের নিচে নরম আলো ঘোরে।
- * পুরো স্টাইলটা foodCard.css এ — এখানে শুধু আচরণ।
+ * A flat bordered card in the same language as the food details page: no
+ * tilt, no glow, no shine sweeping over the photo. Hover only moves the
+ * border colour and eases the photo in a little. All of that lives in
+ * foodCard.css — this file is behaviour only.
  *
- * একাধিক সাইজ (variation) থাকলে "+" সরাসরি কার্টে না দিয়ে কুইক-ভিউ খোলে,
- * কারণ কোন সাইজটা চাই সেটা কাস্টমারেরই ঠিক করার কথা।
+ * When a dish has more than one size, "+" opens the quick view instead of
+ * adding straight to the cart, because picking the size is the guest's call.
  */
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "react-hot-toast";
 import { Eye, Minus, Plus, ShoppingBag, Star, X, Flame } from "lucide-react";
 import { useCartStore } from "@/src/store/cart.store";
@@ -185,26 +185,6 @@ const FoodCard = ({ food }: FoodCardProps) => {
   };
   const closeModal = () => setModalOpen(false);
 
-  /* মাউস কার্ডের কোথায় আছে সেটা CSS ভ্যারিয়েবলে পাঠাই — বাকিটা CSS বোঝে */
-  const handleMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.pointerType !== "mouse") return;
-    const card = event.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width - 0.5;
-    const py = (event.clientY - rect.top) / rect.height - 0.5;
-
-    card.style.setProperty("--rx", `${(-py * 8).toFixed(2)}deg`);
-    card.style.setProperty("--ry", `${(px * 10).toFixed(2)}deg`);
-    card.style.setProperty("--mx", `${((px + 0.5) * 100).toFixed(1)}%`);
-    card.style.setProperty("--my", `${((py + 0.5) * 100).toFixed(1)}%`);
-  };
-
-  const handleLeave = (event: ReactPointerEvent<HTMLElement>) => {
-    const card = event.currentTarget;
-    card.style.setProperty("--rx", "0deg");
-    card.style.setProperty("--ry", "0deg");
-  };
-
   /** কার্টে যোগ করে — একাধিক ভ্যারিয়েশন থাকলে আগে সাইজ বাছতে বলে */
   const addToCart = (variation: VariationApi, quantity: number, thenOpenCart = true) => {
     addItem({
@@ -239,11 +219,7 @@ const FoodCard = ({ food }: FoodCardProps) => {
   return (
     <>
       {/* ---------------- CARD ---------------- */}
-      <article
-        className="food3d"
-        onPointerMove={handleMove}
-        onPointerLeave={handleLeave}
-      >
+      <article className="food3d">
         {/* ছবি */}
         <div
           className="food3d__media"
@@ -264,8 +240,6 @@ const FoodCard = ({ food }: FoodCardProps) => {
           ) : (
             <div className="food3d__empty">No Image</div>
           )}
-
-          <span className="food3d__shine" aria-hidden="true" />
 
           {/* ব্যাজ */}
           <div className="food3d__badges">
@@ -360,7 +334,6 @@ const FoodCard = ({ food }: FoodCardProps) => {
 
             {/* ছবি */}
             <div className="qv-media">
-              <span className="qv-media__ring" aria-hidden="true" />
               {modalImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={modalImage} alt={food.name} />

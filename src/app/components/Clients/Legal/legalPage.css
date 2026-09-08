@@ -1,0 +1,826 @@
+/* ==========================================================================
+   LEGAL PAGES — Privacy / Terms / Refund
+   --------------------------------------------------------------------------
+   একটাই স্টাইলশিট, তিনটে পাতাই এটা দিয়ে সাজে।
+
+   রঙ, রেডিয়াস, শ্যাডো — সব globals.css এর টোকেন থেকে; এখানে একটাও
+   হার্ডকোড করা ব্র্যান্ড রঙ নেই।
+
+   ড্যাশবোর্ড থেকে বদলানো মানগুলো inline CSS ভ্যারিয়েবল হয়ে আসে:
+
+     পাতার থিম   --legal-accent, --legal-body-size, --legal-content-width …
+     সেকশনের সাজ --sec-heading-size, --sec-body-color, --sec-space-above …
+
+   তাই নিচের প্রতিটা জায়গায় `var(--sec-x, var(--legal-x, ডিফল্ট))` ধরনের
+   তিন ধাপের fallback — ম্যানেজার যেটুকু বদলেছেন শুধু সেটুকুই বদলায়।
+   ========================================================================== */
+
+.legal-page {
+  --legal-accent: var(--color-brand);
+  --legal-hero-bg: var(--color-ink);
+  --legal-hero-ink: var(--color-ink-invert);
+  --legal-body-size: 16px;
+  --legal-line-height: 1.85;
+  --legal-content-width: 760px;
+  --legal-font: var(--font-body);
+
+  background: var(--color-background);
+  font-family: var(--legal-font);
+}
+
+/* বাংলায় Hind Siliguri — যুক্তাক্ষরগুলো ওতেই ঠিকঠাক বসে */
+.legal-page[data-lang="bn"] {
+  --legal-font: var(--font-bengali);
+  --legal-line-height: 1.95;
+}
+
+/* ==========================================================================
+   1. HERO
+   ========================================================================== */
+
+.legal-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--legal-hero-bg);
+  color: var(--legal-hero-ink);
+  padding: clamp(56px, 9vw, 104px) 20px clamp(48px, 7vw, 80px);
+}
+
+.legal-hero__decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.legal-hero__glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+.legal-hero__glow--a {
+  width: 420px;
+  height: 420px;
+  top: -180px;
+  right: -60px;
+  background: var(--legal-accent);
+  opacity: 0.35;
+}
+
+.legal-hero__glow--b {
+  width: 320px;
+  height: 320px;
+  bottom: -200px;
+  left: -80px;
+  background: var(--color-saffron);
+  opacity: 0.18;
+}
+
+/* খুব হালকা গ্রিড — কাগজের মতো ভাব দেয়, পড়ার পথে আসে না */
+.legal-hero__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 72%);
+}
+
+.legal-hero__inner {
+  position: relative;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.legal-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.72;
+  margin-bottom: 18px;
+}
+
+.legal-crumbs a {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.2s var(--ease-out-soft);
+}
+
+.legal-crumbs a:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+.legal-crumbs svg {
+  width: 13px;
+  height: 13px;
+}
+
+.legal-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 13px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--legal-accent) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--legal-accent) 45%, transparent);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.legal-hero__title {
+  margin: 16px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5.4vw, 54px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.legal-hero__subtitle {
+  margin: 14px 0 0;
+  max-width: 620px;
+  font-size: clamp(15px, 1.7vw, 18px);
+  line-height: 1.65;
+  opacity: 0.82;
+}
+
+.legal-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.legal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 12.5px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+}
+
+.legal-chip svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.85;
+}
+
+.legal-chip--btn {
+  cursor: pointer;
+  color: inherit;
+  transition:
+    background 0.2s var(--ease-out-soft),
+    transform 0.2s var(--ease-out-soft);
+}
+
+.legal-chip--btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ---- ভাষা বদলের সুইচ ---- */
+.legal-lang {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.legal-lang button {
+  padding: 6px 15px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  transition:
+    background 0.22s var(--ease-out-soft),
+    opacity 0.22s var(--ease-out-soft);
+}
+
+.legal-lang button:hover {
+  opacity: 1;
+}
+
+.legal-lang button.is-active {
+  background: var(--legal-accent);
+  color: var(--color-ink-invert);
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================================================
+   2. লেআউট — বাঁয়ে সূচি, ডানে লেখা
+   ========================================================================== */
+
+.legal-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(32px, 5vw, 56px) 20px clamp(56px, 8vw, 96px);
+}
+
+@media (min-width: 1024px) {
+  .legal-body {
+    grid-template-columns: 268px minmax(0, 1fr);
+    gap: 56px;
+  }
+
+  .legal-body--wide {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 900px;
+  }
+}
+
+/* ==========================================================================
+   3. সূচিপত্র
+   ========================================================================== */
+
+.legal-toc__inner {
+  position: sticky;
+  top: 96px;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+}
+
+.legal-toc__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.legal-toc__title svg {
+  width: 15px;
+  height: 15px;
+  color: var(--legal-accent);
+}
+
+.legal-toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.legal-toc__list button {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background 0.18s var(--ease-out-soft),
+    color 0.18s var(--ease-out-soft);
+}
+
+.legal-toc__list button:hover {
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+}
+
+.legal-toc__list button.is-active {
+  background: var(--color-surface);
+  color: var(--legal-accent);
+  font-weight: 700;
+  box-shadow: var(--shadow-flat);
+}
+
+.legal-toc__num {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.legal-toc__list button.is-active .legal-toc__num {
+  color: var(--legal-accent);
+}
+
+/* ==========================================================================
+   4. সেকশন
+   ========================================================================== */
+
+.legal-content {
+  max-width: var(--legal-content-width);
+  min-width: 0;
+}
+
+.legal-intro {
+  padding: 22px 24px;
+  margin-bottom: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-tint);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--legal-accent);
+  font-size: calc(var(--legal-body-size) + 1px);
+}
+
+.legal-empty {
+  padding: 40px 0;
+  color: var(--color-ink-faint);
+  font-size: 15px;
+}
+
+.legal-section {
+  scroll-margin-top: 110px;
+  margin-top: var(--sec-space-above, 44px);
+  margin-bottom: var(--sec-space-below, 0);
+  text-align: var(--sec-align, left);
+  background: var(--sec-background, transparent);
+}
+
+.legal-section:first-of-type {
+  margin-top: 0;
+}
+
+.legal-section--card {
+  padding: 24px 26px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-flat);
+}
+
+.legal-section--accent {
+  padding-left: 20px;
+  border-left: 3px solid var(--sec-accent, var(--legal-accent));
+}
+
+.legal-section--card.legal-section--accent {
+  padding-left: 26px;
+}
+
+.legal-section--divider {
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.legal-section__heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: var(--sec-heading-size, clamp(20px, 2.4vw, 25px));
+  font-weight: var(--sec-heading-weight, 700);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--sec-heading-color, var(--color-ink));
+  scroll-margin-top: 110px;
+}
+
+.legal-section__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--legal-accent) 12%, transparent);
+  color: var(--legal-accent);
+}
+
+.legal-section__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.legal-section__num {
+  font-size: 0.78em;
+  font-weight: 700;
+  color: var(--color-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   5. রিচ-টেক্সট — এডিটর থেকে আসা HTML
+   --------------------------------------------------------------------------
+   এখানকার নিয়মগুলো ইচ্ছে করেই দুর্বল রাখা (`:where()` নয়, তবে খুব সাধারণ
+   সিলেক্টর) — এডিটর থেকে আসা inline style যেন সহজেই এগুলোকে টপকে যেতে
+   পারে। ম্যানেজার একটা শব্দ লাল করলে সেটা লালই থাকবে।
+   ========================================================================== */
+
+.legal-rich {
+  font-size: var(--sec-body-size, var(--legal-body-size));
+  line-height: var(--sec-line-height, var(--legal-line-height));
+  letter-spacing: var(--sec-letter-spacing, normal);
+  color: var(--sec-body-color, var(--color-ink-soft));
+  overflow-wrap: break-word;
+}
+
+.legal-rich > *:first-child {
+  margin-top: 0;
+}
+
+.legal-rich > *:last-child {
+  margin-bottom: 0;
+}
+
+.legal-rich p {
+  margin: 0 0 1.05em;
+}
+
+.legal-rich h2,
+.legal-rich h3,
+.legal-rich h4,
+.legal-rich h5,
+.legal-rich h6 {
+  margin: 1.6em 0 0.6em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-ink);
+}
+
+.legal-rich h2 {
+  font-size: 1.28em;
+}
+.legal-rich h3 {
+  font-size: 1.15em;
+}
+.legal-rich h4 {
+  font-size: 1.05em;
+}
+
+.legal-rich strong,
+.legal-rich b {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.legal-rich a {
+  color: var(--legal-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+.legal-rich a:hover {
+  color: var(--color-brand-dark);
+}
+
+.legal-rich ul,
+.legal-rich ol {
+  margin: 0 0 1.15em;
+  padding-left: 1.4em;
+}
+
+.legal-rich li {
+  margin-bottom: 0.5em;
+}
+
+.legal-rich li::marker {
+  color: var(--legal-accent);
+  font-weight: 700;
+}
+
+.legal-rich blockquote {
+  margin: 1.3em 0;
+  padding: 14px 20px;
+  border-left: 3px solid var(--legal-accent);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--color-canvas);
+  font-style: italic;
+}
+
+.legal-rich mark {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--color-saffron-soft);
+  color: inherit;
+}
+
+.legal-rich code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--color-surface-soft);
+  font-size: 0.9em;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.legal-rich hr {
+  margin: 1.8em 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+/* চওড়া টেবিল যেন পুরো পাতাটা পাশে টেনে না নেয় */
+.legal-rich table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1.3em 0;
+  font-size: 0.94em;
+}
+
+.legal-rich th,
+.legal-rich td {
+  padding: 9px 13px;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.legal-rich th {
+  background: var(--color-canvas);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* ==========================================================================
+   6. যোগাযোগের কার্ড
+   ========================================================================== */
+
+.legal-contact {
+  margin-top: 56px;
+  padding: 28px;
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+}
+
+.legal-contact__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.legal-contact__note {
+  margin: 8px 0 20px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+
+.legal-contact__list {
+  display: grid;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .legal-contact__list {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+.legal-contact__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.legal-contact__list li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.legal-contact__list strong {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.legal-contact__list a,
+.legal-contact__plain {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.legal-contact__list a:hover {
+  color: var(--legal-accent);
+  text-decoration: underline;
+}
+
+.legal-contact__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--legal-accent);
+}
+
+.legal-contact__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ==========================================================================
+   7. বাকি পাতার লিংক
+   ========================================================================== */
+
+.legal-related {
+  margin-top: 40px;
+}
+
+.legal-related__title {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.legal-related__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  .legal-related__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.legal-related__card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 17px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  transition:
+    border-color 0.2s var(--ease-out-soft),
+    transform 0.2s var(--ease-out-soft),
+    box-shadow 0.2s var(--ease-out-soft);
+}
+
+.legal-related__card:hover {
+  border-color: var(--legal-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-raised);
+}
+
+.legal-related__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--legal-accent) 12%, transparent);
+  color: var(--legal-accent);
+}
+
+.legal-related__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.legal-related__label {
+  flex: 1;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.legal-related__arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--color-ink-faint);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   8. উপরে ফেরার বোতাম
+   ========================================================================== */
+
+.legal-top {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--legal-accent);
+  color: var(--color-ink-invert);
+  box-shadow: var(--shadow-brand);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 0.25s var(--ease-out-soft),
+    transform 0.25s var(--ease-out-soft);
+}
+
+.legal-top.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.legal-top svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* ==========================================================================
+   9. প্রিন্ট — কাগজে সাজসজ্জার দরকার নেই, লেখাটুকুই যথেষ্ট
+   ========================================================================== */
+
+@media print {
+  .legal-hero {
+    background: none;
+    color: #000;
+    padding: 0 0 18px;
+  }
+
+  .legal-hero__decor,
+  .legal-hero__meta,
+  .legal-crumbs,
+  .legal-toc,
+  .legal-related,
+  .legal-top {
+    display: none !important;
+  }
+
+  .legal-hero__eyebrow {
+    background: none;
+    border: 1px solid #999;
+    color: #000;
+  }
+
+  .legal-body {
+    display: block;
+    padding: 0;
+    max-width: none;
+  }
+
+  .legal-content {
+    max-width: none;
+  }
+
+  .legal-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .legal-intro,
+  .legal-contact {
+    background: none;
+    border: 1px solid #ccc;
+  }
+}

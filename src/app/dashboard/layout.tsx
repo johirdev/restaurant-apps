@@ -67,6 +67,7 @@ const ROUTE_ROLES: { prefix: string; roles: DashboardRole[] }[] = [
   { prefix: "/dashboard/admins/staff", roles: MANAGEMENT },
   { prefix: "/dashboard/admins", roles: OWNERS },
   { prefix: "/dashboard/banners", roles: MANAGEMENT },
+  { prefix: "/dashboard/legal", roles: MANAGEMENT },
   { prefix: "/dashboard/reviews", roles: OWNERS },
 ];
 

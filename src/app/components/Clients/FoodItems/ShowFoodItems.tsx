@@ -135,14 +135,8 @@ const ShowFoodItems = () => {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {foods.map((food, index) => (
-              <div
-                key={food._id}
-                className="food-card-enter"
-                style={{ animationDelay: `${(index % 8) * 70}ms` }}
-              >
-                <FoodCard food={food} />
-              </div>
+            {foods.map((food) => (
+              <FoodCard key={food._id} food={food} />
             ))}
           </div>
 

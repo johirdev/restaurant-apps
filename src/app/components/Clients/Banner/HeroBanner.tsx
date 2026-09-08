@@ -76,7 +76,7 @@ export const HeroBannerSlide = ({
 
   return (
     <div
-      className="hero-banner min-h-[520px] sm:min-h-[560px] lg:min-h-[600px] xl:min-h-[660px] flex items-center"
+      className="hero-banner min-h-[520px] sm:min-h-[560px] lg:min-h-[700px] xl:min-h-[760px] flex items-center"
       style={bannerColors(banner)}
     >
       {/* ---------- ছবি ---------- */}
@@ -163,7 +163,6 @@ const HeroBanner = () => {
         });
         if (!cancelled) setBanners(res.data?.data ?? []);
       } catch {
-        // ব্যানার না এলে হোম পেজ থামানোর মানে নেই — চুপচাপ কিছুই দেখাই না
         if (!cancelled) setBanners([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -175,11 +174,10 @@ const HeroBanner = () => {
     };
   }, []);
 
-  // লোড হওয়ার সময় একই উচ্চতার একটা ফাঁকা ব্লক — পেজ লাফায় না
   if (loading) {
     return (
       <div
-        className="min-h-[520px] sm:min-h-[560px] lg:min-h-[600px] xl:min-h-[660px]"
+        className="min-h-[520px] sm:min-h-[560px] lg:min-h-[700px] xl:min-h-[760px]"
         style={{ background: "var(--color-ink)" }}
       />
     );
@@ -206,7 +204,6 @@ const HeroBanner = () => {
       }}
       pagination={{ clickable: true }}
       keyboard={{ enabled: true }}
-      /* পেজিনেশনের ডট প্রথম ব্যানারের রঙ ধরে */
       style={bannerColors(banners[0])}
     >
       {banners.map((banner, i) => (

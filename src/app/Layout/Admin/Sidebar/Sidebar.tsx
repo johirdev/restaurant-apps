@@ -155,6 +155,12 @@ const navItems: NavItem[] = [
         icon: Icons.Video,
       },
       {
+        // Privacy / Terms / Refund — তিনটেই এক পাতা থেকে লেখা হয়
+        label: "Legal pages",
+        href: "/dashboard/legal",
+        icon: Icons.Blog,
+      },
+      {
         // অন্যের লেখা মুছে ফেলা বড় ক্ষমতা — তাই শুধু মালিকেরা
         label: "Customer reviews",
         href: "/dashboard/reviews",

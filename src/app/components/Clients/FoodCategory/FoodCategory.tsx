@@ -1,21 +1,5 @@
+/* eslint-disable react-hooks/static-components */
 "use client";
-
-/**
- * FoodCategory
- * -------------------------------
- * Public storefront slider that shows active categories coming from
- * your existing Categories admin API:
- *
- *   GET /api/v1/categories -> { success, data: Category[] }
- *
- * Restyled to match the reference design: cream card, red circular arrow
- * buttons, pale-blue category circles, bold uppercase labels, and a thin
- * decorative orange squiggle running behind the row. Sized small on
- * mobile and scaling up to the large desktop proportions shown in the
- * screenshot (the previous version had this backwards).
- *
- * Adjust the import path / base URL / response shape to match your backend.
- */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
@@ -51,6 +35,38 @@ const badgeClasses = (sub?: SubTitle) => {
   return null;
 };
 
+// same circle/skeleton sizing string reused in both the skeleton and the
+// real render so the two can never drift apart again
+const CIRCLE_SIZE =
+  "h-[120px] w-[120px] sm:h-[130px] sm:w-[130px] md:h-[130px] md:w-[130px] lg:h-[300px] lg:w-[300px]";
+const CARD_WIDTH = "w-[130px] sm:w-[140px] md:w-[140px] lg:w-[300px] mt-10 md:mt-0";
+
+function CategoryImage({ src, alt }: { src?: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  if (!src) {
+    return (
+      <span className="text-2xl font-bold text-slate-400 sm:text-3xl lg:text-4xl">
+        {alt.charAt(0)}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      draggable={false}
+      loading="lazy"
+      decoding="async"
+      onLoad={() => setLoaded(true)}
+      className={`h-full w-full object-cover object-center pointer-events-none transition-opacity duration-300 ${
+        loaded ? "opacity-100" : "opacity-0"
+      }`}
+    />
+  );
+}
+
 const FoodCategory = ({
   onSelect,
   activeSlug,
@@ -61,6 +77,10 @@ const FoodCategory = ({
   const [error, setError] = useState(false);
 
   const trackRef = useRef<HTMLDivElement>(null);
+
+  // prev/next button enabled state, kept in sync with real scroll position
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
   // drag state
   const isDragging = useRef(false);
@@ -104,26 +124,59 @@ const FoodCategory = ({
   }, []);
 
   // ------------------------------------------------------------
-  // AUTOPLAY
+  // SCROLL STATE (drives prev/next disabled + faded look)
+  // ------------------------------------------------------------
+  const updateScrollState = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const { scrollLeft, scrollWidth, clientWidth } = track;
+    setCanScrollPrev(scrollLeft > 4);
+    setCanScrollNext(scrollLeft + clientWidth < scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    updateScrollState();
+
+    track.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      track.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [categories, updateScrollState]);
+
+  // ------------------------------------------------------------
+  // PREV / NEXT (clamped — no more silent jump-to-start/end)
   // ------------------------------------------------------------
   const scrollByAmount = useCallback((amount: number) => {
     const track = trackRef.current;
     if (!track) return;
-
-    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
-    const atStart = track.scrollLeft <= 4;
-
-    if (amount > 0 && atEnd) {
-      track.scrollTo({ left: 0, behavior: "smooth" });
-      return;
-    }
-    if (amount < 0 && atStart) {
-      track.scrollTo({ left: track.scrollWidth, behavior: "smooth" });
-      return;
-    }
     track.scrollBy({ left: amount, behavior: "smooth" });
   }, []);
 
+  const stepSize = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return 260;
+    return Math.min(track.clientWidth * 0.8, 340);
+  }, []);
+
+  const handlePrev = () => {
+    if (!canScrollPrev) return;
+    isPaused.current = true;
+    scrollByAmount(-stepSize());
+  };
+
+  const handleNext = () => {
+    if (!canScrollNext) return;
+    isPaused.current = true;
+    scrollByAmount(stepSize());
+  };
+
+  // ------------------------------------------------------------
+  // AUTOPLAY — loops smoothly, pauses on any user interaction
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!autoPlayInterval || categories.length === 0) return;
 
@@ -131,14 +184,20 @@ const FoodCategory = ({
       if (isPaused.current) return;
       const track = trackRef.current;
       if (!track) return;
-      const step = Math.min(track.clientWidth * 0.6, 320);
-      scrollByAmount(step);
+
+      const atEnd =
+        track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+      if (atEnd) {
+        track.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        track.scrollBy({ left: stepSize(), behavior: "smooth" });
+      }
     }, autoPlayInterval);
 
     return () => {
       if (autoPlayTimer.current) clearInterval(autoPlayTimer.current);
     };
-  }, [autoPlayInterval, categories.length, scrollByAmount]);
+  }, [autoPlayInterval, categories.length, stepSize]);
 
   // ------------------------------------------------------------
   // MOUSE DRAG TO SCROLL
@@ -185,19 +244,62 @@ const FoodCategory = ({
   };
 
   // ------------------------------------------------------------
+  // NAV BUTTON (shared prev/next markup)
+  // ------------------------------------------------------------
+  const NavButton = ({
+    direction,
+    onClick,
+    disabled,
+  }: {
+    direction: "left" | "right";
+    onClick: () => void;
+    disabled: boolean;
+  }) => (
+    <button
+      type="button"
+      aria-label={direction === "left" ? "Scroll left" : "Scroll right"}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative z-10 hidden md:flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] text-white transition-all duration-200 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px] ${
+        disabled
+          ? "cursor-not-allowed opacity-30"
+          : "cursor-pointer hover:scale-[1.06] hover:brightness-110 active:scale-95"
+      }`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        className="sm:h-[18px] sm:w-[18px] lg:h-6 lg:w-6"
+      >
+        <path
+          d={direction === "left" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6"}
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+
+  // ------------------------------------------------------------
   // RENDER
   // ------------------------------------------------------------
   if (loading) {
     return (
-      <div className="relative  flex items-center gap-2.5 rounded-[20px] bg-[var(--color-canvas)] px-2 py-6 sm:rounded-[24px] sm:py-8 md:rounded-[28px] md:py-9 lg:py-10">
+      <div className="relative flex items-center gap-2.5 rounded-[20px] bg-[var(--color-canvas)] px-2 py-6 sm:rounded-[24px] sm:py-8 md:rounded-[28px] md:py-9 lg:py-10">
         <div className="flex w-full max-width gap-4 overflow-hidden px-9 py-1 sm:gap-5 sm:px-10 md:gap-8 md:px-14 lg:gap-10 lg:px-16">
           {Array.from({ length: 7 }).map((_, i) => (
             <div
               key={i}
-              className="flex w-[92px] flex-shrink-0 flex-col items-center gap-2.5 sm:w-[104px] md:w-[140px] lg:w-[170px]"
+              className={`flex ${CARD_WIDTH} flex-shrink-0 flex-col items-center gap-2.5`}
             >
-              <div className="h-[84px] w-[84px] animate-pulse rounded-full bg-neutral-200 sm:h-[96px] sm:w-[96px] md:h-[130px] md:w-[130px] lg:h-[160px] lg:w-[160px]" />
-              <div className="h-2.5 w-14 animate-pulse rounded-full bg-neutral-200" />
+              <div
+                className={`${CIRCLE_SIZE} animate-pulse rounded-full bg-neutral-200`}
+              />
+              <div className="h-2.5 w-14 animate-pulse rounded-full bg-neutral-200 lg:h-3 lg:w-24" />
             </div>
           ))}
         </div>
@@ -223,17 +325,17 @@ const FoodCategory = ({
 
   return (
     <div
-      className="relative w-full flex items-center gap-2 overflow-hidden  md:py-9 lg:py-10"
+      className="relative w-full flex items-center gap-2 overflow-hidden md:py-9 lg:py-10"
       onMouseEnter={() => (isPaused.current = true)}
       onMouseLeave={() => {
         isPaused.current = false;
         endDrag();
       }}
     >
-      <div className="max-w-[1846px] mx-auto  w-full flex items-center gap-2  rounded-[20px]">
+      <div className="max-w-[1846px] mx-auto w-full flex items-center gap-2 rounded-[20px]">
         {/* decorative squiggle line running behind the row */}
         <svg
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-70"
+          className=" pointer-events-none absolute inset-0 h-full w-full opacity-70"
           viewBox="0 0 1000 100"
           preserveAspectRatio="none"
           aria-hidden="true"
@@ -247,28 +349,11 @@ const FoodCategory = ({
           />
         </svg>
 
-        <button
-          type="button"
-          aria-label="Scroll left"
-          onClick={() => scrollByAmount(-260)}
-          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] text-white  transition hover:scale-[1.06] hover:bg-[var(--color-brand)b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            fill="none"
-            className="sm:h-5 sm:w-5 lg:h-6 lg:w-6"
-          >
-            <path
-              d="M15 18l-6-6 6-6"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <NavButton
+          direction="left"
+          onClick={handlePrev}
+          disabled={!canScrollPrev}
+        />
 
         <div
           ref={trackRef}
@@ -291,73 +376,41 @@ const FoodCategory = ({
             const badge = badgeClasses(category.sub_title);
             const active = activeSlug && category.slug === activeSlug;
             return (
-              <>
-                <Link href={`/foods?category_id=${category._id}`}>
-                  <button
-                    type="button"
-                    key={category._id}
-                    onClick={() => handleCategoryClick(category)}
-                    className="flex cursor-pointer group w-[104px] flex-shrink-0 scroll-ml-9 flex-col items-center gap-2 text-center [scroll-snap-align:start] sm:w-[104px] sm:scroll-ml-10 sm:gap-2.5 md:w-[140px] md:scroll-ml-14 lg:w-[300px] lg:scroll-ml-16"
-                  >
+              <Link
+                key={category._id}
+                href={`/foods?category_id=${category._id}`}
+                className={`group flex ${CARD_WIDTH} flex-shrink-0 scroll-ml-9 flex-col items-center gap-2 text-center [scroll-snap-align:start] sm:scroll-ml-10 sm:gap-2.5 md:scroll-ml-14 lg:scroll-ml-16`}
+                onClick={() => handleCategoryClick(category)}
+              >
+                <span
+                  className={`relative flex ${CIRCLE_SIZE} aspect-square shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-50 to-sky-100 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_10px_22px_rgba(0,0,0,0.14)] ${
+                    active
+                      ? "outline outline-[3px] outline-offset-[3px] outline-[var(--color-brand)]"
+                      : ""
+                  }`}
+                >
+                  <CategoryImage src={category.image} alt={category.name} />
+                  {badge && category.sub_title && (
                     <span
-                      className={`group relative flex h-[104px] w-[104px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-50 to-sky-100 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_10px_22px_rgba(0,0,0,0.14)] sm:h-[96px] sm:w-[96px] md:h-[130px] md:w-[130px] lg:h-[300px] lg:w-[300px] ${
-                        active
-                          ? "outline outline-[3px] outline-offset-[3px] outline-[var(--color-brand)]"
-                          : ""
-                      }`}
+                      className={`absolute left-1 top-1 rounded-full px-[7px] py-[2px] text-[9px] font-bold tracking-wide sm:text-[10px] ${badge}`}
                     >
-                      {category.image ? (
-                        <img
-                          src={category.image}
-                          alt={category.name}
-                          draggable={false}
-                          className="h-full w-full object-cover pointer-events-none"
-                        />
-                      ) : (
-                        <span className="text-2xl font-bold text-slate-400 sm:text-3xl lg:text-4xl">
-                          {category.name.charAt(0)}
-                        </span>
-                      )}
-                      {badge && category.sub_title && (
-                        <span
-                          className={`absolute left-1 top-1 rounded-full px-[7px] py-[2px] text-[9px] font-bold tracking-wide sm:text-[10px] ${badge}`}
-                        >
-                          {category.sub_title}
-                        </span>
-                      )}
+                      {category.sub_title}
                     </span>
-                    <span className="group-hover:text-[var(--color-brand)] text-[10px] font-bold uppercase leading-tight tracking-wide sm:text-[11px] md:text-[13px] lg:text-[14px]">
-                      {category.name}
-                    </span>
-                  </button>
-                </Link>
-              </>
+                  )}
+                </span>
+                <span className="text-[10px] font-bold uppercase leading-tight tracking-wide group-hover:text-[var(--color-brand)] sm:text-[11px] md:text-[13px] lg:text-[14px]">
+                  {category.name}
+                </span>
+              </Link>
             );
           })}
         </div>
 
-        <button
-          type="button"
-          aria-label="Scroll right"
-          onClick={() => scrollByAmount(260)}
-          className="relative cursor-pointer z-10 hidden md:flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] text-white  transition hover:scale-[1.06] hover:bg-[var(--color-brand)b7] active:scale-95 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-[52px] lg:w-[52px]"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            fill="none"
-            className="sm:h-5 sm:w-5 lg:h-6 lg:w-6"
-          >
-            <path
-              d="M9 6l6 6-6 6"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <NavButton
+          direction="right"
+          onClick={handleNext}
+          disabled={!canScrollNext}
+        />
       </div>
     </div>
   );

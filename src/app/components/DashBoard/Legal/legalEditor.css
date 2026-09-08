@@ -1,0 +1,527 @@
+/* ==========================================================================
+   RICH TEXT EDITOR — ড্যাশবোর্ডের আইনি পাতার এডিটর
+   --------------------------------------------------------------------------
+   ড্যাশবোর্ড কালো, কিন্তু লেখার জায়গাটা সাদা — ঠিক যেমন কাগজে লেখা হয়,
+   আর সাইটেও লেখাটা সাদা ব্যাকগ্রাউন্ডেই যায়। তাই ম্যানেজার যে রঙ বসান
+   সেটা এখানেই যেমন দেখায়, পাতাতেও ঠিক তেমনই দেখাবে।
+
+   টুলবারের রঙগুলো admin.css এর টোকেন থেকে, কাগজের ভেতরের টাইপোগ্রাফি
+   legalPage.css এর `.legal-rich` থেকে।
+   ========================================================================== */
+
+.rte {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   1. টুলবার
+   ========================================================================== */
+
+.rte-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 8px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+  /* ড্রপডাউনগুলো কাগজের উপরে ভেসে থাকে */
+  position: relative;
+  z-index: 5;
+}
+
+.rte-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border-color);
+}
+
+.rte-group:last-child,
+.rte-group--end {
+  border-right: 0;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.rte-group--end {
+  margin-left: auto;
+}
+
+.rte-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.rte-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.rte-btn.is-active {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.rte-btn__icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* ==========================================================================
+   2. ড্রপডাউন
+   ========================================================================== */
+
+.rte-menu {
+  position: relative;
+}
+
+.rte-menu__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: 230px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-strong);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ডান দিকের মেনুগুলো যেন পর্দার বাইরে বেরিয়ে না যায় */
+.rte-group--end .rte-menu__panel,
+.rte-menu:last-child .rte-menu__panel {
+  left: auto;
+  right: 0;
+}
+
+.rte-menu__title {
+  margin: 0 0 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rte-menu__title:not(:first-child) {
+  margin-top: 14px;
+}
+
+.rte-menu__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.rte-chip {
+  padding: 6px 0;
+  border-radius: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.rte-chip:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+
+.rte-menu__swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.rte-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid var(--border-color-strong);
+  cursor: pointer;
+  transition: transform 0.16s ease;
+}
+
+.rte-swatch:hover {
+  transform: scale(1.12);
+}
+
+/* "কোনো হাইলাইট নয়" — কাটা দাগ দিয়ে বোঝানো */
+.rte-swatch--none {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 44%,
+      var(--accent-red) 44%,
+      var(--accent-red) 56%,
+      transparent 56%
+    ),
+    var(--bg-input);
+}
+
+.rte-menu__custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rte-menu__custom input[type="color"] {
+  width: 42px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rte-menu__row {
+  display: flex;
+  gap: 6px;
+}
+
+.rte-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.rte-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.rte-apply {
+  padding: 0 12px;
+  border-radius: 7px;
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rte-menu__hint {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   3. লেখার কাগজ
+   ========================================================================== */
+
+.rte-surface {
+  position: relative;
+  padding: 22px 24px;
+  /* সাইটে লেখাটা সাদার উপরেই বসে — তাই এখানেও সাদা, নাহলে ম্যানেজার
+     যে রঙ বাছেন সেটা এখানে এক রকম আর পাতায় আরেক রকম দেখাত */
+  background: var(--color-background);
+  overflow-y: auto;
+  max-height: 620px;
+}
+
+.rte-placeholder {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  pointer-events: none;
+  font-size: 15px;
+  color: var(--color-ink-faint);
+}
+
+.rte-editable {
+  outline: none;
+  min-height: 100%;
+  /* .legal-rich এর রঙগুলো সাইটের টোকেন থেকে আসে, তাই সাদা কাগজে
+     সেগুলো ঠিক পাতার মতোই দেখায় — আলাদা করে রঙ বসানোর দরকার নেই */
+}
+
+.rte-editable:focus {
+  outline: none;
+}
+
+/* খালি অনুচ্ছেদগুলোও যেন ক্লিক করা যায় */
+.rte-editable p:empty::after {
+  content: " ";
+  white-space: pre;
+}
+
+.rte-source {
+  display: block;
+  width: 100%;
+  padding: 18px 20px;
+  background: var(--bg-input);
+  border: 0;
+  outline: none;
+  resize: vertical;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   4. ম্যানেজারের প্যানেল — সেকশনের তালিকা আর সাজের কন্ট্রোল
+   ========================================================================== */
+
+.legal-admin__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.legal-admin__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.legal-admin__tab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-color-strong);
+}
+
+.legal-admin__tab.is-active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+
+.legal-admin__tab svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---- ভাষার সুইচ ---- */
+.legal-admin__lang {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+}
+
+.legal-admin__lang button {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.legal-admin__lang button.is-active {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+/* ---- সেকশনের কার্ড ---- */
+.legal-admin__section {
+  border: 1px solid var(--border-color);
+  border-radius: 11px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.legal-admin__section.is-open {
+  border-color: var(--accent-blue);
+}
+
+.legal-admin__section.is-hidden .legal-admin__section-head {
+  opacity: 0.55;
+}
+
+.legal-admin__section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.legal-admin__section-head:hover {
+  background: var(--bg-hover);
+}
+
+.legal-admin__drag {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.legal-admin__drag button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 15px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.legal-admin__drag button:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.legal-admin__drag button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.legal-admin__drag svg {
+  width: 12px;
+  height: 12px;
+}
+
+.legal-admin__section-body {
+  padding: 0 14px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ---- সাজের কন্ট্রোল ---- */
+.legal-admin__style {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  margin-top: 14px;
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+}
+
+.legal-admin__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.legal-admin__field > label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* রঙ বাছার ঘর — সোয়াচ আর টেক্সট বক্স পাশাপাশি */
+.legal-admin__color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legal-admin__color input[type="color"] {
+  width: 34px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.legal-admin__color .input-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.legal-admin__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.legal-admin__toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+/* ---- প্রিভিউ ---- */
+.legal-admin__preview {
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  /* সাইটের পাতাটা এখানে হুবহু বসে, তাই ভেতরটা সাদা */
+  background: var(--color-background);
+  max-height: 78vh;
+  overflow-y: auto;
+}
+
+/* প্রিভিউয়ের ভেতরে "উপরে ফেরা" বোতামটা ভেসে থাকার দরকার নেই */
+.legal-admin__preview .legal-top {
+  display: none;
+}
+
+/* ছোট পর্দায় হিরোটা একটু ছোট করে দিই, নাহলে প্রিভিউ পুরোটাই হিরো */
+.legal-admin__preview .legal-hero {
+  padding: 36px 20px 30px;
+}
+
+.legal-admin__preview .legal-toc__inner {
+  position: static;
+  max-height: none;
+}

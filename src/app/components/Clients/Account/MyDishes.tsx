@@ -4,16 +4,34 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Loader2, Star, UtensilsCrossed } from "lucide-react";
+import { ImagePlus, Loader2, Star, UtensilsCrossed, X } from "lucide-react";
 import { apiGet, apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
+import { deleteImage, uploadImage, validateImage } from "@/src/lib/upload";
+import { compressImageToRange } from "@/src/app/Layout/Compressimage/Compressimage";
 import { DateTimeBd } from "@/src/app/Layout/utils/DateTimeBd";
 
 /* ==========================================================================
    যেসব খাবার আগে অর্ডার করা হয়েছে — GET /api/v1/users/me/dishes
    --------------------------------------------------------------------------
    ডেলিভার হয়ে যাওয়া খাবারেই কেবল রিভিউ দেওয়া যায় (`can_review`), তাই
-   রিভিউ বক্সটা এখানেই — আলাদা পেজে যেতে হয় না।
+   রিভিউ বক্সটা এখানেই — পুরো অ্যাপে রিভিউ লেখার একমাত্র জায়গা এটাই।
+
+   ছবি: সর্বোচ্চ ৩টা। ব্যবহারকারীর ফোনের ৪-৫MB ছবিটা আপলোডের আগেই ব্রাউজারে
+   ছোট করে ~৪০–৮০KB এ নামিয়ে আনা হয় (compressImageToRange), তাই রিভিউর
+   গ্যালারি হালকা থাকে আর মোবাইল ডেটাও কম খরচ হয়।
    ========================================================================== */
+
+const MAX_REVIEW_IMAGES = 3;
+/** কম্প্রেসের লক্ষ্য জানালা — এর ভিতরেই ছবিটা আপলোড হয় */
+const IMAGE_MIN_KB = 40;
+const IMAGE_MAX_KB = 80;
+/** কম্প্রেসের আগে আসল ফাইলের সীমা — এর চেয়ে বড় হলে ব্রাউজারই ঝুলে যেতে পারে */
+const SOURCE_MAX_MB = 15;
+
+interface ReviewPhoto {
+  url: string;
+  public_id?: string;
+}
 
 interface Dish {
   food_id: string;
@@ -43,6 +61,8 @@ export default function MyDishes() {
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [message, setMessage] = useState("");
+  const [photos, setPhotos] = useState<ReviewPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
 
   const load = useCallback(async () => {
@@ -76,6 +96,60 @@ export default function MyDishes() {
     setRating(0);
     setHovered(0);
     setMessage("");
+    setPhotos([]);
+  };
+
+  /**
+   * ছবি বাছাই → ব্রাউজারেই ছোট করা → Cloudinary তে আপলোড।
+   * সাবমিটের সময় শুধু URL গুলো যায়, তাই পোস্ট করাটা সাথে সাথেই হয়।
+   */
+  const handlePhotoPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // একই ছবি আবার বাছলেও যেন onChange চলে
+    if (files.length === 0) return;
+
+    const room = MAX_REVIEW_IMAGES - photos.length;
+    if (room <= 0) {
+      toast.error(`At most ${MAX_REVIEW_IMAGES} photos`);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      for (const file of files.slice(0, room)) {
+        const invalid = validateImage(file, SOURCE_MAX_MB);
+        if (invalid) {
+          toast.error(invalid);
+          continue;
+        }
+
+        // ৪০–৮০KB এর জানালায় নামিয়ে তারপরই আপলোড
+        const compressed = await compressImageToRange(file, {
+          minKB: IMAGE_MIN_KB,
+          maxKB: IMAGE_MAX_KB,
+        });
+        const uploaded = await uploadImage(compressed, "reviews");
+        setPhotos((prev) => [...prev, uploaded].slice(0, MAX_REVIEW_IMAGES));
+      }
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Could not upload the photo"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /** সরানো ছবিটা Cloudinary থেকেও মুছে দিই — নাহলে এতিম ফাইল জমতে থাকত */
+  const removePhoto = (idx: number) => {
+    const target = photos[idx];
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+    void deleteImage(target?.public_id);
+  };
+
+  /** বাতিল করলে যে ছবিগুলো আপলোড হয়ে গিয়েছিল সেগুলোও পরিষ্কার করি */
+  const cancelReview = () => {
+    photos.forEach((p) => void deleteImage(p.public_id));
+    setPhotos([]);
+    setOpenFor(null);
   };
 
   const submitReview = async (dish: Dish) => {
@@ -90,6 +164,7 @@ export default function MyDishes() {
         order_id: dish.last_order_id,
         rating,
         message: message.trim(),
+        images: photos,
       });
       toast.success(res.message);
       if (res.data) {
@@ -199,7 +274,7 @@ export default function MyDishes() {
                   ) : dish.can_review ? (
                     <button
                       type="button"
-                      onClick={() => (isOpen ? setOpenFor(null) : openReview(dish))}
+                      onClick={() => (isOpen ? cancelReview() : openReview(dish))}
                       className="site-btn site-btn-secondary h-8 px-3 text-[12.5px]"
                     >
                       <Star size={13} /> {isOpen ? "Cancel" : "Write a review"}
@@ -251,10 +326,73 @@ export default function MyDishes() {
                   className="site-input mt-3 resize-none px-3 py-2.5 text-[13.5px]"
                 />
 
+                {/* ---------- ছবি (সর্বোচ্চ ৩টা) ---------- */}
+                <div className="mt-3">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+                    Photos ({photos.length}/{MAX_REVIEW_IMAGES})
+                  </p>
+
+                  <div className="flex flex-wrap gap-2.5">
+                    {photos.map((photo, idx) => (
+                      <div
+                        key={photo.public_id || photo.url}
+                        className="relative h-[68px] w-[68px] overflow-hidden rounded-sm border border-border bg-surface"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photo.url}
+                          alt={`Review photo ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(idx)}
+                          aria-label={`Remove photo ${idx + 1}`}
+                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-ink-invert transition-colors hover:bg-ink"
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {photos.length < MAX_REVIEW_IMAGES && (
+                      <label
+                        className={`flex h-[68px] w-[68px] flex-col items-center justify-center gap-1 rounded-sm border border-dashed border-border-strong text-ink-faint transition-colors ${
+                          uploading
+                            ? "cursor-wait"
+                            : "cursor-pointer hover:border-brand hover:text-brand"
+                        }`}
+                      >
+                        {uploading ? (
+                          <Loader2 size={17} className="animate-spin" />
+                        ) : (
+                          <ImagePlus size={17} />
+                        )}
+                        <span className="text-[10px] font-semibold">
+                          {uploading ? "Uploading" : "Add"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          disabled={uploading}
+                          className="hidden"
+                          onChange={handlePhotoPick}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-[11px] text-ink-faint">
+                    Large photos are compressed automatically to about{" "}
+                    {IMAGE_MIN_KB}–{IMAGE_MAX_KB}KB before upload.
+                  </p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => submitReview(dish)}
-                  disabled={posting || rating < 1}
+                  disabled={posting || uploading || rating < 1}
                   className="site-btn site-btn-primary mt-3 h-10 w-full text-[13.5px]"
                 >
                   {posting ? (

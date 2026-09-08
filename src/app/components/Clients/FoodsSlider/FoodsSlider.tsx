@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 /**
@@ -30,11 +29,7 @@ interface FoodsSliderProps {
 const AUTO_SLIDE_INTERVAL = 5000; // ms
 const CARD_GAP = 16; // px — matches the track's gap-4 (kept constant across breakpoints so the JS step calc stays accurate)
 
-const FoodsSlider = ({
-  title,
-  subtitle,
-  categoryId,
-}: FoodsSliderProps) => {
+const FoodsSlider = ({ title, subtitle, categoryId }: FoodsSliderProps) => {
   const searchParams = useSearchParams();
   const activeCategoryId =
     categoryId ?? searchParams.get("category_id") ?? "all";
@@ -226,7 +221,7 @@ const FoodsSlider = ({
       )}
 
       {/* header row: heading left, arrows grouped neatly on the right */}
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 pt-6">
         <h3 className="text-base sm:text-lg font-bold text-gray-900">
           More Food Items
         </h3>
@@ -236,14 +231,14 @@ const FoodsSlider = ({
             type="button"
             aria-label="Scroll left"
             onClick={() => nudge(-1)}
-            className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full  ring-1 ring-black/5 text-neutral-700 transition hover:scale-105 hover:bg-neutral-50 active:scale-95"
+            className="flex cursor-pointer h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full  ring-1 ring-white bg-[#D70F64] text-neutral-700 transition hover:scale-105 hover:bg-[#D70F64] active:scale-95"
           >
             <svg
               width="16"
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
+              stroke="white"
               strokeWidth={2.4}
             >
               <path
@@ -257,14 +252,14 @@ const FoodsSlider = ({
             type="button"
             aria-label="Scroll right"
             onClick={() => nudge(1)}
-            className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/5 text-neutral-700 transition hover:scale-105 hover:bg-neutral-50 active:scale-95"
+            className=" cursor-pointer flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-[#D70F64] shadow-md ring-1 ring-white text-neutral-700 transition hover:scale-105 hover:bg-[#D70F64] active:scale-95"
           >
             <svg
               width="16"
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
+              stroke="white"
               strokeWidth={2.4}
             >
               <path
@@ -285,7 +280,6 @@ const FoodsSlider = ({
           endDrag();
         }}
       >
-        
         {/* track */}
         <div
           ref={trackRef}
