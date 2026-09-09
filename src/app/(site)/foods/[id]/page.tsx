@@ -1,9 +1,15 @@
 // src/app/foods/[id]/page.tsx
 
 import type { Metadata } from "next";
+import { cache } from "react";
 import FoodDetails from "@/src/app/components/Clients/FoodDetails/FoodDetails";
 
-import type { Food, FoodApiResponse } from "./FoodDetails.types";
+import mongoose from "mongoose";
+import { connectDB } from "@/src/config/db";
+import { FoodService } from "@/src/services/food.service";
+import { SITE_URL } from "@/src/config/site";
+
+import type { Food } from "./FoodDetails.types";
 
 type Props = {
   params: Promise<{
@@ -11,36 +17,38 @@ type Props = {
   }>;
 };
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://durbinbangla.vercel.app";
+const siteUrl = SITE_URL;
 
 /**
  * Get Food Details
  */
-async function getFood(id: string): Promise<Food | null> {
+/**
+ * খাবারটা সরাসরি সার্ভিস লেয়ার থেকে তোলা হয়।
+ *
+ * আগে পাতাটা নিজের `/api/v1/foods/:id` এ HTTP রিকোয়েস্ট করত। সেটা
+ * অর্থহীন রাউন্ড-ট্রিপ ছিল — সার্ভার নিজেই নিজেকে ডাকত, নেটওয়ার্ক
+ * ঘুরে, আবার JSON পার্স করে। প্রতিটা ভিজিটে বাড়তি দেরি, আর ডিপ্লয়
+ * URL ভুল থাকলে (বা প্রিভিউ ডিপ্লয়মেন্টে) পুরো পাতাটাই ফাঁকা হয়ে
+ * যেত।
+ *
+ * `generateMetadata` আর পেজ — দুজনেই এটা ডাকে; React একই রেন্ডারের
+ * ভেতরে দ্বিতীয় ডাকটা ক্যাশ থেকে দেয়, তাই ডাটাবেসে কোয়েরি একবারই যায়।
+ */
+const getFood = cache(async (id: string): Promise<Food | null> => {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
   try {
-    const res = await fetch(
-      `${siteUrl}/api/v1/foods/${encodeURIComponent(id)}`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      },
-    );
+    await connectDB();
+    const food = await FoodService.getFoodById(id);
 
-    if (!res.ok) {
-      return null;
-    }
-
-    const json: FoodApiResponse = await res.json();
-
-    return json?.data ?? null;
+    // মঙ্গোর ObjectId/Date সাধারণ JSON নয় — ক্লায়েন্ট কম্পোনেন্টে
+    // পাঠানোর আগে স্ট্রিং বানিয়ে নিতে হয়
+    return food ? (JSON.parse(JSON.stringify(food)) as Food) : null;
   } catch (error) {
     console.error("Failed to fetch food:", error);
-
     return null;
   }
-}
+});
 
 /**
  * Get the first available image

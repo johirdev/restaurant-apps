@@ -1,5 +1,15 @@
 import { z } from "zod";
 import { CONTACT_TOPICS } from "../interfaces/contactMessage.interface";
+import { countWords, hasLink, NO_LINK_MESSAGE } from "../lib/textGuard";
+
+/**
+ * বার্তার সীমা। শব্দের হিসাবটা অতিথিকে বলার জন্য — "৫০০ শব্দের মধ্যে
+ * লিখুন" বোঝা "৪০০০ অক্ষর" এর চেয়ে সহজ। অক্ষরের সীমাটা তার উপরে
+ * জালের কাজ করে: একটাই বিশাল "শব্দ" পাঠিয়ে শব্দ-গণনা ফাঁকি দেওয়ার
+ * সুযোগ থাকে না।
+ */
+export const MESSAGE_WORD_LIMIT = 500;
+export const MESSAGE_CHAR_LIMIT = 4000;
 
 /* ==========================================================================
    CONTACT ফর্মের যাচাই
@@ -36,7 +46,18 @@ export const createContactMessageSchema = z.object({
     .string()
     .trim()
     .min(10, "A few more words, please")
-    .max(2000, "That message is a bit too long"),
+    .max(MESSAGE_CHAR_LIMIT, "That message is a bit too long")
+    .refine(
+      (v) => countWords(v) <= MESSAGE_WORD_LIMIT,
+      `Please keep your message within ${MESSAGE_WORD_LIMIT} words`,
+    )
+    /**
+     * ইনবক্সে লিংক গুঁজে দেওয়াই স্প্যামারের আসল উদ্দেশ্য — honeypot আর
+     * থ্রটল বটের সংখ্যা কমায়, কিন্তু যেটা ঢোকে তার ভেতরের লিংক আটকায়
+     * না। তাই বার্তায় কোনো লিংকই নেওয়া হয় না; দরকারি কথা সাদা কথায়
+     * লিখলেই চলে, আর ম্যানেজারকেও অচেনা লিংকে ক্লিকের ঝুঁকি নিতে হয় না।
+     */
+    .refine((v) => !hasLink(v), NO_LINK_MESSAGE),
 
   /**
    * মধুর ফাঁদ (honeypot) — ফর্মে মাঠটা চোখে দেখা যায় না, তাই মানুষ কখনো

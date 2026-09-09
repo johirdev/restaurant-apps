@@ -1,20 +1,48 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import DisplayFood from "../../components/Clients/AllFoodFilter/DisplayFood";
+import {
+  loadMenuFoods,
+  loadActiveCategories,
+} from "../../components/Clients/Shared/loadMenu";
 
 export const metadata: Metadata = {
   title: "Our menu",
   description:
     "Browse every dish on the menu — filter by category, price and rating, then order in a couple of taps.",
+  alternates: { canonical: "/foods" },
 };
 
-export default function FoodsPage() {
+/**
+ * মেনুর ডেটা প্রতি ৫ মিনিটে নতুন করে তৈরি হয়।
+ *
+ * পুরোপুরি ডাইনামিক করলে প্রতিটা ভিজিটে ডাটাবেসে যেত — বছরে লক্ষ
+ * ভিজিট হলে সেটাই সবচেয়ে বড় খরচ, অথচ মেনু দিনে দু-চারবারের বেশি
+ * বদলায় না। আবার পুরোপুরি স্ট্যাটিক করলে দাম বদলানোর পর নতুন ডিপ্লয়
+ * না করা পর্যন্ত পুরোনো দামই দেখাত।
+ *
+ * ৫ মিনিটে একবার — ভিজিটর CDN থেকে সাথে সাথেই HTML পায়, আর ম্যানেজার
+ * দাম বদলানোর পাঁচ মিনিটের মধ্যেই সেটা সবার চোখে পড়ে।
+ */
+export const revalidate = 300;
+
+export default async function FoodsPage() {
+  // দুটো কোয়েরি পাশাপাশি — একটার জন্য আরেকটা অপেক্ষা করে না
+  const [foods, categories] = await Promise.all([
+    loadMenuFoods(20),
+    loadActiveCategories(),
+  ]);
+
   // DisplayFood ভিতরে useSearchParams() ব্যবহার করে (ক্যাটাগরি/ফিল্টার URL থেকে পড়ে),
   // তাই Next.js এর নিয়ম অনুযায়ী এটাকে Suspense বাউন্ডারির ভিতরে রাখতে হয় —
   // নাহলে প্রোডাকশন বিল্ডে prerender এরর দেয়।
   return (
     <Suspense fallback={<FoodsSkeleton />}>
-      <DisplayFood />
+      <DisplayFood
+        initialFoods={foods}
+        initialTotal={foods.length}
+        initialCategories={categories}
+      />
     </Suspense>
   );
 }

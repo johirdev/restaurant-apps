@@ -90,11 +90,29 @@ const updateStatus = async (
 const remove = async (id: string) =>
   ContactMessageModel.findByIdAndDelete(id).lean();
 
+/**
+ * ইনবক্সে চেকবক্স দিয়ে বেছে নেওয়া বার্তাগুলো একসাথে মোছা।
+ *
+ * একটা একটা করে DELETE ডাকলে ২০টা বার্তা মুছতে ২০টা রাউন্ড-ট্রিপ আর
+ * ২০টা DB কানেকশন লাগত; এখানে সেটা একটাই `deleteMany`।
+ *
+ * ইতিমধ্যে মুছে যাওয়া আইডি থাকলে কাজ থামে না — বাকিগুলো মুছে যায়, আর
+ * `deleted` সংখ্যাটা সত্যি কতগুলো গেল সেটাই বলে (ট্যাব খোলা রেখে দুজন
+ * ম্যানেজার একসাথে কাজ করলে এটাই স্বাভাবিক)।
+ */
+const removeMany = async (ids: string[]) => {
+  const res = await ContactMessageModel.deleteMany({ _id: { $in: ids } });
+  const deleted = res.deletedCount ?? 0;
+
+  return { requested: ids.length, deleted, missing: ids.length - deleted };
+};
+
 export const ContactMessageService = {
   create,
   getAll,
   updateStatus,
   remove,
+  removeMany,
 };
 
 export type { ContactTopic };

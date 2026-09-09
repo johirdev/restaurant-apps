@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
 /** POST /api/v1/foods/:id/view — ডিটেইল পেজ খুললে ভিউ গোনা হয় (পাবলিক) */
-export async function POST(_req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
   const { id } = await params;
-  return FoodController.incrementView(id);
+  return FoodController.incrementView(req, id);
 }

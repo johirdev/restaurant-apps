@@ -15,7 +15,8 @@ const contactMessageSchema = new Schema<IContactMessageDocument>(
 
     topic: { type: String, enum: CONTACT_TOPICS, default: "general", index: true },
     subject: { type: String, default: "", trim: true, maxlength: 140 },
-    message: { type: String, required: true, trim: true, maxlength: 2000 },
+    // স্কিমার সীমা ৫০০ শব্দ; অক্ষরের এই ছাদটা তার সাথে মিলিয়ে রাখা
+    message: { type: String, required: true, trim: true, maxlength: 4000 },
 
     status: {
       type: String,

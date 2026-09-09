@@ -1,6 +1,7 @@
 // src/services/food.service.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { SortOrder } from "mongoose";
+import { containsRegex, sanitizeSearchTerm } from "../lib/safeQuery";
 import { IGenaricRespons } from "../lib/common";
 import { IPaginationOpton } from "../lib/pagination";
 import { HelperPagination } from "../lib/paginationHelper";
@@ -77,14 +78,19 @@ const getAllFoods = async (
 
   const andConditions: Record<string, any>[] = [];
 
-  // free-text search across food name + nested variation name/sku/barcode
-  const searchTermString =
-    typeof searchTerm === "string" ? searchTerm.trim() : "";
+  /**
+   * নাম / ভ্যারিয়েশন / SKU ধরে খোঁজা।
+   *
+   * টার্মটা আগে সরাসরি `$regex` এ বসত। ফলে কেউ `.*` লিখলেই ফিল্টার
+   * অর্থহীন হয়ে যেত, আর `(a+)+$` জাতীয় একটা ছোট স্ট্রিং পাঠিয়ে মঙ্গোর
+   * রেজেক্স ইঞ্জিনকে দীর্ঘক্ষণ আটকে রেখে (ReDoS) পুরো সাইট ধীর করে
+   * দেওয়া যেত। এখন প্রতিটা অক্ষর আক্ষরিক হিসেবেই ধরা হয়।
+   */
+  const searchTermString = sanitizeSearchTerm(searchTerm);
   if (searchTermString) {
+    const pattern = containsRegex(searchTermString);
     andConditions.push({
-      $or: ItemsSearchableFields.map((field) => ({
-        [field]: { $regex: searchTermString, $options: "i" },
-      })),
+      $or: ItemsSearchableFields.map((field) => ({ [field]: pattern })),
     });
   }
 

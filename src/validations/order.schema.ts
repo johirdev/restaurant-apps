@@ -63,11 +63,12 @@ export const createOrderSchema = z
     coupon_code: z.string().trim().max(30).optional(),
     scheduled_for: z.coerce.date().optional(),
   })
-  // ডেলিভারি হলে ঠিকানা বাধ্যতামূলক
+  // ডেলিভারি হলে ঠিকানা বাধ্যতামূলক — অন্তত ৫ অক্ষর, যাতে ফাঁকা বা
+  // "ok" জাতীয় কিছু না যায়, কিন্তু "৭ নং" এর মতো ছোট ঠিকানাও আটকায় না
   .refine(
-    (v) => v.order_type !== "delivery" || (v.customer.address?.trim().length ?? 0) >= 10,
+    (v) => v.order_type !== "delivery" || (v.customer.address?.trim().length ?? 0) >= 5,
     {
-      message: "Delivery address must be at least 10 characters",
+      message: "Delivery address must be at least 5 characters",
       path: ["customer", "address"],
     },
   )
@@ -121,4 +122,18 @@ export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 /** সারি থেকে টেবিলে বসানো */
 export const seatOrderSchema = z.object({
   table_id: z.string().trim().min(1, "Pick a table"),
+});
+
+/* ==========================================================================
+   রক্ষণাবেক্ষণ — পুরোনো অর্ডার সরানো
+   --------------------------------------------------------------------------
+   `older_than_days` এর নিচের সীমা ৩০ দিন ইচ্ছে করেই: চলতি মাসের অর্ডার
+   কখনোই ভুল করে সরে যেতে পারবে না। `dry_run` ডিফল্টে চালু, তাই
+   না ভেবে ডাকলেও কিছু মোছে না — আগে দেখা যায় কী কী সরবে।
+   ========================================================================== */
+export const purgeOrdersSchema = z.object({
+  older_than_days: z.coerce.number().int().min(30).max(3650).default(90),
+  dry_run: z.coerce.boolean().default(true),
+  /** এক ডাকে সর্বোচ্চ কতটা — সার্ভারলেস টাইমআউটের ভেতরে থাকার জন্য */
+  batch: z.coerce.number().int().min(1).max(5000).default(1000),
 });

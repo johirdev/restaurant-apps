@@ -236,6 +236,35 @@ const deleteUser = async (id: string) => {
   return user;
 };
 
+/**
+ * কাস্টমার টেবিলে চেকবক্সে বেছে নেওয়া অ্যাকাউন্টগুলো একসাথে মোছা।
+ *
+ * নম্বরগুলো আগে তুলে রাখি, কারণ মোছার পরে ওদের পড়ে থাকা OTP রেকর্ড
+ * খুঁজে বের করার আর উপায় থাকত না — `purgeUnverifiedUsers` ঠিক একই
+ * কারণে একই কাজটা করে। এতে অ্যাকাউন্টের সাথে OTP টেবিলটাও পরিষ্কার
+ * থাকে, আর মুছে ফেলা নম্বরে পুরোনো কোড দিয়ে কিছু করার সুযোগও থাকে না।
+ *
+ * অর্ডারগুলো ইচ্ছে করেই ছোঁয়া হয় না — বিক্রির হিসাব অ্যাকাউন্টের সাথে
+ * মুছে গেলে দিনের খাতা মিলত না। একটা করে মোছার সময়ও নিয়মটা এটাই।
+ */
+const deleteManyUsers = async (ids: string[]) => {
+  const doomed = await UserModel.find({ _id: { $in: ids } })
+    .select("_id phone")
+    .lean();
+
+  if (!doomed.length) {
+    return { requested: ids.length, deleted: 0, missing: ids.length };
+  }
+
+  const res = await UserModel.deleteMany({ _id: { $in: doomed.map((u: any) => u._id) } });
+  const deleted = res.deletedCount ?? 0;
+
+  const phones = doomed.map((u: any) => u.phone).filter(Boolean);
+  if (phones.length) await OtpModel.deleteMany({ phone: { $in: phones } });
+
+  return { requested: ids.length, deleted, missing: ids.length - deleted };
+};
+
 /* ==========================================================================
    যাচাই-না-হওয়া অ্যাকাউন্ট পরিষ্কার — ড্যাশবোর্ডের এক ক্লিক
    --------------------------------------------------------------------------
@@ -282,6 +311,7 @@ export const UserService = {
   getUserById,
   adminUpdateUser,
   deleteUser,
+  deleteManyUsers,
   countUnverifiedUsers,
   purgeUnverifiedUsers,
   getFavoriteDishOptions,

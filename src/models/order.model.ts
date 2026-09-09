@@ -148,18 +148,42 @@ const orderSchema = new Schema<IOrderDocument>(
     /* ---- ইনভয়েস ---- */
     invoice_printed_at: { type: Date, default: null },
     invoice_print_count: { type: Number, default: 0, min: 0 },
+
+    /**
+     * দিনের হিসাবের খাতায় (`SalesLedger`) কোন দিনের ঘরে বসেছে।
+     * খালি মানে এখনো বসেনি। এই চিহ্নটা থাকায় একই অর্ডার দুবার গোনা
+     * হয় না — স্ট্যাটাস বদলের মাঝপথে সার্ভার রিস্টার্ট হলেও নয়।
+     */
+    ledger_day: { type: String, default: "", index: true },
   },
   { timestamps: true },
 );
 
+/* ==========================================================================
+   ইনডেক্স — এক বছরের অর্ডার জমার পরেও যেন ড্যাশবোর্ড একই গতিতে খোলে
+   --------------------------------------------------------------------------
+   প্রতিটা ইনডেক্স একটা নির্দিষ্ট স্ক্রিনের জন্য। ইনডেক্স ছাড়া মঙ্গোকে
+   প্রতিবার পুরো কালেকশন পড়তে হয় — ১০০০ অর্ডারে সেটা টের পাওয়া যায় না,
+   ৩ লাখ অর্ডারে সাইট বসে যায়।
+   ========================================================================== */
+
 // ড্যাশবোর্ডের লিস্ট ভিউ — স্ট্যাটাস অনুযায়ী নতুন অর্ডার আগে
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
-orderSchema.index({ "customer.phone": 1 });
+// কাস্টমারের নম্বর ধরে খোঁজা + ৩ মিনিটের কুলডাউনের কোয়েরি
+orderSchema.index({ "customer.phone": 1, createdAt: -1 });
+// "My orders" পেজ — লগইন করা কাস্টমারের নিজের অর্ডার
+orderSchema.index({ user_id: 1, createdAt: -1 });
 // রিপোর্ট — কোন টেবিল / কোন কর্মী কত বিক্রি করল
 orderSchema.index({ table_id: 1, createdAt: -1 });
 orderSchema.index({ "waiter.id": 1, createdAt: -1 });
 orderSchema.index({ "chef.id": 1, createdAt: -1 });
+// রান্নাঘরের স্ক্রিন — কনফার্ম হওয়ার ক্রম ধরে টিকিট
+orderSchema.index({ status: 1, confirmed_at: 1 });
+// পুরোনো অর্ডার সরানোর কাজ — শেষ হওয়া অর্ডার তারিখ ধরে
+orderSchema.index({ status: 1, ledger_day: 1, createdAt: 1 });
+// কাস্টমারের নাম ধরে সার্চ
+orderSchema.index({ "customer.name": 1 });
 
 const OrderModel: Model<IOrderDocument> =
   (mongoose.models.Order as Model<IOrderDocument>) ||

@@ -11,6 +11,9 @@ import {
 import { ApiError, BadRequest } from "../lib/apiError";
 import { canSetStatus } from "../config/permissions";
 import { getClientIp } from "../lib/getClientIp";
+import { limitByIp, RATE_RULES } from "../lib/rateLimit";
+import { businessDayKey } from "../lib/businessTime";
+import { LedgerService } from "../services/ledger.service";
 import {
   requireRole,
   ANY_STAFF,
@@ -32,7 +35,9 @@ import {
   assignOrderSchema,
   setDiscountSchema,
   seatOrderSchema,
+  purgeOrdersSchema,
 } from "../validations/order.schema";
+import { bulkDeleteSchema } from "../validations/bulkDelete.schema";
 import {
   OrderFilterableFields,
   OrderPaginationFields,
@@ -54,6 +59,14 @@ const asStaffRef = (user: AuthUser): IOrderStaffRef => ({
    POST /api/v1/orders
    ========================================================================== */
 const createOrder = catchAsync(async (req: NextRequest) => {
+  /**
+   * অর্ডার বসানো সবচেয়ে দামি কাজগুলোর একটা — মেনু পড়া, দাম হিসাব,
+   * ডকুমেন্ট লেখা। তাই স্ক্রিপ্ট যেন এক IP থেকে হাজারটা ভুয়া অর্ডার
+   * ছুঁড়ে রান্নাঘর আর ডাটাবেস দুটোই ভরিয়ে দিতে না পারে।
+   * (আসল কাস্টমারের জন্য নিচের ৩ মিনিটের বিরতিই যথেষ্ট; এটা তার উপরের ঢাল।)
+   */
+  await limitByIp(RATE_RULES.orderCreate, req);
+
   const payload = await parseBody(req, createOrderSchema);
 
   // লগইন করা থাকলে অর্ডারটা তার অ্যাকাউন্টের সাথে জুড়ে যায় — গেস্টও অর্ডার করতে পারে
@@ -126,6 +139,14 @@ const getOrderById = catchAsync<IdCtx>(async (req, { params }) => {
    GET /api/v1/orders/track?order_number=ORD-260907-0001&phone=01712345678
    ========================================================================== */
 const trackOrder = catchAsync(async (req: NextRequest) => {
+  // নম্বর + ফোন দুটোই লাগে বলে অনুমান করা কঠিন, তবু অসীমবার চেষ্টা
+  // করতে দিলে শেষ পর্যন্ত মিলে যেত। তাই চেষ্টার সংখ্যা বাঁধা।
+  await limitByIp(
+    RATE_RULES.track,
+    req,
+    "Too many tracking attempts. Please wait a few minutes.",
+  );
+
   const { order_number, phone } = getQuery(req);
 
   if (!order_number?.trim() || !phone?.trim()) {
@@ -134,6 +155,29 @@ const trackOrder = catchAsync(async (req: NextRequest) => {
 
   const order = await OrderService.trackOrder(order_number, phone);
   return ok("Order found", order);
+});
+
+/* ==========================================================================
+   PUBLIC — পরের অর্ডার কখন দেওয়া যাবে
+   GET /api/v1/orders/cooldown?phone=01712345678
+   --------------------------------------------------------------------------
+   চেকআউট পেজ এটা ডেকে লাইভ কাউন্টডাউন দেখায়, তাই কাস্টমার "Place order"
+   চেপে ৪২৯ খাওয়ার আগেই জানতে পারে আর কতক্ষণ বাকি।
+
+   এখানে কোনো গোপন তথ্য নেই — যে নম্বর জানে সে নিজের অর্ডারের অবস্থাই
+   দেখে। তবু অসীমবার ডেকে "এই নম্বরটা কি সম্প্রতি অর্ডার দিয়েছে" জেনে
+   ফেলা ঠেকাতে সীমা বসানো।
+   ========================================================================== */
+const getCooldown = catchAsync(async (req: NextRequest) => {
+  await limitByIp(RATE_RULES.track, req);
+
+  const { phone } = getQuery(req);
+  if (!phone?.trim()) throw BadRequest("phone is required");
+
+  const user = await optionalUser(req);
+  const status = await OrderService.getCooldown(phone.trim(), user?.id);
+
+  return ok("Cooldown status", status);
 });
 
 /* ==========================================================================
@@ -310,6 +354,27 @@ const deleteOrder = catchAsync<IdCtx>(async (req, { params }) => {
 });
 
 /* ==========================================================================
+   ADMIN — চেকবক্সে বাছা অর্ডারগুলো একসাথে মুছে ফেলা (শুধু superadmin)
+   POST /api/v1/orders/bulk-delete   { "ids": ["...", "..."] }
+   --------------------------------------------------------------------------
+   অনুমতি একটা অর্ডার মোছার মতোই — মালিক ছাড়া কেউ নয়। একসাথে অনেকগুলো
+   বলে নিয়ম আলগা হয় না, বরং ক্ষতির আকারটাই বড়।
+   ========================================================================== */
+const bulkDeleteOrders = catchAsync(async (req: NextRequest) => {
+  requireRole(req, OWNER_ONLY);
+
+  const { ids } = await parseBody(req, bulkDeleteSchema);
+  const result = await OrderService.deleteManyOrders(ids);
+
+  return ok(
+    result.deleted
+      ? `${result.deleted} order${result.deleted === 1 ? "" : "s"} deleted successfully`
+      : "None of those orders are here any more",
+    result,
+  );
+});
+
+/* ==========================================================================
    ADMIN — ড্যাশবোর্ড স্ট্যাট
    GET /api/v1/orders/stats
    ========================================================================== */
@@ -319,9 +384,61 @@ const getStats = catchAsync(async (req: NextRequest) => {
   return ok("Order stats fetched successfully", stats);
 });
 
+/* ==========================================================================
+   হিসাবের খাতা আর আর্কাইভ — মালিকের নিজের হাতের কাজ
+   ========================================================================== */
+
+/**
+ * GET /api/v1/orders/ledger?from=2026-01-01&to=2026-12-31
+ * বছরের হিসাবও এতে ৩৬৫টা সারির যোগ — লক্ষ লক্ষ অর্ডার স্ক্যান নয়।
+ */
+const getLedger = catchAsync(async (req: NextRequest) => {
+  requireRole(req, CAN_WRITE);
+
+  const { from, to, series } = getQuery(req);
+  const today = businessDayKey();
+  // কিছু না দিলে চলতি মাসের হিসাব
+  const fromDay = from?.trim() || `${today.slice(0, 7)}-01`;
+  const toDay = to?.trim() || today;
+
+  const [summary, daily] = await Promise.all([
+    LedgerService.summarize(fromDay, toDay),
+    series === "false" ? Promise.resolve([]) : LedgerService.dailySeries(fromDay, toDay),
+  ]);
+
+  return ok("Ledger fetched successfully", { ...summary, daily });
+});
+
+/**
+ * POST /api/v1/orders/maintenance — পুরোনো অর্ডার সরানো
+ * { "older_than_days": 90, "dry_run": true }
+ *
+ * `dry_run` দিয়ে আগে দেখে নেওয়া যায় কয়টা সরবে, তারপর সত্যি করা যায়।
+ * হিসাব খাতায় আর বিবরণ আর্কাইভে থেকেই যায় — কিছু হারায় না।
+ */
+const runMaintenance = catchAsync(async (req: NextRequest) => {
+  requireRole(req, OWNER_ONLY);
+
+  const body = await parseBody(req, purgeOrdersSchema);
+  const result = await LedgerService.purgeOldOrders(body.older_than_days, {
+    dryRun: body.dry_run,
+    batch: body.batch,
+  });
+
+  return ok(
+    body.dry_run
+      ? `${result.scanned} closed orders are older than ${result.older_than_days} days`
+      : `${result.deleted} old orders moved out of the live table`,
+    result,
+  );
+});
+
 export const OrderController = {
   seatOrder,
   createOrder,
+  getCooldown,
+  getLedger,
+  runMaintenance,
   createPosOrder,
   getAllOrders,
   getOrderById,
@@ -336,5 +453,6 @@ export const OrderController = {
   updatePayment,
   markInvoicePrinted,
   deleteOrder,
+  bulkDeleteOrders,
   getStats,
 };

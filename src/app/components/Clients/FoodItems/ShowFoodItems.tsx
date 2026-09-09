@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -9,9 +9,19 @@ import { apiGet, getApiErrorMessage } from "@/src/lib/apiClient";
 
 const LIMIT = 12;
 
-const ShowFoodItems = () => {
-  const [foods, setFoods] = useState<FoodItem[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ShowFoodItemsProps {
+  /**
+   * সার্ভারে রেন্ডার হওয়ার সময়েই তোলা খাবারের তালিকা।
+   * থাকলে প্রথম HTML এ খাবারগুলোর নাম, দাম আর ছবি চলে যায় — গুগল
+   * আর সোশ্যাল প্রিভিউ দুজনেই সেগুলো দেখতে পায়, আর ভিজিটরকে
+   * JavaScript লোড হওয়ার জন্য বসে থাকতে হয় না।
+   */
+  initialFoods?: FoodItem[];
+}
+
+const ShowFoodItems = ({ initialFoods }: ShowFoodItemsProps = {}) => {
+  const [foods, setFoods] = useState<FoodItem[]>(initialFoods ?? []);
+  const [loading, setLoading] = useState(!initialFoods?.length);
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -28,7 +38,16 @@ const ShowFoodItems = () => {
 
   // searchTerm বদলালেই নতুন করে আনা হয়; পুরনো রিকোয়েস্টের উত্তর এলে
   // cancelled ফ্ল্যাগ সেটা ফেলে দেয়
+  // সার্ভারের দেওয়া প্রথম তালিকাটা আবার আনার দরকার নেই; সার্চ করলে
+  // তবেই নতুন করে ডাকা হয়
+  const servedFromServer = useRef(!!initialFoods?.length);
+
   useEffect(() => {
+    if (servedFromServer.current && !searchTerm.trim()) {
+      servedFromServer.current = false;
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {

@@ -7,15 +7,23 @@ import { IGenericErrorMassage } from "../utils/GlobalError";
 export class ApiError extends Error {
   statusCode: number;
   errorMessages: IGenericErrorMassage[];
+  /**
+   * এররের সাথে যাওয়া হেডার — যেমন ৪২৯ এর `Retry-After`।
+   * ব্রাউজার আর আমাদের নিজেদের UI দুজনেই এটা পড়ে বুঝতে পারে
+   * কতক্ষণ পরে আবার চেষ্টা করা যাবে।
+   */
+  headers?: Record<string, string>;
 
   constructor(
     statusCode: number,
     message: string,
     errorMessages: IGenericErrorMassage[] = [],
+    headers?: Record<string, string>,
   ) {
     super(message);
     this.statusCode = statusCode;
     this.errorMessages = errorMessages;
+    this.headers = headers;
     this.name = "ApiError";
     Error.captureStackTrace?.(this, this.constructor);
   }
@@ -35,5 +43,10 @@ export const NotFound = (message = "Resource not found") => new ApiError(404, me
 
 export const Conflict = (message = "Resource already exists") => new ApiError(409, message);
 
-export const TooManyRequests = (message = "Too many requests") =>
-  new ApiError(429, message);
+export const TooManyRequests = (message = "Too many requests", retryAfterSeconds?: number) =>
+  new ApiError(
+    429,
+    message,
+    retryAfterSeconds ? [{ path: "rate_limit", message: String(retryAfterSeconds) }] : [],
+    retryAfterSeconds ? { "Retry-After": String(retryAfterSeconds) } : undefined,
+  );

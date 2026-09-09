@@ -8,9 +8,17 @@ import { StaffModel } from "../models/staff.model";
 import { IGenaricRespons } from "../lib/common";
 import { IPaginationOpton } from "../lib/pagination";
 import { HelperPagination } from "../lib/paginationHelper";
-import { BadRequest, Conflict, NotFound } from "../lib/apiError";
+import { ApiError, BadRequest, Conflict, NotFound } from "../lib/apiError";
+import { orderDateStamp, startOfBusinessDay } from "../lib/businessTime";
+import {
+  escapeRegex,
+  prefixRegex,
+  sanitizeSearchTerm,
+  safeSortBy,
+} from "../lib/safeQuery";
 import { calcOrderPricing } from "../config/business";
 import { SettingsService } from "./settings.service";
+import { LedgerService } from "./ledger.service";
 import { TableService } from "./table.service";
 import {
   IOrderDocument,
@@ -18,7 +26,6 @@ import {
   IOrderStaffRef,
   OrderStatus,
   ORDER_STATUS_FLOW,
-  OrderSearchableFields,
   ACTIVE_ORDER_STATUSES,
   TABLE_HELD_STATUSES,
   KITCHEN_STATUSES,
@@ -28,36 +35,82 @@ import { CreateOrderInput } from "../validations/order.schema";
 import { phoneVariants } from "../lib/phone";
 
 /* ==========================================================================
-   অর্ডার নম্বর — ORD-260907-0007 (তারিখ + ঐ দিনের ক্রমিক)
+   অর্ডার নম্বর — ORD-260909-0007 (তারিখ + ঐ দিনের ক্রমিক)
+   --------------------------------------------------------------------------
+   চেকআউটে যে ৪০৯ ("A record with this order_number already exists") আসছিল,
+   তার জন্ম এখানেই। আগের কোড ঐ দিনের অর্ডার **গুনে** পরের সংখ্যাটা বসাত।
+   দুজন কাস্টমার একই সেকেন্ডে "Place order" চাপলে দুজনেই একই সংখ্যা গুনত,
+   দুজনেরই নম্বর হতো `...-0007`, আর দ্বিতীয়জনের অর্ডার `order_number` এর
+   unique ইনডেক্সে আটকে যেত। ব্যস্ত সময়ে তাই কাস্টমার হারাত।
+
+   এখন তিনটে স্তর, তিনটেই আলাদা কারণে:
+
+     ১. **পরমাণু কাউন্টার** — গোনা নয়, `$inc`। মঙ্গো নিজে নিশ্চিত করে
+        একই মুহূর্তের দুটো ডাক দুটো আলাদা সংখ্যা পায়। এতেই আসল
+        সমস্যাটা শেষ, সার্ভার কয়টা ইনস্ট্যান্সে চলুক না কেন।
+
+     ২. **নিজে সেরে ওঠা** — কাউন্টার যদি কোনোভাবে পিছিয়ে থাকে (হাতে
+        ডেটা বসানো, পুরোনো অর্ডার ইমপোর্ট, কালেকশন রিসেট), তবু নম্বর
+        সংঘর্ষ হতে পারে। তাই সংঘর্ষ হলে ঐ দিনের সবচেয়ে বড় নম্বরটা
+        দেখে কাউন্টারকে সেখান থেকে এগিয়ে দেওয়া হয়।
+
+     ৩. **শেষ ভরসা** — কয়েকবার চেষ্টার পরেও না হলে সময় ধরে একটা
+        নম্বর বসে। কাস্টমারের অর্ডার কখনোই এররে শেষ হয় না।
+
+   তারিখটা দোকানের টাইমজোনে (Asia/Dhaka), সার্ভারের UTC ঘড়িতে নয় —
+   নাহলে রাত ১২টা থেকে ভোর ৬টার অর্ডারে আগের দিনের তারিখ বসত।
    ========================================================================== */
-async function generateOrderNumber(prefix: string): Promise<string> {
-  const now = new Date();
-  const stamp = [
-    String(now.getFullYear()).slice(-2),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-  ].join("");
 
-  const key = `${prefix}-${stamp}`;
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const countToday = await OrderModel.countDocuments({
-    order_number: new RegExp(`^${prefix}-${stamp}-`),
-    createdAt: { $gte: startOfDay },
-  });
-
-  await OrderSequenceModel.findOneAndUpdate(
+/** ঐ দিনের কাউন্টার এক ধাপ বাড়িয়ে নতুন সংখ্যাটা ফেরত দেয় */
+async function nextSequence(key: string): Promise<number> {
+  const doc = await OrderSequenceModel.findOneAndUpdate(
     { key },
-    { $setOnInsert: { key, value: countToday } },
-    { upsert: true, new: false, setDefaultsOnInsert: true },
-  );
-
-  const sequence = await OrderSequenceModel.findOneAndUpdate(
-    { key },
-    { $inc: { value: 1 } },
+    { $inc: { value: 1 }, $set: { updated_at: new Date() } },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   ).lean();
 
-  return `${prefix}-${stamp}-${String(sequence.value).padStart(4, "0")}`;
+  return doc?.value ?? 1;
+}
+
+/**
+ * কাউন্টার পিছিয়ে থাকলে ঐ দিনের সবচেয়ে বড় নম্বরের পরে নিয়ে যায়।
+ * শুধু সংঘর্ষ হলেই ডাকা হয়, তাই স্বাভাবিক পথে বাড়তি কোনো কোয়েরি নেই।
+ */
+async function healSequence(key: string, prefix: string, stamp: string) {
+  const latest = await OrderModel.findOne({
+    order_number: prefixRegex(`${prefix}-${stamp}-`),
+  })
+    .select("order_number")
+    .sort({ order_number: -1 })
+    .lean();
+
+  const highest = Number(latest?.order_number?.split("-").pop()) || 0;
+
+  await OrderSequenceModel.updateOne(
+    { key },
+    { $max: { value: highest }, $set: { updated_at: new Date() } },
+    { upsert: true },
+  );
+}
+
+/** ডুপ্লিকেট `order_number` কিনা — অন্য কোনো unique ফিল্ডের সংঘর্ষ নয় তো */
+const isDuplicateOrderNumber = (err: unknown) =>
+  typeof err === "object" &&
+  err !== null &&
+  (err as { code?: number }).code === 11000 &&
+  Object.keys((err as { keyPattern?: Record<string, unknown> }).keyPattern || {}).includes(
+    "order_number",
+  );
+
+async function generateOrderNumber(prefix: string, attempt = 0): Promise<string> {
+  const stamp = orderDateStamp();
+  const key = `${prefix}-${stamp}`;
+
+  // তৃতীয় চেষ্টার আগে কাউন্টারকে বাস্তবের সাথে মিলিয়ে নিই
+  if (attempt > 0) await healSequence(key, prefix, stamp);
+
+  const sequence = await nextSequence(key);
+  return `${prefix}-${stamp}-${String(sequence).padStart(4, "0")}`;
 }
 
 /* ==========================================================================
@@ -131,6 +184,99 @@ async function staffRef(id?: string): Promise<IOrderStaffRef> {
 }
 
 /* ==========================================================================
+   COOLDOWN — একটা অর্ডারের পরে পরেরটার জন্য অপেক্ষা
+   --------------------------------------------------------------------------
+   একই কাস্টমার পর পর অর্ডার বসিয়ে দিলে রান্নাঘরে একই খাবারের কয়েকটা
+   টিকিট চলে যায় — সাধারণত "বোতামটা কাজ করেনি" ভেবে দুবার চাপার ফল।
+   ভুল অর্ডার রান্না হয়ে টাকা আর খাবার দুটোই নষ্ট হয়।
+
+   তাই ওয়েব থেকে আসা অর্ডারে ৩ মিনিটের বিরতি। নিয়মটা ফোন নম্বর ধরে —
+   লগইন করা থাকুক বা না থাকুক, একই মানুষ একই নিয়মে পড়ে।
+
+   POS ইচ্ছে করেই এর বাইরে: কাউন্টারে একজন ক্যাশিয়ার পর পর দশজনের
+   অর্ডার তোলেন, তাঁকে আটকানো মানে দোকান বন্ধ করে দেওয়া।
+   ========================================================================== */
+export const ORDER_COOLDOWN_SECONDS = Number(
+  process.env.ORDER_COOLDOWN_SECONDS || 180,
+);
+
+/** বিরতির মধ্যে গোনা হয় এমন স্ট্যাটাস — বাতিল হয়ে যাওয়া অর্ডার গোনা হয় না */
+const COOLDOWN_STATUSES: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "served",
+  "out_for_delivery",
+];
+
+export interface OrderCooldown {
+  /** এখন অর্ডার দেওয়া যাবে কিনা */
+  can_order: boolean;
+  /** আর কত সেকেন্ড বাকি */
+  seconds_remaining: number;
+  /** মোট বিরতি কত সেকেন্ডের — UI এর প্রগ্রেস রিং এটা দিয়ে আঁকে */
+  cooldown_seconds: number;
+  /** আগের অর্ডারটা কোনটা — "আপনার ORD-… এখনো রান্নাঘরে" বলার জন্য */
+  last_order_number?: string;
+  last_order_id?: string;
+  last_order_status?: OrderStatus;
+  /** কখন আবার দেওয়া যাবে (ISO) — ক্লায়েন্টের ঘড়ি এগিয়ে/পিছিয়ে থাকলেও কাজ করে */
+  next_order_at?: string;
+}
+
+/**
+ * ঐ ফোন নম্বরের সর্বশেষ ওয়েব-অর্ডার দেখে বিরতির অবস্থা বলে।
+ * চেকআউট পেজ এটাই ডেকে লাইভ কাউন্টডাউন দেখায়, আর অর্ডার বসানোর সময়
+ * সার্ভার নিজেও এটাই মিলিয়ে দেখে — দুই জায়গায় নিয়ম এক।
+ */
+const getCooldown = async (
+  phone: string,
+  userId?: string,
+): Promise<OrderCooldown> => {
+  const since = new Date(Date.now() - ORDER_COOLDOWN_SECONDS * 1000);
+
+  // নম্বর যেভাবেই লেখা হোক (01…, 8801…, +8801…) — সব রূপই মেলানো হয়
+  const identity: Record<string, unknown>[] = [
+    { "customer.phone": { $in: phoneVariants(phone) } },
+  ];
+  if (userId) identity.push({ user_id: userId });
+
+  const last = await OrderModel.findOne({
+    $or: identity,
+    source: "web",
+    status: { $in: COOLDOWN_STATUSES },
+    createdAt: { $gte: since },
+  })
+    .select("order_number status createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (!last) {
+    return {
+      can_order: true,
+      seconds_remaining: 0,
+      cooldown_seconds: ORDER_COOLDOWN_SECONDS,
+    };
+  }
+
+  const readyAt = new Date(
+    new Date(last.createdAt).getTime() + ORDER_COOLDOWN_SECONDS * 1000,
+  );
+  const remaining = Math.max(0, Math.ceil((readyAt.getTime() - Date.now()) / 1000));
+
+  return {
+    can_order: remaining === 0,
+    seconds_remaining: remaining,
+    cooldown_seconds: ORDER_COOLDOWN_SECONDS,
+    last_order_number: last.order_number,
+    last_order_id: String(last._id),
+    last_order_status: last.status,
+    next_order_at: readyAt.toISOString(),
+  };
+};
+
+/* ==========================================================================
    CREATE
    ========================================================================== */
 const createOrder = async (
@@ -144,7 +290,29 @@ const createOrder = async (
     taken_by?: IOrderStaffRef;
   } = {},
 ) => {
+  const source = meta.source || "web";
   const settings = await SettingsService.get();
+
+  /* ---- ওয়েব অর্ডারে বিরতি — কাউন্টারের অর্ডার এর বাইরে ---- */
+  if (source === "web") {
+    const cooldown = await getCooldown(payload.customer.phone, meta.user_id);
+
+    if (!cooldown.can_order) {
+      const minutes = Math.floor(cooldown.seconds_remaining / 60);
+      const seconds = cooldown.seconds_remaining % 60;
+      const wait =
+        minutes > 0
+          ? `${minutes} minute${minutes === 1 ? "" : "s"}${seconds ? ` ${seconds}s` : ""}`
+          : `${seconds} seconds`;
+
+      throw new ApiError(
+        429,
+        `Your order ${cooldown.last_order_number} is already with us. You can place another one in ${wait}.`,
+        [{ path: "cooldown", message: String(cooldown.seconds_remaining) }],
+        { "Retry-After": String(cooldown.seconds_remaining) },
+      );
+    }
+  }
 
   // দোকান যেটা অফার করে না সেটা কেউ যেন সরাসরি API তে পাঠিয়ে বসাতে না পারে —
   // চেকআউটে অপশনটা লুকানো থাকাই যথেষ্ট নয়
@@ -197,8 +365,7 @@ const createOrder = async (
     settings,
   );
 
-  const order = await OrderModel.create({
-    order_number: await generateOrderNumber(settings.order_prefix),
+  const draft = {
     user_id: meta.user_id || "",
     items,
     customer: payload.customer,
@@ -213,24 +380,55 @@ const createOrder = async (
     waiter,
 
     payment_method: payload.payment_method,
-    payment_status: "unpaid",
-    status: "pending",
+    payment_status: "unpaid" as const,
+    status: "pending" as const,
     pricing,
     coupon_code: payload.coupon_code || "",
-    source: meta.source || "web",
+    source,
     placed_ip: meta.ip || "",
     scheduled_for: payload.scheduled_for ?? undefined,
     status_history: [
       {
-        status: "pending",
+        status: "pending" as const,
         at: new Date(),
         by: meta.taken_by?.name || "customer",
       },
     ],
-  });
+  };
 
-  // দখল করা হয় না — কনফার্মের সময় হবে
-  return order;
+  /* ==========================================================================
+     নম্বর বসিয়ে সেভ — সংঘর্ষ হলে আবার চেষ্টা
+     --------------------------------------------------------------------------
+     স্বাভাবিক অবস্থায় প্রথম চেষ্টাতেই হয়ে যায়। দ্বিতীয় চেষ্টায় কাউন্টারকে
+     বাস্তবের সাথে মিলিয়ে নেওয়া হয় (`healSequence`), তাই দ্বিতীয়বার
+     সংঘর্ষ প্রায় অসম্ভব। তবু তিনবারেই না হলে সময় ধরে একটা নম্বর বসে —
+     কাস্টমারের অর্ডার কখনোই ৪০৯ এ শেষ হয় না।
+     ========================================================================== */
+  const MAX_ATTEMPTS = 4;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const order_number =
+      attempt < MAX_ATTEMPTS - 1
+        ? await generateOrderNumber(settings.order_prefix, attempt)
+        : // শেষ ভরসা — মিলিসেকেন্ড + এলোমেলো, দুবার এক হওয়া কার্যত অসম্ভব
+          `${settings.order_prefix}-${orderDateStamp()}-${Date.now()
+            .toString(36)
+            .toUpperCase()
+            .slice(-5)}`;
+
+    try {
+      // দখল করা হয় না — কনফার্মের সময় হবে
+      return await OrderModel.create({ ...draft, order_number });
+    } catch (err) {
+      if (!isDuplicateOrderNumber(err) || attempt === MAX_ATTEMPTS - 1) throw err;
+      console.warn(
+        `[order] order_number ${order_number} collided, retrying (${attempt + 1})`,
+      );
+    }
+  }
+
+  // এখানে পৌঁছানোর কোনো পথ নেই, কিন্তু TypeScript কে বলে রাখা দরকার
+  throw new ApiError(500, "Could not place the order. Please try again.");
 };
 
 /* ==========================================================================
@@ -381,6 +579,18 @@ const setDiscount = async (id: string, discount: number, by?: IOrderStaffRef) =>
 /* ==========================================================================
    LIST — সার্চ + ফিল্টার + তারিখ রেঞ্জ + পেজিনেশন + মোট বিক্রির যোগফল
    ========================================================================== */
+
+/** যেসব ফিল্ডে সাজানো নিরাপদ — সবকটাই ইনডেক্স করা */
+const ORDER_SORT_FIELDS = [
+  "createdAt",
+  "updatedAt",
+  "order_number",
+  "status",
+  "confirmed_at",
+  "completed_at",
+  "pricing.total",
+] as const;
+
 const getAllOrders = async (
   filtering: Record<string, any>,
   paginationOption: IPaginationOpton,
@@ -389,13 +599,39 @@ const getAllOrders = async (
 
   const andConditions: Record<string, any>[] = [];
 
-  const term = typeof searchTerm === "string" ? searchTerm.trim() : "";
+  /* ==========================================================================
+     সার্চ — দুটো জিনিস ইচ্ছে করেই বদলানো
+     --------------------------------------------------------------------------
+     ১. **অক্ষরগুলো আক্ষরিক ধরা হয়।** আগে টার্মটা সরাসরি `$regex` এ বসত,
+        তাই কেউ `.*` লিখলেই ফিল্টার অর্থহীন হয়ে যেত, আর `(a+)+$` জাতীয়
+        একটা ছোট স্ট্রিং পাঠিয়ে ডাটাবেসের CPU ঘণ্টার পর ঘণ্টা আটকে রেখে
+        পুরো সাইট বসিয়ে দেওয়া যেত (ReDoS)।
+
+     ২. **শুরু থেকে মেলানো (`^`)।** মাঝখানে মেলানো রেজেক্স কখনো ইনডেক্স
+        ব্যবহার করতে পারে না — প্রতিটা সার্চে পুরো কালেকশন স্ক্যান হতো।
+        এক বছরের অর্ডার জমার পরে ড্যাশবোর্ডের একটামাত্র সার্চেই সাইট
+        ধীর হয়ে যেত। এখন অর্ডার নম্বর আর ফোন নম্বর ইনডেক্স ধরে চলে।
+
+     ঠিকানা আর নাম ইনডেক্সে নেই বলে সেগুলো তালিকা থেকে বাদ — অর্ডার
+     নম্বর বা ফোন দিয়েই খোঁজা হয়, আর দুটোই দ্রুত।
+     ========================================================================== */
+  const term = sanitizeSearchTerm(searchTerm);
   if (term) {
-    andConditions.push({
-      $or: OrderSearchableFields.map((field) => ({
-        [field]: { $regex: term, $options: "i" },
-      })),
-    });
+    const or: Record<string, unknown>[] = [
+      // অর্ডার নম্বর সবসময় বড় হাতের অক্ষরে জমা হয়, তাই বড় হাতে মিলিয়ে
+      // case-sensitive রেজেক্স চালাই — এটাই unique ইনডেক্স ব্যবহার করতে পারে
+      { order_number: new RegExp(`^${escapeRegex(term.toUpperCase())}`) },
+    ];
+
+    if (/^[\d+]/.test(term)) {
+      // সংখ্যা দিয়ে শুরু মানে ফোন নম্বর খোঁজা হচ্ছে — `customer.phone` ইনডেক্সে বসে
+      or.push({ "customer.phone": new RegExp(`^${escapeRegex(term)}`) });
+    } else {
+      or.push({ "customer.name": prefixRegex(term) });
+      or.push({ table_name: prefixRegex(term) });
+    }
+
+    andConditions.push({ $or: or });
   }
 
   // status=pending,confirmed এভাবে কমা দিয়ে একাধিক মান পাঠানো যায় — ড্যাশবোর্ডের
@@ -427,15 +663,30 @@ const getAllOrders = async (
     andConditions.push({ createdAt: range });
   }
 
-  const { page, limit, skip, sortBy, sortOrder } =
+  const { page, limit, skip, sortOrder } =
     HelperPagination.calculationPagination(paginationOption);
 
+  /**
+   * সাজানোর ফিল্ডও কোয়েরি স্ট্রিং থেকে আসে। অচেনা ফিল্ডে সাজাতে গেলে
+   * মঙ্গো ইনডেক্স ছাড়াই মেমোরিতে সাজায় — বড় কালেকশনে সেটা হয় ভয়ানক
+   * ধীর, নয়তো সরাসরি "Sort exceeded memory limit" এরর। তাই শুধু
+   * ইনডেক্স করা ফিল্ডগুলোতেই সাজানো যায়।
+   */
+  const sortBy = safeSortBy(paginationOption.sortBy, ORDER_SORT_FIELDS);
   const sortConditions: Record<string, SortOrder> = { [sortBy]: sortOrder };
   const where = andConditions.length ? { $and: andConditions } : {};
 
   const [data, total, sum] = await Promise.all([
-    OrderModel.find(where).sort(sortConditions).skip(skip).limit(limit),
-    OrderModel.countDocuments(where),
+    OrderModel.find(where).sort(sortConditions).skip(skip).limit(limit).lean(),
+    /**
+     * এক বছরের অর্ডার জমার পরে `countDocuments` প্রতিবার পুরো ম্যাচিং সেট
+     * গোনে। ফিল্টার ছাড়া তালিকায় সেটা অর্থহীনভাবে দামি, অথচ পেজিনেশনের
+     * জন্য নিখুঁত সংখ্যাটা দরকারও নয় — তাই ফিল্টার না থাকলে মেটাডেটা
+     * থেকে আনুমানিক সংখ্যাটাই নেওয়া হয়।
+     */
+    andConditions.length
+      ? OrderModel.countDocuments(where)
+      : OrderModel.estimatedDocumentCount(),
     OrderModel.aggregate([
       { $match: where },
       { $group: { _id: null, totalAmount: { $sum: "$pricing.total" } } },
@@ -444,7 +695,7 @@ const getAllOrders = async (
 
   return {
     meta: { page, limit, total },
-    data,
+    data: data as unknown as IOrderDocument[],
     totalAmount: Math.round((sum[0]?.totalAmount || 0) * 100) / 100,
   };
 };
@@ -680,6 +931,19 @@ const updateStatus = async (
   });
 
   await order.save();
+
+  /* ==========================================================================
+     অর্ডার শেষ — হিসাব খাতায় বসে যায়, আর একটা হালকা কপি আর্কাইভে জমে
+     --------------------------------------------------------------------------
+     এই এক লাইনটার কারণেই পরে নিশ্চিন্তে পুরোনো অর্ডার মুছে ফেলা যায়:
+     টাকার হিসাব দিনের খাতায়, অর্ডারের বিবরণ আর্কাইভে — দুটোই আলাদা
+     জায়গায় নিরাপদ। খাতায় লিখতে গিয়ে কিছু আটকালে সেটা লগে যায়,
+     কাস্টমারের অর্ডার আটকায় না।
+     ========================================================================== */
+  if (next === "delivered" || next === "cancelled") {
+    await LedgerService.closeOrder(order);
+  }
+
   return order;
 };
 
@@ -801,15 +1065,70 @@ const deleteOrder = async (id: string) => {
   return order;
 };
 
+/**
+ * তালিকা থেকে চেকবক্সে বেছে নেওয়া অর্ডারগুলো একসাথে মোছা।
+ *
+ * মোছার আগে টেবিলগুলো তুলে রাখি — একটা করে মোছার সময় `deleteOrder`
+ * যেমন টেবিল ছেড়ে দেয়, এখানেও ঠিক তেমনটাই হওয়া চাই। নাহলে ১০টা
+ * ডাইন-ইন অর্ডার মুছে ফেলার পর ১০টা টেবিল চিরকাল "occupied" দেখাত,
+ * অথচ সেখানে কেউ বসে নেই।
+ *
+ * একই টেবিলে পরপর দুটো অর্ডার থাকতে পারে, তাই `Set` — একই টেবিল
+ * দুবার ছাড়ানোর দরকার নেই।
+ */
+const deleteManyOrders = async (ids: string[]) => {
+  const doomed = await OrderModel.find({ _id: { $in: ids } })
+    .select("_id order_number table_id")
+    .lean();
+
+  if (!doomed.length) {
+    return { requested: ids.length, deleted: 0, missing: ids.length, order_numbers: [] };
+  }
+
+  const res = await OrderModel.deleteMany({ _id: { $in: doomed.map((o) => o._id) } });
+  const deleted = res.deletedCount ?? 0;
+
+  const tableIds = [
+    ...new Set(doomed.filter((o: any) => o.table_id).map((o: any) => String(o.table_id))),
+  ];
+  // একটা টেবিল ছাড়াতে না পারলেও বাকিগুলো ছাড়ানো আটকায় না — অর্ডার
+  // তো ইতিমধ্যেই মুছে গেছে, এখানে থেমে গেলে অবস্থা আরও খারাপ হতো
+  await Promise.all(
+    tableIds.map((tableId) =>
+      TableService.release(tableId).catch(() =>
+        console.warn("Could not free table after bulk delete", tableId),
+      ),
+    ),
+  );
+
+  return {
+    requested: ids.length,
+    deleted,
+    missing: ids.length - deleted,
+    // কোন কোন অর্ডার গেল — টোস্টে আর অডিটে দুই জায়গাতেই কাজে লাগে
+    order_numbers: doomed.map((o: any) => o.order_number).filter(Boolean),
+  };
+};
+
 /* ==========================================================================
    STATS — ড্যাশবোর্ডের উপরের কার্ডগুলোর ডেটা
    ========================================================================== */
 const getStats = async () => {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  // দিনের সীমা দোকানের ঘড়িতে — সার্ভারের UTC ঘড়িতে নয়। নাহলে "আজকের
+  // বিক্রি" বাংলাদেশ সময় ভোর ৬টায় রিসেট হতো, রাত ১২টায় নয়।
+  const startOfToday = startOfBusinessDay();
 
-  const [byStatus, todayAgg, allTimeAgg, recent, tables] = await Promise.all([
-    OrderModel.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+  const [byStatus, todayAgg, allTime, recent, tables] = await Promise.all([
+    /**
+     * স্ট্যাটাসের গোনা — চলতি অর্ডারগুলোতেই সীমাবদ্ধ। আগে পুরো কালেকশন
+     * গ্রুপ করা হতো, তাই এক বছরের অর্ডার জমার পরে ড্যাশবোর্ড খুললেই
+     * লক্ষ লক্ষ ডকুমেন্ট পড়তে হতো। "কয়টা delivered হয়েছে" এখন খাতা
+     * থেকে আসে, আর ড্যাশবোর্ডের কার্ডে দরকার শুধু চলতিগুলোই।
+     */
+    OrderModel.aggregate([
+      { $match: { status: { $in: ACTIVE_ORDER_STATUSES } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]),
     OrderModel.aggregate([
       {
         $match: {
@@ -819,11 +1138,9 @@ const getStats = async () => {
       },
       { $group: { _id: null, revenue: { $sum: "$pricing.total" }, count: { $sum: 1 } } },
     ]),
-    OrderModel.aggregate([
-      { $match: { status: "delivered" } },
-      { $group: { _id: null, revenue: { $sum: "$pricing.total" }, count: { $sum: 1 } } },
-    ]),
-    OrderModel.find().sort({ createdAt: -1 }).limit(8),
+    // সারা জীবনের হিসাব দিনের খাতা থেকে — ৩৬৫টা সারির যোগ, অর্ডার স্ক্যান নয়
+    LedgerService.allTimeTotals(),
+    OrderModel.find().sort({ createdAt: -1 }).limit(8).lean(),
     TableModel.aggregate([
       { $match: { is_active: true } },
       { $group: { _id: "$status", count: { $sum: 1 } } },
@@ -851,10 +1168,7 @@ const getStats = async () => {
       orders: todayAgg[0]?.count || 0,
       revenue: Math.round((todayAgg[0]?.revenue || 0) * 100) / 100,
     },
-    allTime: {
-      orders: allTimeAgg[0]?.count || 0,
-      revenue: Math.round((allTimeAgg[0]?.revenue || 0) * 100) / 100,
-    },
+    allTime,
     recent,
   };
 };
@@ -862,6 +1176,7 @@ const getStats = async () => {
 export const OrderService = {
   seatOrder,
   createOrder,
+  getCooldown,
   addItems,
   updateItem,
   setDiscount,
@@ -875,5 +1190,6 @@ export const OrderService = {
   assign,
   markInvoicePrinted,
   deleteOrder,
+  deleteManyOrders,
   getStats,
 };

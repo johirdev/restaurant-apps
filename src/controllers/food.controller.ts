@@ -5,11 +5,30 @@ import mongoose from "mongoose";
 import { connectDB } from "../config/db";
 import { FoodService } from "../services/food.service";
 import { queryPick } from "../lib/queryPick";
+import { ApiError } from "../lib/apiError";
+import { requireRole, MANAGER_UP } from "../middlewares/requireAuth";
+import { limitByIp, RATE_RULES } from "../lib/rateLimit";
 import { ItemsFilterableFields, ItemsPaginationFields } from "../interfaces/food.interfaces";
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
+/* ==========================================================================
+   মেনু বদলানোর অধিকার
+   --------------------------------------------------------------------------
+   এই ফাইলের লেখার দরজাগুলো — খাবার তৈরি/সম্পাদনা/মুছে ফেলা আর ভ্যারিয়েশন —
+   আগে সম্পূর্ণ খোলা ছিল। কোনো টোকেন ছাড়াই ইন্টারনেটের যে কেউ পুরো মেনু
+   মুছে দিতে বা দাম বদলে দিতে পারত। এখন প্রতিটার শুরুতেই এই পাহারাটা বসে।
+   ========================================================================== */
+const requireMenuAccess = (req: NextRequest) => requireRole(req, MANAGER_UP);
+
 const handleError = (err: unknown, fallback: string) => {
+  // auth / rate-limit এর মতো নিজেদের এরর নিজের স্ট্যাটাস নিয়েই ফেরে
+  if (err instanceof ApiError) {
+    return NextResponse.json(
+      { success: false, message: err.message },
+      { status: err.statusCode, headers: err.headers },
+    );
+  }
   console.error(fallback, err);
   if (err instanceof mongoose.Error.ValidationError) {
     return NextResponse.json(
@@ -112,8 +131,10 @@ const getFoodById = async (id: string) => {
  * POST /api/v1/foods/:id/view — কেউ ডিটেইল পেজে ঢুকলে ভিউ একধাপ বাড়ে।
  * উত্তরে নতুন সংখ্যাটাই ফেরে, তাই পেজটা রিলোড ছাড়াই আপডেট দেখাতে পারে।
  */
-const incrementView = async (id: string) => {
+const incrementView = async (req: NextRequest, id: string) => {
   try {
+    // একই স্ক্রিপ্ট বারবার ডেকে ভিউ সংখ্যা ফুলিয়ে দেওয়া ঠেকায়
+    await limitByIp(RATE_RULES.foodView, req);
     if (!isValidObjectId(id))
       return NextResponse.json(
         { success: false, message: "Invalid food id" },
@@ -139,6 +160,7 @@ const incrementView = async (id: string) => {
 // POST /api/v1/foods — creates the Food row WITH its variations embedded (one table)
 const createFood = async (req: NextRequest) => {
   try {
+    requireMenuAccess(req);
     await connectDB();
     const body = await req.json();
     const validationError = validateCreatePayload(body);
@@ -160,6 +182,7 @@ const createFood = async (req: NextRequest) => {
 
 const updateFood = async (req: NextRequest, id: string) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(id))
       return NextResponse.json(
         { success: false, message: "Invalid food id" },
@@ -183,8 +206,9 @@ const updateFood = async (req: NextRequest, id: string) => {
   }
 };
 
-const deleteFood = async (id: string) => {
+const deleteFood = async (req: NextRequest, id: string) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(id))
       return NextResponse.json(
         { success: false, message: "Invalid food id" },
@@ -211,6 +235,7 @@ const deleteFood = async (id: string) => {
 
 const addVariation = async (req: NextRequest, foodId: string) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(foodId))
       return NextResponse.json(
         { success: false, message: "Invalid food id" },
@@ -246,6 +271,7 @@ const updateVariation = async (
   variationId: string,
 ) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(foodId) || !isValidObjectId(variationId))
       return NextResponse.json(
         { success: false, message: "Invalid id" },
@@ -269,8 +295,13 @@ const updateVariation = async (
   }
 };
 
-const deleteVariation = async (foodId: string, variationId: string) => {
+const deleteVariation = async (
+  req: NextRequest,
+  foodId: string,
+  variationId: string,
+) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(foodId) || !isValidObjectId(variationId))
       return NextResponse.json(
         { success: false, message: "Invalid id" },

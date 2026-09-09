@@ -4,6 +4,7 @@ import { ApiError } from "../lib/apiError";
 import { sendResponse } from "../lib/sendResponse";
 import { connectDB } from "../config/db";
 import { verifyTokenAndRole } from "../middlewares/adminRoleAccess.middlewares";
+import { limitByIp, RATE_RULES } from "../lib/rateLimit";
 import {
   createStaffService,
   loginStaffService,
@@ -16,10 +17,17 @@ import {
 // ── shared error responder ───────────────────────────────────────────────
 const handleError = (err: any) => {
   const status = err instanceof ApiError ? err.statusCode : 500;
+  if (status >= 500) console.error("[staff]", err);
   return sendResponse({
     statusCode: status,
     success: false,
-    message: err.message ?? "Something went wrong",
+    // ৫০০ এর আসল বার্তায় ডাটাবেসের গঠন বা ফাইলের পথ থাকতে পারে —
+    // সেটা বাইরে দেওয়ার কোনো দরকার নেই
+    message:
+      status >= 500
+        ? "Something went wrong on our side. Please try again."
+        : (err.message ?? "Something went wrong"),
+    headers: err instanceof ApiError ? err.headers : undefined,
   });
 };
 
@@ -52,6 +60,14 @@ export const createStaff = async (req: NextRequest) => {
 export const loginStaff = async (req: NextRequest) => {
   try {
     await connectDB();
+
+    // এক টার্মিনাল থেকে পাসওয়ার্ড অনুমান করার চেষ্টা ঠেকায়
+    await limitByIp(
+      RATE_RULES.login,
+      req,
+      "Too many login attempts from this device. Please wait a few minutes.",
+    );
+
     const body = await req.json();
 
     const result = await loginStaffService({

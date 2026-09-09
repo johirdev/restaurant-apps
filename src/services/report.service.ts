@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import OrderModel from "../models/order.model";
 import { REVENUE_STATUSES } from "../interfaces/order.interfaces";
+import {
+  RESTAURANT_TZ,
+  businessDayKey,
+  startOfBusinessDay,
+  endOfBusinessDay,
+  startOfDaysAgo,
+} from "../lib/businessTime";
 
 /* ==========================================================================
    REPORTS — বিক্রির হিসাব
@@ -12,7 +19,9 @@ import { REVENUE_STATUSES } from "../interfaces/order.interfaces";
    পর হিসাব হঠাৎ আগের দিনে চলে যায় না।
    ========================================================================== */
 
-const TZ = "Asia/Dhaka";
+// মঙ্গোর $dateToString ও একই টাইমজোন ধরে দিন কাটে, তাই গ্রাফের বার আর
+// উপরের সারাংশ কখনো এক দিন সরে যায় না
+const TZ = RESTAURANT_TZ;
 
 export type ReportRange = "today" | "week" | "month" | "year" | "custom";
 export type ReportGroup = "day" | "month" | "year";
@@ -29,37 +38,49 @@ export function resolveRange(
   dateFrom?: string,
   dateTo?: string,
 ): { from: Date; to: Date; group: ReportGroup } {
-  const now = new Date();
+  /**
+   * দিনের সীমাটা দোকানের ঘড়িতে কাটা হয়, সার্ভারের ঘড়িতে নয়।
+   *
+   * আগে `setHours(0,0,0,0)` ব্যবহার হতো — সেটা সার্ভারের নিজের টাইমজোন
+   * ধরে চলে। ল্যাপটপে ডেভেলপ করার সময় সেটাই ঢাকার সময় ছিল, তাই ভুলটা
+   * চোখে পড়েনি। কিন্তু Vercel এর সার্ভার UTC তে চলে, তাই প্রোডাকশনে
+   * "আজ" শুরু হতো ঢাকার সময় ভোর ৬টায়। ফল: রাত ১২টা থেকে ভোর ৬টার
+   * বিক্রি আগের দিনের হিসাবে গিয়ে বসত — রাতের রেস্টুরেন্টে সেটা দিনের
+   * সবচেয়ে ব্যস্ত সময়ের একটা বড় অংশ।
+   */
+  const today = businessDayKey();
+  const [year, month] = today.split("-").map(Number);
+
+  const startOfDayFor = (value: string) =>
+    startOfBusinessDay(new Date(`${value.slice(0, 10)}T12:00:00Z`));
+  const endOfDayFor = (value: string) =>
+    endOfBusinessDay(new Date(`${value.slice(0, 10)}T12:00:00Z`));
 
   if (range === "custom" && (dateFrom || dateTo)) {
-    const from = dateFrom ? new Date(dateFrom) : new Date(now.getFullYear(), 0, 1);
-    const to = dateTo ? new Date(dateTo) : new Date();
-    from.setHours(0, 0, 0, 0);
-    to.setHours(23, 59, 59, 999);
+    const from = dateFrom ? startOfDayFor(dateFrom) : startOfDayFor(`${year}-01-01`);
+    const to = dateTo ? endOfDayFor(dateTo) : endOfBusinessDay();
 
     // রেঞ্জ লম্বা হলে দিন ধরে দেখালে গ্রাফ পড়া যায় না
     const days = (to.getTime() - from.getTime()) / 86_400_000;
     return { from, to, group: days > 365 ? "month" : "day" };
   }
 
-  const to = new Date();
-  to.setHours(23, 59, 59, 999);
-  const from = new Date();
-  from.setHours(0, 0, 0, 0);
+  const to = endOfBusinessDay();
 
   switch (range) {
     case "week":
-      from.setDate(from.getDate() - 6);
-      return { from, to, group: "day" };
+      return { from: startOfDaysAgo(6), to, group: "day" };
     case "month":
-      from.setDate(1);
-      return { from, to, group: "day" };
+      return {
+        from: startOfDayFor(`${year}-${String(month).padStart(2, "0")}-01`),
+        to,
+        group: "day",
+      };
     case "year":
-      from.setMonth(0, 1);
-      return { from, to, group: "month" };
+      return { from: startOfDayFor(`${year}-01-01`), to, group: "month" };
     case "today":
     default:
-      return { from, to, group: "day" };
+      return { from: startOfBusinessDay(), to, group: "day" };
   }
 }
 

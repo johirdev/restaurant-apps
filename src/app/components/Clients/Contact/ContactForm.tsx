@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
@@ -9,9 +9,11 @@ import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { apiPost, getApiErrorMessage } from "@/src/lib/apiClient";
 import {
   createContactMessageSchema,
+  MESSAGE_WORD_LIMIT,
   type CreateContactMessageInput,
   type CreateContactMessagePayload,
 } from "@/src/validations/contactMessage.schema";
+import { countWords } from "@/src/lib/textGuard";
 import {
   CONTACT_TOPICS,
   CONTACT_TOPIC_LABEL,
@@ -41,6 +43,7 @@ export default function ContactForm({ responseNote }: ContactFormProps) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateContactMessageInput, unknown, CreateContactMessagePayload>({
     resolver: zodResolver(createContactMessageSchema),
@@ -54,6 +57,14 @@ export default function ContactForm({ responseNote }: ContactFormProps) {
       website: "",
     },
   });
+
+  /**
+   * লেখা অবস্থাতেই শব্দ গোনা। সীমা ছাড়ালে জমা দেওয়ার সময় স্কিমা তো
+   * আটকাবেই, কিন্তু ৬০০ শব্দ লিখে ফেলার পরে "৫০০ শব্দের বেশি নয়"
+   * শোনাটা বিরক্তিকর — গোনাটা চোখের সামনে থাকলে সেটা আর হয় না।
+   */
+  const message = useWatch({ control, name: "message" });
+  const wordCount = countWords(message || "");
 
   const onSubmit = async (values: CreateContactMessagePayload) => {
     try {
@@ -155,11 +166,19 @@ export default function ContactForm({ responseNote }: ContactFormProps) {
           <textarea
             {...register("message")}
             rows={5}
-            placeholder="Tell us what you need…"
+            placeholder="Tell us what you need — in plain words, no links please."
             className={`site-input contact-input contact-textarea${
               errors.message ? " is-invalid" : ""
             }`}
           />
+
+          <span
+            className={`contact-field__count${
+              wordCount > MESSAGE_WORD_LIMIT ? " is-over" : ""
+            }`}
+          >
+            {wordCount} / {MESSAGE_WORD_LIMIT} words · links are not allowed
+          </span>
         </Field>
       </div>
 

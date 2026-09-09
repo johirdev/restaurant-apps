@@ -11,10 +11,12 @@ import {
 } from "../lib/apiHandler";
 import { requireRole, MANAGER_UP, ANY_STAFF } from "../middlewares/requireAuth";
 import { getClientIp } from "../lib/getClientIp";
+import { limitByIp, RATE_RULES } from "../lib/rateLimit";
 import {
   createContactMessageSchema,
   updateContactMessageSchema,
 } from "../validations/contactMessage.schema";
+import { bulkDeleteSchema } from "../validations/bulkDelete.schema";
 import type { ContactTopic } from "../interfaces/contactMessage.interface";
 
 /* ==========================================================================
@@ -25,6 +27,14 @@ import type { ContactTopic } from "../interfaces/contactMessage.interface";
    মিনিটের থ্রটল (সার্ভিসে)।
    ========================================================================== */
 const createMessage = catchAsync(async (req: NextRequest) => {
+  // honeypot আর এক মিনিটের থ্রটল আগে থেকেই আছে; এটা তার উপরে
+  // ঘণ্টার হিসাব, তাই ধীর গতির স্প্যাম বটও ইনবক্স ভরাতে পারে না
+  await limitByIp(
+    RATE_RULES.contact,
+    req,
+    "You have already sent us a few messages. Please give us a little time to reply.",
+  );
+
   const body = await parseBody(req, createContactMessageSchema);
 
   await ContactMessageService.create({
@@ -95,9 +105,31 @@ const deleteMessage = catchAsync<{ params: Promise<{ id: string }> }>(
   },
 );
 
+/* ==========================================================================
+   POST /api/v1/contact/bulk-delete   { "ids": ["...", "..."] }
+   --------------------------------------------------------------------------
+   ইনবক্সে চেকবক্স দিয়ে বাছা বার্তাগুলো একসাথে মুছে ফেলা। স্প্যাম
+   সাধারণত থোকায় থোকায় আসে, তাই একটা একটা করে মোছার চেয়ে এটাই
+   বাস্তব। অনুমতি একটা বার্তা মোছার মতোই — ম্যানেজার বা তার উপরে।
+   ========================================================================== */
+const bulkDeleteMessages = catchAsync(async (req: NextRequest) => {
+  requireRole(req, MANAGER_UP);
+
+  const { ids } = await parseBody(req, bulkDeleteSchema);
+  const result = await ContactMessageService.removeMany(ids);
+
+  return ok(
+    result.deleted
+      ? `${result.deleted} message${result.deleted === 1 ? "" : "s"} deleted`
+      : "None of those messages are here any more",
+    result,
+  );
+});
+
 export const ContactMessageController = {
   createMessage,
   getMessages,
   updateMessageStatus,
   deleteMessage,
+  bulkDeleteMessages,
 };

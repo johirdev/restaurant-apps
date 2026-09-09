@@ -7,7 +7,7 @@ import Link from "next/link";
 
 type SubTitle = "" | "New" | "Hot" | "Popular";
 
-interface Category {
+export interface Category {
   _id: string;
   image?: string;
   name: string;
@@ -24,6 +24,11 @@ interface FoodCategoryProps {
   activeSlug?: string;
   /** Auto-slide interval in ms. Set to 0 to disable autoplay. */
   autoPlayInterval?: number;
+  /**
+   * সার্ভার থেকে আসা ক্যাটাগরি — থাকলে প্রথম HTML এই চাকাটা ভরা
+   * অবস্থায় যায়, তাই ক্রলার আর ভিজিটর দুজনেই সাথে সাথে দেখে।
+   */
+  initialCategories?: Category[];
 }
 
 const AUTO_PLAY_DEFAULT = 3000;
@@ -71,9 +76,13 @@ const FoodCategory = ({
   onSelect,
   activeSlug,
   autoPlayInterval = AUTO_PLAY_DEFAULT,
+  initialCategories,
 }: FoodCategoryProps) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(
+    initialCategories ?? [],
+  );
+  // সার্ভার আগেই ডেটা দিয়ে দিলে স্কেলেটন দেখানোর দরকার নেই
+  const [loading, setLoading] = useState(!initialCategories?.length);
   const [error, setError] = useState(false);
 
   const trackRef = useRef<HTMLDivElement>(null);
@@ -97,6 +106,9 @@ const FoodCategory = ({
   // FETCH
   // ------------------------------------------------------------
   useEffect(() => {
+    // সার্ভার থেকেই এসে গেছে — আবার ডাকার কিছু নেই
+    if (initialCategories?.length) return;
+
     let cancelled = false;
 
     const fetchCategories = async () => {
@@ -121,7 +133,7 @@ const FoodCategory = ({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialCategories]);
 
   // ------------------------------------------------------------
   // SCROLL STATE (drives prev/next disabled + faded look)

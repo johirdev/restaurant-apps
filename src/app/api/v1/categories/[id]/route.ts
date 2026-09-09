@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/v1/categories/:id
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   const { id } = await params;
-  return CategoryController.deleteCategory(id);
+  return CategoryController.deleteCategory(req, id);
 }

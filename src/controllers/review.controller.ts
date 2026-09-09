@@ -13,6 +13,8 @@ import { BadRequest } from "../lib/apiError";
 import { requireUser, optionalUser } from "../middlewares/requireUser";
 import { verifyTokenAndRole } from "../middlewares/adminRoleAccess.middlewares";
 import { requireRole } from "../middlewares/requireAuth";
+import { limitByIp, RATE_RULES } from "../lib/rateLimit";
+import { bulkDeleteSchema } from "../validations/bulkDelete.schema";
 
 type IdCtx = { params: Promise<{ id: string }> };
 
@@ -81,6 +83,8 @@ const getAllReviews = catchAsync(async (req: NextRequest) => {
 
 /** POST /api/v1/reviews — লগইন করা কাস্টমার নিজের ডেলিভার হওয়া খাবারে রিভিউ দেয় */
 const createReview = catchAsync(async (req: NextRequest) => {
+  await limitByIp(RATE_RULES.review, req);
+
   const auth = await requireUser(req);
   const body = await parseBody(req, createReviewSchema);
   const review = await ReviewService.createReview(auth.id, auth.phone, body);
@@ -107,6 +111,28 @@ const deleteReview = catchAsync<IdCtx>(async (req, { params }) => {
   return ok("Review deleted", review);
 });
 
+/* ==========================================================================
+   ADMIN — চেকবক্সে বাছা রিভিউগুলো একসাথে মুছে ফেলা
+   POST /api/v1/reviews/bulk-delete   { "ids": ["...", "..."] }
+   --------------------------------------------------------------------------
+   মডারেশনের তালিকায় স্প্যাম রিভিউ সাধারণত একসাথে কয়েকটা আসে, তাই
+   একটা একটা করে মোছার বদলে এক ডাকেই কাজ শেষ। অনুমতি একটা রিভিউ
+   মোছার মতোই — মালিক পর্যায়ের বাইরে কেউ নয়।
+   ========================================================================== */
+const bulkDeleteReviews = catchAsync(async (req: NextRequest) => {
+  requireRole(req, MODERATORS);
+
+  const { ids } = await parseBody(req, bulkDeleteSchema);
+  const result = await ReviewService.deleteManyReviews(ids);
+
+  return ok(
+    result.deleted
+      ? `${result.deleted} review${result.deleted === 1 ? "" : "s"} deleted`
+      : "None of those reviews are here any more",
+    result,
+  );
+});
+
 /** কে রিভিউ দিতে পারবে সেটা UI আগেই জানতে চায় (লগইন আছে কিনা) */
 const whoAmI = catchAsync(async (req: NextRequest) => {
   const user = await optionalUser(req);
@@ -119,5 +145,6 @@ export const ReviewController = {
   createReview,
   getMyReviews,
   deleteReview,
+  bulkDeleteReviews,
   whoAmI,
 };

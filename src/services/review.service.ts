@@ -203,10 +203,58 @@ const deleteReview = async (id: string, userId?: string) => {
   return review;
 };
 
+/**
+ * মডারেশন তালিকায় চেকবক্সে বেছে নেওয়া রিভিউগুলো একসাথে মোছা।
+ *
+ * একটা রিভিউ মুছলে যা যা করতে হয় — ছবি সরানো আর খাবারের গড় রেটিং
+ * আবার হিসাব করা — এখানেও ঠিক তা-ই হয়। রেটিংটা খাবার ধরে একবার করেই
+ * হিসাব হয়: একই খাবারের ৮টা রিভিউ মুছলে ৮ বার নয়, একবার।
+ *
+ * শুধু অ্যাডমিনের হাতেই এটা আছে, তাই "নিজের রিভিউ কিনা" যাচাইয়ের
+ * দরকার পড়ে না — কন্ট্রোলারেই রোল দেখা হয়ে গেছে।
+ */
+const deleteManyReviews = async (ids: string[]) => {
+  const doomed = await ReviewModel.find({ _id: { $in: ids } })
+    .select("_id food_id images")
+    .lean();
+
+  if (!doomed.length) {
+    return { requested: ids.length, deleted: 0, missing: ids.length, foods_updated: 0 };
+  }
+
+  const res = await ReviewModel.deleteMany({
+    _id: { $in: doomed.map((r: any) => r._id) },
+  });
+  const deleted = res.deletedCount ?? 0;
+
+  // Cloudinary তে পড়ে থাকা ছবি শুধু জায়গা খায় — চুপচাপ সরিয়ে দিই
+  await Promise.all(
+    doomed
+      .flatMap((r: any) => r.images || [])
+      .filter((img: any) => img?.public_id)
+      .map((img: any) =>
+        cloudinary.uploader
+          .destroy(img.public_id)
+          .catch(() => console.warn("Could not remove review image", img.public_id)),
+      ),
+  );
+
+  const foodIds = [...new Set(doomed.map((r: any) => String(r.food_id)))];
+  await Promise.all(foodIds.map((foodId) => recomputeFoodRating(foodId)));
+
+  return {
+    requested: ids.length,
+    deleted,
+    missing: ids.length - deleted,
+    foods_updated: foodIds.length,
+  };
+};
+
 export const ReviewService = {
   createReview,
   getFoodReviews,
   getAllReviews,
   getMyReviews,
   deleteReview,
+  deleteManyReviews,
 };

@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   return FoodController.updateFood(req, id);
 }
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   const { id } = await params;
-  return FoodController.deleteFood(id);
+  return FoodController.deleteFood(req, id);
 }

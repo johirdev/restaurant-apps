@@ -130,6 +130,12 @@ export interface IOrder {
   /* ---- ইনভয়েস ---- */
   invoice_printed_at?: Date | null;
   invoice_print_count: number;
+
+  /**
+   * দিনের হিসাবের খাতায় ("2026-09-09") বসে গেছে কিনা।
+   * খালি মানে এখনো বসেনি — একই অর্ডার দুবার গোনা ঠেকায়।
+   */
+  ledger_day?: string;
 }
 
 export interface IOrderDocument extends IOrder, Document {

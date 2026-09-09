@@ -19,6 +19,7 @@ import {
   assertObjectId,
 } from "../lib/apiHandler";
 import { getClientIp } from "../lib/getClientIp";
+import { limitByIp, RATE_RULES } from "../lib/rateLimit";
 import { requireRole, ANY_STAFF, CAN_WRITE } from "../middlewares/requireAuth";
 import {
   requireUser,
@@ -36,6 +37,7 @@ import {
   updateProfileSchema,
   adminUpdateUserSchema,
 } from "../validations/user.schema";
+import { bulkDeleteSchema } from "../validations/bulkDelete.schema";
 import {
   UserFilterableFields,
   UserPaginationFields,
@@ -48,6 +50,15 @@ type IdCtx = { params: Promise<{ id: string }> };
    POST /api/v1/users/otp/send   { "phone": "01712345678" }
    ========================================================================== */
 const requestOtp = catchAsync(async (req: NextRequest) => {
+  // প্রতিটা OTP তে টাকা লাগে। নম্বর-ভিত্তিক সীমা `auth.service` এ আগে
+  // থেকেই আছে, কিন্তু এক IP থেকে হাজারটা ভিন্ন নম্বরে SMS পাঠিয়ে
+  // বিল বাড়িয়ে দেওয়াটা সেটা আটকাত না।
+  await limitByIp(
+    RATE_RULES.otp,
+    req,
+    "Too many code requests from this device. Please try again later.",
+  );
+
   const { phone } = await parseBody(req, sendOtpSchema);
   const result = await sendRegisterOtp(phone, getClientIp(req));
 
@@ -59,6 +70,9 @@ const requestOtp = catchAsync(async (req: NextRequest) => {
    POST /api/v1/users/register  { "phone", "code", "password", "name"? }
    ========================================================================== */
 const register = catchAsync(async (req: NextRequest) => {
+  // এক IP থেকে ভুয়া অ্যাকাউন্টের বন্যা ঠেকায়
+  await limitByIp(RATE_RULES.register, req);
+
   const payload = await parseBody(req, registerSchema);
   const result = await registerWithOtp(payload, getClientIp(req));
 
@@ -82,6 +96,14 @@ const register = catchAsync(async (req: NextRequest) => {
    POST /api/v1/users/login   { "phone": "...", "password": "..." }
    ========================================================================== */
 const login = catchAsync(async (req: NextRequest) => {
+  // নম্বর-ভিত্তিক লক আগে থেকেই আছে (`auth.service`), কিন্তু এক IP থেকে
+  // নম্বরের পর নম্বর ধরে চেষ্টা করাটা সেটা আটকাত না
+  await limitByIp(
+    RATE_RULES.login,
+    req,
+    "Too many login attempts from this device. Please wait a few minutes.",
+  );
+
   const { phone, password } = await parseBody(req, loginSchema);
   const result = await loginWithPassword(phone, password, getClientIp(req));
 
@@ -130,6 +152,8 @@ const updateMyPassword = catchAsync(async (req: NextRequest) => {
    POST /api/v1/users/password/forgot   { "phone": "01712345678" }
    ========================================================================== */
 const forgotPassword = catchAsync(async (req: NextRequest) => {
+  await limitByIp(RATE_RULES.otp, req);
+
   const { phone } = await parseBody(req, forgotPasswordSchema);
   const result = await sendResetOtp(phone, getClientIp(req));
 
@@ -147,6 +171,9 @@ const forgotPassword = catchAsync(async (req: NextRequest) => {
    ধাপ ৩ এ ঐ টিকিটটাই নতুন পাসওয়ার্ডের সাথে যায়।
    ========================================================================== */
 const verifyResetCode = catchAsync(async (req: NextRequest) => {
+  // ৬ ডিজিটের কোড অনুমান করার চেষ্টা — চেষ্টার সংখ্যাটাই আসল পাহারা
+  await limitByIp(RATE_RULES.passwordReset, req);
+
   const payload = await parseBody(req, verifyResetOtpSchema);
   const result = await verifyResetOtp(payload, getClientIp(req));
 
@@ -161,6 +188,8 @@ const verifyResetCode = catchAsync(async (req: NextRequest) => {
    তাতেই নিশ্চিত হয় পাসওয়ার্ডটা তার মনে আছে।
    ========================================================================== */
 const resetPassword = catchAsync(async (req: NextRequest) => {
+  await limitByIp(RATE_RULES.passwordReset, req);
+
   const payload = await parseBody(req, resetPasswordSchema);
   const result = await resetPasswordWithTicket(payload, getClientIp(req));
 
@@ -302,6 +331,25 @@ const deleteUser = catchAsync<IdCtx>(async (req, { params }) => {
   return ok("Customer deleted successfully", user);
 });
 
+/* --------------------------------------------------------------------------
+   POST /api/v1/users/bulk-delete   { "ids": ["...", "..."] }
+   কাস্টমার টেবিলে চেকবক্সে বাছা অ্যাকাউন্টগুলো একসাথে মুছে ফেলা।
+   অনুমতি একজনকে মোছার মতোই — মালিক ছাড়া কেউ নয়।
+   -------------------------------------------------------------------------- */
+const bulkDeleteUsers = catchAsync(async (req: NextRequest) => {
+  requireRole(req, ["superadmin"]);
+
+  const { ids } = await parseBody(req, bulkDeleteSchema);
+  const result = await UserService.deleteManyUsers(ids);
+
+  return ok(
+    result.deleted
+      ? `${result.deleted} customer${result.deleted === 1 ? "" : "s"} deleted successfully`
+      : "None of those customers are here any more",
+    result,
+  );
+});
+
 export const UserController = {
   requestOtp,
   register,
@@ -324,4 +372,5 @@ export const UserController = {
   getUnverifiedCount,
   deleteUnverifiedUsers,
   deleteUser,
+  bulkDeleteUsers,
 };

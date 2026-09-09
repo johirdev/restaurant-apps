@@ -5,6 +5,7 @@ import { verifyTokenAndRole } from "@/src/middlewares/adminRoleAccess.middleware
 import { optionalUser } from "@/src/middlewares/requireUser";
 import { ANY_STAFF } from "@/src/middlewares/requireAuth";
 import { connectDB } from "@/src/config/db";
+import { checkRateLimit, clientIp, RATE_RULES } from "@/src/lib/rateLimit";
 
 // Buffer/streams নিয়ে কাজ করতে হলে Node.js runtime বাধ্যতামূলক
 export const runtime = "nodejs";
@@ -70,6 +71,23 @@ export async function POST(req: NextRequest) {
     const auth = await whoIsUploading(req);
     if (!auth.ok) {
       return fail("Please log in before uploading an image", 401);
+    }
+
+    /**
+     * লগইন থাকলেই যে অসীম ছবি তোলা যাবে তা নয় — একটা অ্যাকাউন্ট ফাঁস
+     * হলে সেটা দিয়েই Cloudinary কোটা শেষ করে দেওয়া যেত। খরচের
+     * পাহারাটা তাই auth এর পরেও দরকার।
+     */
+    const rate = await checkRateLimit(RATE_RULES.upload, `ip:${clientIp(req)}`);
+    if (!rate.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too many uploads. Please wait a few minutes.",
+          message: "Too many uploads. Please wait a few minutes.",
+        },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfter) } },
+      );
     }
 
     const formData = await req.formData();

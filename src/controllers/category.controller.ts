@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { CategoryService } from "../services/category.service";
 import { connectDB } from "../config/db";
+import { ApiError } from "../lib/apiError";
+import { requireRole, MANAGER_UP } from "../middlewares/requireAuth";
 
 /**
  * Controller layer — request/response handling only.
@@ -11,7 +13,21 @@ import { connectDB } from "../config/db";
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
+/* ==========================================================================
+   ক্যাটাগরি বদলানোর অধিকার
+   --------------------------------------------------------------------------
+   খাবারের মতোই — create/update/delete তিনটেই আগে টোকেন ছাড়াই কাজ করত,
+   অর্থাৎ বাইরের যে কেউ মেনুর ক্যাটাগরি মুছে দিতে পারত।
+   ========================================================================== */
+const requireMenuAccess = (req: NextRequest) => requireRole(req, MANAGER_UP);
+
 const handleError = (err: unknown, fallbackMessage: string) => {
+  if (err instanceof ApiError) {
+    return NextResponse.json(
+      { success: false, message: err.message },
+      { status: err.statusCode, headers: err.headers },
+    );
+  }
   console.error(fallbackMessage, err);
 
   if (err instanceof mongoose.Error.ValidationError) {
@@ -86,6 +102,7 @@ const getCategoryById = async (id: string) => {
 // POST /api/v1/categories
 const createCategory = async (req: NextRequest) => {
   try {
+    requireMenuAccess(req);
     await connectDB();
     const body = await req.json();
 
@@ -114,6 +131,7 @@ const createCategory = async (req: NextRequest) => {
 // PATCH /api/v1/categories/:id
 const updateCategory = async (req: NextRequest, id: string) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(id)) {
       return NextResponse.json(
         { success: false, message: "Invalid category id" },
@@ -151,8 +169,9 @@ const updateCategory = async (req: NextRequest, id: string) => {
 };
 
 // DELETE /api/v1/categories/:id
-const deleteCategory = async (id: string) => {
+const deleteCategory = async (req: NextRequest, id: string) => {
   try {
+    requireMenuAccess(req);
     if (!isValidObjectId(id)) {
       return NextResponse.json(
         { success: false, message: "Invalid category id" },

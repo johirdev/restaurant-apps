@@ -13,7 +13,7 @@
  * স্টাইল foods.css এ, কার্ডের স্টাইল FoodItems/foodCard.css এ।
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -37,7 +37,7 @@ import FoodCard, { FoodItem } from "../FoodItems/FoodCard";
 
 import "./foods.css";
 
-interface Category {
+export interface Category {
   _id: string;
   name: string;
   image?: string;
@@ -46,15 +46,34 @@ interface Category {
 const LIMIT_OPTIONS = [8, 12, 20, 24, 48];
 const DEFAULT_LIMIT = 20;
 
-const DisplayFood = () => {
+interface DisplayFoodProps {
+  /**
+   * সার্ভারে রেন্ডার হওয়ার সময়েই তোলা প্রথম পাতার খাবার আর ক্যাটাগরি।
+   * থাকলে প্রথম HTML এই মেনুটা ভরা অবস্থায় যায় — গুগল আর সোশ্যাল
+   * প্রিভিউ দুজনেই খাবারের নাম-দাম দেখতে পায়, আর ভিজিটরকে JavaScript
+   * লোড হওয়ার জন্য বসে থাকতে হয় না।
+   */
+  initialFoods?: FoodItem[];
+  initialTotal?: number;
+  initialCategories?: Category[];
+}
+
+const DisplayFood = ({
+  initialFoods,
+  initialTotal,
+  initialCategories,
+}: DisplayFoodProps = {}) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [foods, setFoods] = useState<FoodItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const [foods, setFoods] = useState<FoodItem[]>(initialFoods ?? []);
+  const [categories, setCategories] = useState<Category[]>(
+    initialCategories ?? [],
+  );
+  // সার্ভার আগেই ডেটা দিয়ে দিলে স্কেলেটন দেখানোর দরকার নেই
+  const [loading, setLoading] = useState(!initialFoods?.length);
+  const [total, setTotal] = useState(initialTotal ?? 0);
   // default open on desktop
   const [filterOpen, setFilterOpen] = useState(true);
 
@@ -126,10 +145,33 @@ const DisplayFood = () => {
   };
 
   useEffect(() => {
+    // সার্ভার থেকেই এসে গেছে
+    if (initialCategories?.length) return;
     fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * সার্ভারের দেওয়া তালিকাটা কোনো ফিল্টার ছাড়া প্রথম পাতার — তাই
+   * ফিল্টার না বদলালে সেটা আবার আনার দরকার নেই। ব্যবহারকারী সার্চ,
+   * ক্যাটাগরি বা দামে হাত দিলে তবেই নতুন করে ডাকা হয়।
+   */
+  const servedFromServer = useRef(!!initialFoods?.length);
+
   useEffect(() => {
+    if (servedFromServer.current) {
+      servedFromServer.current = false;
+      // URL এ আগে থেকেই কোনো ফিল্টার থাকলে সার্ভারের তালিকাটা মেলে না,
+      // তখন একবার আনতেই হবে
+      const untouched =
+        page === 1 &&
+        !searchTerm.trim() &&
+        categoryId === "all" &&
+        !minPrice &&
+        !maxPrice;
+      if (untouched) return;
+    }
+
     fetchFoods();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

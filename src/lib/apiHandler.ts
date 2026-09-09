@@ -70,6 +70,8 @@ export function handleApiError(err: unknown) {
       success: false,
       message: err.message,
       errorMessages: err.errorMessages,
+      // ৪২৯ এর `Retry-After` এখান দিয়েই ক্লায়েন্ট পর্যন্ত যায়
+      headers: err.headers,
     });
   }
 

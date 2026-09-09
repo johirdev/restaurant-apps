@@ -329,6 +329,20 @@
   color: var(--color-chili);
 }
 
+/* শব্দের হিসাব — লিখতে লিখতেই দেখা যায়, সীমা ছাড়ালে লাল হয়ে যায় */
+.contact-field__count {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  text-align: right;
+  color: var(--color-muted, #8a8a8a);
+}
+
+.contact-field__count.is-over {
+  font-weight: 600;
+  color: var(--color-chili);
+}
+
 /* মধুর ফাঁদ — চোখে পড়ে না, কিন্তু DOM এ থাকে (বট এটাই ভরে ফেলে) */
 .contact-form__trap {
   position: absolute;

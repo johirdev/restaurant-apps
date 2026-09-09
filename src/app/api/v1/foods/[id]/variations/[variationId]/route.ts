@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id, variationId } = await params;
   return FoodController.updateVariation(req, id, variationId);
 }
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   const { id, variationId } = await params;
-  return FoodController.deleteVariation(id, variationId);
+  return FoodController.deleteVariation(req, id, variationId);
 }
