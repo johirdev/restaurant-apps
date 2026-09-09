@@ -1,0 +1,86 @@
+/* ==========================================================================
+   COOL DRINKS — হোমপেজের ঠান্ডা পানীয়ের সারি
+   --------------------------------------------------------------------------
+   রঙ আর মাপ সবই globals.css এর টোকেন থেকে, তাই ব্র্যান্ডের গোলাপি একদিন
+   বদলালে এই সেকশনও নিজে থেকেই বদলে যায় — এখানে আলাদা করে কোনো হেক্স
+   কোড বসানো নেই।
+   ========================================================================== */
+
+.cool-drinks {
+  /* খুব হালকা গোলাপি স্ট্রাইপ — উপরের-নিচের সাদা সেকশন থেকে আলাদা করে,
+     কিন্তু কার্ডগুলোর সাথে প্রতিযোগিতা করে না */
+  background: var(--color-brand-tint);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding-block: 56px;
+}
+
+/* --------------------------------------------------------------------------
+   তীর — FoodCard এর হোভারের সাথে একই ভাষা: রঙ বদলায়, লাফায় না
+   -------------------------------------------------------------------------- */
+.cool-drinks__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.cool-drinks__nav:hover {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-ink-invert);
+}
+
+.cool-drinks__nav:active {
+  background: var(--color-brand-dark);
+  border-color: var(--color-brand-dark);
+}
+
+.cool-drinks__nav:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   স্লাইডার
+   -------------------------------------------------------------------------- */
+
+/**
+ * Swiper ডিফল্টে স্লাইডগুলো ঠিক প্রান্তে কেটে দেয়। কার্ডের হোভার-শ্যাডো
+ * আর বর্ডার তখন কাটা পড়ত, তাই সামান্য জায়গা ছেড়ে সেটুকু আবার টেনে নেওয়া
+ * — কার্ড আগের জায়গাতেই বসে, শুধু নিঃশ্বাসের জায়গাটা পায়।
+ */
+.cool-drinks__swiper {
+  padding-block: 6px 10px;
+  margin-inline: -6px;
+  padding-inline: 6px;
+}
+
+/* কার্ডগুলো সমান উচ্চতায় — একটার ছবি লম্বা হলে সারি এলোমেলো দেখায় */
+.cool-drinks__swiper .swiper-slide {
+  height: auto;
+  display: flex;
+}
+
+.cool-drinks__swiper .swiper-slide > * {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .cool-drinks {
+    padding-block: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cool-drinks__nav {
+    transition: none;
+  }
+}

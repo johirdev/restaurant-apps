@@ -1,12 +1,16 @@
+import { Suspense } from "react";
 import HeroBanner from "../components/Clients/Banner/HeroBanner";
 import FoodCategory from "../components/Clients/FoodCategory/FoodCategory";
 import ShowFoodItems from "../components/Clients/FoodItems/ShowFoodItems";
+import CoolDrinks, { CoolDrinksSkeleton } from "../components/Clients/CoolDrinks/CoolDrinks";
 import VideoBlog from "../components/Clients/VideoBlog/VideoBlog";
 import StatsSection from "../components/Clients/StatsSection/StatsSection";
 import {
   loadMenuFoods,
   loadActiveCategories,
+  loadFoodsByCategory,
 } from "../components/Clients/Shared/loadMenu";
+import { DRINKS_CATEGORY_ID, DRINKS_LIMIT } from "@/src/config/site";
 import { loadRestaurant } from "../components/Clients/Shared/loadRestaurant";
 import { restaurantJsonLd } from "../components/Clients/Shared/restaurantJsonLd";
 
@@ -21,6 +25,11 @@ import { restaurantJsonLd } from "../components/Clients/Shared/restaurantJsonLd"
  */
 export const revalidate = 300;
 
+async function DrinksSection() {
+  const drinks = await loadFoodsByCategory(DRINKS_CATEGORY_ID, DRINKS_LIMIT);
+  return <CoolDrinks drinks={drinks} />;
+}
+
 /**
  * হোমপেজ — খাবারই মূল কথা।
  *
@@ -34,7 +43,7 @@ export const revalidate = 300;
  * দেখত — যে পাতাটাই আসলে কাস্টমার আনার কথা।
  */
 export default async function Home() {
-  // তিনটে কোয়েরি পাশাপাশি — একটার জন্য আরেকটা অপেক্ষা করে না
+  // কোয়েরিগুলো পাশাপাশি — একটার জন্য আরেকটা অপেক্ষা করে না
   const [foods, categories, settings] = await Promise.all([
     loadMenuFoods(12),
     loadActiveCategories(),
@@ -57,6 +66,10 @@ export default async function Home() {
       <HeroBanner />
       <FoodCategory initialCategories={categories} />
       <ShowFoodItems initialFoods={foods} />
+      {/* পানীয় আলাদা করে stream হয়, তাই fetch চলাকালে card skeleton দেখা যায় */}
+      <Suspense fallback={<CoolDrinksSkeleton />}>
+        <DrinksSection />
+      </Suspense>
       <StatsSection />
       <VideoBlog />
     </div>

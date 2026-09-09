@@ -66,3 +66,32 @@ export async function loadActiveCategories(): Promise<Category[]> {
     return [];
   }
 }
+
+/**
+ * একটা নির্দিষ্ট ক্যাটাগরির খাবার — হোমপেজের ঠান্ডা পানীয়ের সারি।
+ *
+ * `/foods?category_id=…` পাতাটা যা দেখায়, এটাও ঠিক সেই ফিল্টারই ব্যবহার
+ * করে — তাই দুই জায়গায় কখনো দুই রকম তালিকা আসে না। ডেটা সার্ভারেই তোলা
+ * হয় বলে পানীয়গুলোর নাম আর দাম প্রথম HTML এই চলে যায়; স্লাইডারটা শুধু
+ * সাজিয়ে দেখায়, আনার জন্য আর কোনো API কল করে না।
+ */
+export async function loadFoodsByCategory(
+  categoryId: string,
+  limit = 12,
+): Promise<FoodItem[]> {
+  if (!categoryId) return [];
+
+  try {
+    await connectDB();
+
+    const result = await FoodService.getAllFoods(
+      { status: "active", category_id: categoryId },
+      { page: 1, limit, sortBy: "createdAt", sortOrder: "desc" },
+    );
+
+    return plain<FoodItem[]>(result.data);
+  } catch (err) {
+    console.error("[loadMenu] category foods:", err);
+    return [];
+  }
+}
