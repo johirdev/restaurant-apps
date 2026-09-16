@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import Image from "next/image";
 
 type SubTitle = "" | "New" | "Hot" | "Popular";
 
@@ -58,10 +59,12 @@ function CategoryImage({ src, alt }: { src?: string; alt: string }) {
   }
 
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
       draggable={false}
+      width={600}
+      height={600}
       loading="lazy"
       decoding="async"
       onLoad={() => setLoaded(true)}
